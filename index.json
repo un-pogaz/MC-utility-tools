@@ -1,7 +1,7 @@
 {
   "latest": {
-    "release": "1.18.1",
-    "snapshot": "1.18.2-rc1"
+    "release": "1.18.2",
+    "snapshot": "1.18.2"
   },
   "paths": {
     "18w01a": "snapshots/1.13/18w01a",
