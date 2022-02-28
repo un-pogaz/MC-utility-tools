@@ -214,10 +214,7 @@ def main():
     
     json_write(manifest, version_json)
     
-    if version_json["type"] == "release":
-        output = args.version
-    else:
-        output = os.path.join(version_json["type"], args.version)
+    output = output or os.path.join(version_json["type"], args.version)
     
     
     fix = datetime.datetime.fromisoformat("2021-09-21T14:36:06+00:00")
