@@ -98,6 +98,65 @@ def main():
     prints("--==| Minecraft: Generated data helper |==--")
     prints()
     
+    temp = os.path.join(tempfile.gettempdir(), "MC Generated data")
+    if not os.path.exists(temp):
+        os.makedirs(temp)
+    
+    try:
+        index = json_read("index.json")
+    except:
+        index = {"latest":{"release": "", "snapshot": ""}, "paths":{}, "versions":{}}
+    
+    with urllib.request.urlopen("https://raw.githubusercontent.com/un-pogaz/MC-generated-data/main/index.json") as fl:
+        new_index = json.load(fl)
+    
+    edited = False
+    if index["latest"]["release"] != new_index["latest"]["release"]:
+        index["latest"]["release"] = new_index["latest"]["release"]
+        edited = True
+    
+    if index["latest"]["snapshot"] != new_index["latest"]["snapshot"]:
+        index["latest"]["snapshot"] = new_index["latest"]["snapshot"]
+        edited = True
+    
+    for k in reversed(new_index["paths"]):
+        if k not in index["paths"]:
+            index["paths"][k] = new_index["paths"][k]
+            edited = True
+    
+    for v in new_index["versions"]:
+        i = index["versions"]
+        if v == "special":
+            if v not in i:
+                i[v] = []
+                edited = True
+            
+            iv = i[v]
+            for idx, e in enumerate(new_index["versions"][v], start=0):
+                if e not in iv:
+                    iv.insert(idx, e)
+                    edited = True
+            
+        else:
+            if v not in i:
+                i[v] = {}
+                edited = True
+            
+            iv = i[v]
+            for t in new_index["versions"][v]:
+                if t not in iv:
+                    iv[t] = []
+                    edited = True
+                
+                ivt = iv[t]
+                for idx, e in enumerate(new_index["versions"][v][t], start=0):
+                    if e not in ivt:
+                        ivt.insert(idx, e)
+                        edited = True
+    
+    if edited:
+        json_write("index.json", index)
+    
     if not args.manifest_json:
         ## update version_manifest
         
@@ -167,11 +226,9 @@ def main():
         manifest_json = json_read(args.manifest_json)
         args.version = manifest_json["id"]
     
-    
-    temp = os.path.join(tempfile.gettempdir(), "MC Generated data", args.version)
+    temp = os.path.join(temp, args.version)
     if not os.path.exists(temp):
         os.makedirs(temp)
-    
     
     output = glob.glob(f"**/{args.version}/{args.version}.json", root_dir='.', recursive=True)
     if len(output):
@@ -214,7 +271,7 @@ def main():
     
     json_write(manifest, version_json)
     
-    output = output or os.path.join(version_json["type"], args.version)
+    output = index["paths"][args.version] or os.path.join(version_json["type"], args.version)
     
     
     fix = datetime.datetime.fromisoformat("2021-09-21T14:36:06+00:00")
@@ -236,19 +293,19 @@ def main():
         prints(f"Downloading server.jar...")
         urllib.request.urlretrieve(version_json["server"], server)
     
-    ###prints(f"Extracting data server...")
-    ###subprocess.run("java " + cmd, cwd=temp, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
-    ###
-    ###prints(f"Extracting data client...")
-    ###with zipfile.ZipFile(client, mode='r') as zip:
-    ###    for entry in zip.filelist:
-    ###        if entry.filename.startswith("assets/") or entry.filename.startswith("data/"):
-    ###            safe_del(temp, [os.path.join("generated", entry.filename)])
-    ###            zip.extract(entry.filename, os.path.join(temp, "generated"))
-    ###
-    ###safe_del(temp, ["libraries", "logs", "versions",
-    ###        "generated/.cache", "generated/assets/.mcassetsroot", "generated/data/.mcassetsroot"])
-    ###
+    prints(f"Extracting data server...")
+    subprocess.run("java " + cmd, cwd=temp, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
+    
+    prints(f"Extracting data client...")
+    with zipfile.ZipFile(client, mode='r') as zip:
+        for entry in zip.filelist:
+            if entry.filename.startswith("assets/") or entry.filename.startswith("data/"):
+                safe_del(temp, [os.path.join("generated", entry.filename)])
+                zip.extract(entry.filename, os.path.join(temp, "generated"))
+    
+    safe_del(temp, ["libraries", "logs", "versions",
+            "generated/.cache", "generated/assets/.mcassetsroot", "generated/data/.mcassetsroot"])
+    
     prints("Listing elements and various...")
     
     def enum_json(dir):
@@ -304,7 +361,7 @@ def json_write(path, obj):
 
 def write_lines(path, lines):
     dir = os.path.dirname(path)
-    if not os.path.exists(dir):
+    if dir and not os.path.exists(dir):
         os.makedirs(dir)
     with open(path, 'w') as f:
         f.writelines(l+'\n' for l in lines)
