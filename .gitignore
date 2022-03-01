@@ -6,3 +6,5 @@
 zz*
 *.code-workspace
 *.lnk
+
+version_manifest.json
