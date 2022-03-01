@@ -7,4 +7,4 @@ zz*
 *.code-workspace
 *.lnk
 
-version_manifest.json
+/version_manifest.json
