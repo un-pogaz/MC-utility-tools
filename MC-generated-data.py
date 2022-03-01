@@ -320,32 +320,17 @@ def main():
         
         entries = [k for k in v["entries"].keys()]
         tags = ['#minecraft:'+j for j in enum_json(tags)]
-        write_lines(os.path.join(temp, "generated/list/registries", name +".txt"), entries + tags)
+        write_lines(os.path.join(temp, "generated/lists/registries", name +".txt"), entries + tags)
     
     for dir in os.scandir(os.path.join(temp, "generated/reports/worldgen/minecraft/worldgen")):
         if dir.is_dir:
             folder = ['minecraft:'+j for j in enum_json(dir.path)]
-            tags = ['#minecraft:'+j for j in enum_json(os.path.join(temp,"generated/data/minecraft/tags", dir.name))]
-            write_lines(os.path.join(temp, "generated/list/worldgen", dir.name +".txt"), folder + tags)
+            tags = ['#minecraft:'+j for j in enum_json(os.path.join(temp,"generated/data/minecraft/tags/worldgen", dir.name))]
+            write_lines(os.path.join(temp, "generated/lists/worldgen", dir.name +".txt"), folder + tags)
     
-    
-    #def Worldgen(name)
-    #
-    #    static void Worldgen(string temp, string name)
-    #    {
-    #        string dir = Path.Combine(temp, "generated", "list", "worldgen");
-    #        Directory.CreateDirectory(dir);
-    #        using (StreamWriter writer = new StreamWriter(Path.Combine(dir, name) + ".txt", false, UTF8SansBomEncoding.UTF8SansBom))
-    #        {
-    #            foreach (var item in EnumerateJsonName(temp, Path.Combine("reports/worldgen/minecraft/worldgen", name)))
-    #                writer.WriteLine("minecraft:" + item);
-    #            foreach (var item in EnumerateJsonName(temp, Path.Combine("data/minecraft/tags/worldgen", name)))
-    #                writer.WriteLine("#minecraft:" + item);
-    #        }
-    #    }
-    #
     #shutil.move(src, dst)
     
+    prints()
     prints("Work done. Press any key to exit.")
     keyboard.read_key()
     return 0
@@ -364,7 +349,8 @@ def write_lines(path, lines):
     if dir and not os.path.exists(dir):
         os.makedirs(dir)
     with open(path, 'w') as f:
-        f.writelines(l+'\n' for l in lines)
+        f.writelines(l+'\n' for l in lines[:-1])
+        f.write(lines[-1])
 
 
 def safe_del(temp, paths):
