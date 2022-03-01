@@ -87,7 +87,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot')
 parser.add_argument('-z', '--zip', help='Empack the folder in a zip after its creation', action='store_true')
 parser.add_argument('-q', '--quiet', help='JSON manifest of the target version', action='store_true')
-parser.add_argument('--minecraft-path', help='Minecraft directory path', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='JSON manifest of the target version', type=pathlib.Path)
 
 args = parser.parse_args()
@@ -140,12 +139,13 @@ def main():
         os.makedirs(temp)
     
     
-    edited = False
     if True: ## update version_manifest
         version_manifest_path = os.path.join("version_manifest.json")
         version_manifest = json_read(version_manifest_path, { "latest":{"release": None, "snapshot": None}, "versions":[], "paths":{}, "versioning":{}})
         
+        edited = False
         def update_version_manifest(read_manifest):
+            edited = False
             if version_manifest["latest"]["release"] != read_manifest["latest"]["release"]:
                 version_manifest["latest"]["release"] = read_manifest["latest"]["release"]
                 edited = True
@@ -159,64 +159,65 @@ def main():
             for k,v in { v["id"]:v for v in read_manifest["versions"] }.items():
                 if "sha1" in v: del v["sha1"]
                 if "complianceLevel" in v: del v["complianceLevel"]
-            
+                
                 if k not in versions:
                     versions[k] = v
                     edited = True
+            
+            version_manifest["versions"] = versions.values()
+            
+            return edited
         
         with urllib.request.urlopen(github_data.get_raw("main", "version_manifest.json")) as fl:
             github_manifest = json.load(fl)
-            update_version_manifest(github_manifest)
             
-            for k in reversed(new_index["paths"]):
-                if k not in index["paths"]:
-                    index["paths"][k] = new_index["paths"][k]
+            if update_version_manifest(github_manifest):
+                edited = True
+            
+            for k in github_manifest["paths"]:
+                if k not in version_manifest["paths"]:
+                    version_manifest["paths"][k] = github_manifest["paths"][k]
                     edited = True
             
-        for v in new_index["versioning"]:
-            i = index["versioning"]
-            ni = new_index["versioning"]
-            if v == "special":
-                if v not in i:
-                    i[v] = []
-                    edited = True
-                
-                iv = i[v]
-                for idx, e in enumerate(ni[v], start=0):
-                    if e not in iv:
-                        iv.insert(idx, e)
+            for v in github_manifest["versioning"]:
+                i = version_manifest["versioning"]
+                ni = github_manifest["versioning"]
+                if v == "special":
+                    if v not in i:
+                        i[v] = []
                         edited = True
                     
-            else:
-                if v not in i:
-                    i[v] = {}
-                    edited = True
-                
-                iv = i[v]
-                niv = i[v]
-                for t in niv:
-                    if t not in iv:
-                        iv[t] = []
-                        edited = True
-                    
-                    ivt = iv[t]
-                    nivt = niv[t]
-                    for idx, e in enumerate(nivt, start=0):
-                        if e not in ivt:
-                            ivt.insert(idx, e)
+                    iv = i[v]
+                    for idx, e in enumerate(ni[v], start=0):
+                        if e not in iv:
+                            iv.insert(idx, e)
                             edited = True
-            
+                        
+                else:
+                    if v not in i:
+                        i[v] = {}
+                        edited = True
+                    
+                    iv = i[v]
+                    niv = ni[v]
+                    for t in niv:
+                        if t not in iv:
+                            iv[t] = []
+                            edited = True
+                        
+                        ivt = iv[t]
+                        nivt = niv[t]
+                        for idx, e in enumerate(nivt, start=0):
+                            if e not in ivt:
+                                ivt.insert(idx, e)
+                                edited = True
         
-        
-        if not args.minecraft_path:
-            args.minecraft_path = os.path.join(os.getenv("APPDATA"), ".minecraft")
-        minecraft_manifest = os.path.join(args.minecraft_path, "versions", "version_manifest_v2.json")
-        
-        if os.path.exists(minecraft_manifest):
-            update_version_manifest(json_read(minecraft_manifest))
+        with urllib.request.urlopen("https://launchermeta.mojang.com/mc/game/version_manifest_v2.json") as fl:
+            if update_version_manifest(json.load(fl)):
+                edited = True
         
         if edited:
-            version_manifest["versions"] = sorted(versions.values(), key=lambda item: item["releaseTime"], reverse=True)
+            version_manifest["versions"] = sorted(version_manifest["versions"], key=lambda item: item["releaseTime"], reverse=True)
             json_write(version_manifest_path, version_manifest)
     
     
