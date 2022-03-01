@@ -139,14 +139,6 @@ def main():
     if not os.path.exists(temp):
         os.makedirs(temp)
     
-    if True: ## update index
-        index = json_read("index.json", {"latest":{"release": "", "snapshot": ""}, "paths":{}, "versions":{}})
-        
-        with urllib.request.urlopen(github_data.get_raw("main", "index.json")) as fl:
-            new_index = json.load(fl)
-        
-        
-    
     
     edited = False
     if True: ## update version_manifest
