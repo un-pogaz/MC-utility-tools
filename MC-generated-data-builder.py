@@ -1,3 +1,5 @@
+VERSION = (0, 1, 0)
+
 def as_bytes(x, encoding="utf-8"):
     if isinstance(x, str):
         return x.encode(encoding)
@@ -95,7 +97,7 @@ if not first_missing:
 def main():
     global args
     
-    prints("--==| Minecraft: Generated data helper |==--")
+    prints(f"--==| Minecraft: Generated data builder {VERSION} |==--")
     prints()
     
     temp = os.path.join(tempfile.gettempdir(), "MC Generated data")
