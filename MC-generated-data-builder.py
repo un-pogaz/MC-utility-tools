@@ -57,6 +57,7 @@ def prints(*a, **kw):
         except Exception:
             pass
 
+
 first_missing = True
 def install(package, test=None):
     global first_missing
@@ -83,19 +84,53 @@ import keyboard
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-v', '--version', help='Target version ; the version must be installed')
+parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot')
 parser.add_argument('-z', '--zip', help='Empack the folder in a zip after its creation', action='store_true')
+parser.add_argument('-q', '--quiet', help='JSON manifest of the target version', action='store_true')
 parser.add_argument('--minecraft-path', help='Minecraft directory path', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='JSON manifest of the target version', type=pathlib.Path)
 
 args = parser.parse_args()
 
+class GitHub:
+    def __init__(self, user, repository):
+        self.user = user
+        self.repository = repository
+        self.url = "https://github.com/" + self.user + "/" + self.repository + "/releases"
+        self.api = "https://api.github.com/repos/" + self.user + "/" + self.repository + "/releases"
+        self.raw = "https://raw.githubusercontent.com/" + self.user + "/" + self.repository
+    
+    def api_zip(self, tag):
+        return self.api + "/" + tag
+    
+    def html_release(self, tag):
+        return self.url + "/tag/" + tag
+    
+    def get_raw(self, branche_tag, file):
+        return self.raw + "/" + branche_tag + "/" + file.replace('\\','/')
+    
+    def check_versions(self):
+        '''return <latest: tuple>, <versions: list>, <versions_info: dict>'''
+        versions_info = {}
+        with urllib.request.urlopen(self.api) as fl:
+            for item in json.load(fl):
+                tag = item["tag_name"]
+                versions_info[tuple(tag.split('.', 3))] = item
+        
+        versions = [ v[0] for v in sorted(versions_info.items(), key=lambda item : item[1]["id"])]
+        return versions[-1] if len(versions) else None, versions, versions_info
+
 if not first_missing:
     prints("All dependency are instaled")
     prints()
 
+github_data = GitHub("un-pogaz", "MC-generated-data")
+github_builder = GitHub("un-pogaz", "MC-generated-data-builder")
+
 def main():
-    global args
+    global args, temp
+    
+    last, _, _ = github_builder.check_versions()
     
     prints(f"--==| Minecraft: Generated data builder {VERSION} |==--")
     prints()
@@ -104,129 +139,117 @@ def main():
     if not os.path.exists(temp):
         os.makedirs(temp)
     
-    try:
-        index = json_read("index.json")
-    except:
-        index = {"latest":{"release": "", "snapshot": ""}, "paths":{}, "versions":{}}
+    if True: ## update index
+        index = json_read("index.json", {"latest":{"release": "", "snapshot": ""}, "paths":{}, "versions":{}})
+        
+        with urllib.request.urlopen(github_data.get_raw("main", "index.json")) as fl:
+            new_index = json.load(fl)
+        
+        
     
-    with urllib.request.urlopen("https://raw.githubusercontent.com/un-pogaz/MC-generated-data/main/index.json") as fl:
-        new_index = json.load(fl)
     
     edited = False
-    if index["latest"]["release"] != new_index["latest"]["release"]:
-        index["latest"]["release"] = new_index["latest"]["release"]
-        edited = True
-    
-    if index["latest"]["snapshot"] != new_index["latest"]["snapshot"]:
-        index["latest"]["snapshot"] = new_index["latest"]["snapshot"]
-        edited = True
-    
-    for k in reversed(new_index["paths"]):
-        if k not in index["paths"]:
-            index["paths"][k] = new_index["paths"][k]
-            edited = True
-    
-    for v in new_index["versions"]:
-        i = index["versions"]
-        if v == "special":
-            if v not in i:
-                i[v] = []
+    if True: ## update version_manifest
+        version_manifest_path = os.path.join("version_manifest.json")
+        version_manifest = json_read(version_manifest_path, { "latest":{"release": None, "snapshot": None}, "versions":[], "paths":{}, "versioning":{}})
+        
+        def update_version_manifest(read_manifest):
+            if version_manifest["latest"]["release"] != read_manifest["latest"]["release"]:
+                version_manifest["latest"]["release"] = read_manifest["latest"]["release"]
                 edited = True
             
-            iv = i[v]
-            for idx, e in enumerate(new_index["versions"][v], start=0):
-                if e not in iv:
-                    iv.insert(idx, e)
+            if version_manifest["latest"]["snapshot"] != read_manifest["latest"]["snapshot"]:
+                version_manifest["latest"]["snapshot"] = read_manifest["latest"]["snapshot"]
+                edited = True
+            
+            versions = { v["id"]:v for v in version_manifest["versions"] }
+            
+            for k,v in { v["id"]:v for v in read_manifest["versions"] }.items():
+                if "sha1" in v: del v["sha1"]
+                if "complianceLevel" in v: del v["complianceLevel"]
+            
+                if k not in versions:
+                    versions[k] = v
+                    edited = True
+        
+        with urllib.request.urlopen(github_data.get_raw("main", "version_manifest.json")) as fl:
+            github_manifest = json.load(fl)
+            update_version_manifest(github_manifest)
+            
+            for k in reversed(new_index["paths"]):
+                if k not in index["paths"]:
+                    index["paths"][k] = new_index["paths"][k]
                     edited = True
             
-        else:
-            if v not in i:
-                i[v] = {}
-                edited = True
-            
-            iv = i[v]
-            for t in new_index["versions"][v]:
-                if t not in iv:
-                    iv[t] = []
+        for v in new_index["versioning"]:
+            i = index["versioning"]
+            ni = new_index["versioning"]
+            if v == "special":
+                if v not in i:
+                    i[v] = []
                     edited = True
                 
-                ivt = iv[t]
-                for idx, e in enumerate(new_index["versions"][v][t], start=0):
-                    if e not in ivt:
-                        ivt.insert(idx, e)
+                iv = i[v]
+                for idx, e in enumerate(ni[v], start=0):
+                    if e not in iv:
+                        iv.insert(idx, e)
                         edited = True
-    
-    if edited:
-        json_write("index.json", index)
-    
-    if not args.manifest_json:
-        ## update version_manifest
+                    
+            else:
+                if v not in i:
+                    i[v] = {}
+                    edited = True
+                
+                iv = i[v]
+                niv = i[v]
+                for t in niv:
+                    if t not in iv:
+                        iv[t] = []
+                        edited = True
+                    
+                    ivt = iv[t]
+                    nivt = niv[t]
+                    for idx, e in enumerate(nivt, start=0):
+                        if e not in ivt:
+                            ivt.insert(idx, e)
+                            edited = True
+            
+        
         
         if not args.minecraft_path:
             args.minecraft_path = os.path.join(os.getenv("APPDATA"), ".minecraft")
-        
         minecraft_manifest = os.path.join(args.minecraft_path, "versions", "version_manifest_v2.json")
         
-        if not os.path.exists(minecraft_manifest):
-            prints(f'The minecraft_path "{args.minecraft_path}" dosen\'t containt "versions/version_manifest_v2.json". Press any key to exit.')
-            keyboard.read_key()
-            return -1
-        
-        minecraft_manifest = json_read(minecraft_manifest)
-        
-        version_manifest = os.path.join("version_manifest.json")
-        try:
-            manifest_json = json_read(version_manifest)
-        except:
-            manifest_json = { "latest":{"release": None, "snapshot": None}, "versions":[] }
-        
-        edited = False
-        
-        if manifest_json["latest"]["release"] != minecraft_manifest["latest"]["release"]:
-            manifest_json["latest"]["release"] = minecraft_manifest["latest"]["release"]
-            edited = True
-        
-        if manifest_json["latest"]["snapshot"] != minecraft_manifest["latest"]["snapshot"]:
-            manifest_json["latest"]["snapshot"] = minecraft_manifest["latest"]["snapshot"]
-            edited = True
-        
-        versions = { v["id"]:v for v in manifest_json["versions"] }
-        
-        for k,v in { v["id"]:v for v in minecraft_manifest["versions"] }.items():
-            del v["sha1"]
-            del v["complianceLevel"]
-        
-            if k not in versions:
-                versions[k] = v
-                edited = True
+        if os.path.exists(minecraft_manifest):
+            update_version_manifest(json_read(minecraft_manifest))
         
         if edited:
-            manifest_json["versions"] = sorted(versions.values(), key=lambda item: item["releaseTime"], reverse=True)
-            json_write(version_manifest, manifest_json)
-        
-        ##end update version_manifest
-        
-        ##
-        
+            version_manifest["versions"] = sorted(versions.values(), key=lambda item: item["releaseTime"], reverse=True)
+            json_write(version_manifest_path, version_manifest)
+    
+    
+    if args.manifest_json:
+        args.version = json_read(args.manifest_json, {"id": None})["id"]
+    
+    else:
         if not args.version:
             prints("Enter the version:")
             args.version = input()
         
-        version_json = None
-        for v in manifest_json["versions"]:
+        if args.version in ['r','release','s','snapshot']:
+            pass
+        
+        for v in version_manifest["versions"]:
             if v["id"] == args.version:
                 version_json = v
                 break
-            
+    
         if not version_json:
             prints(f"The version {args.version} has invalide. Press any key to exit.")
             keyboard.read_key()
             return -1
     
     
-    if args.manifest_json:
-        manifest_json = json_read(args.manifest_json)
-        args.version = manifest_json["id"]
     
     temp = os.path.join(temp, args.version)
     if not os.path.exists(temp):
@@ -251,9 +274,14 @@ def main():
         os.makedirs(manifest)
     manifest = os.path.join(manifest, args.version+".json")
     
+    
     manifest_url = None
+    for v in version_manifest["versions"]:
+        if v["id"] == args.version:
+            manifest_url = v["url"]
+            break
+    
     if not args.manifest_json:
-        manifest_url = version_json["url"]
         urllib.request.urlretrieve(manifest_url, manifest)
     else:
         manifest = args.manifest_json
@@ -266,6 +294,8 @@ def main():
     version_json["time"] = manifest_json["time"]
     version_json["releaseTime"] = manifest_json["releaseTime"]
     version_json["url"] = manifest_url
+    version_json["asset"] = manifest_json["assetIndex"]["id"]
+    version_json["asset_url"] = manifest_json["assetIndex"]["url"]
     version_json["client"] = manifest_json["downloads"]["client"]["url"]
     version_json["client_mappings"] = manifest_json["downloads"]["client_mappings"]["url"]
     version_json["server"] = manifest_json["downloads"]["server"]["url"]
@@ -338,9 +368,12 @@ def main():
     return 0
 
 
-def json_read(path):
-    with open(path, 'r') as f:
-        return json.load(f)
+def json_read(path, default=None):
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except:
+        return default or {}
 
 def json_write(path, obj):
     with open(path, 'w',) as f:
