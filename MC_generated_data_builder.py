@@ -83,7 +83,7 @@ import asyncio
 install('keyboard')
 import keyboard
 
-from github import GitHub
+from .github import GitHub
 
 if not first_missing:
     prints('All dependency are instaled')
@@ -167,12 +167,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
 
 parser.add_argument('-q', '--quiet', help='Execute without any user interaction. Require --version or --manifest-json.', action='store_true')
-parser.add_argument('-f', '--overwrite', help='Overwrite on the existing ouput folder.', action='store_true')
+parser.add_argument('-f', '--overwrite', help='Overwrite on the existing output folder.', action='store_true')
 
 parser.add_argument('-z', '--zip', help='Empack the folder in a zip after it\'s creation', action='store_true', default=None)
 parser.add_argument('--no-zip', dest='zip', help='Don\'t ask for empack the folder in a zip', action='store_false')
 
-parser.add_argument('-o', '--output', help='Ouput folder', type=pathlib.Path)
+parser.add_argument('-o', '--output', help='Output folder', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='Local JSON manifest file of the target version.', type=pathlib.Path)
 
 args = parser.parse_args()
@@ -225,16 +225,12 @@ def main():
             args.zip = input()[:1] == 'y'
     
     if not args.output:
-        output = glob.glob(f'**/{args.version}/', root_dir='.', recursive=True)
-        if len(output):
-            args.output = output[0]
-        else:
-            args.output = None
+        args.output = find_output(args)
     
     if args.output and os.path.exists(args.output):
         prints(f'The {args.version} already exit at "{args.output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
         if (args.quiet and args.overwrite) or input()[:1] == 'y':
-            pass
+            args.overwrite = True
         else:
             return -1
     
@@ -334,41 +330,44 @@ def update_version_manifest():
     
 update_version_manifest()
 
+def find_output(version):
+    output = glob.glob(f'**/{version}/', root_dir='.', recursive=True)
+    if len(output):
+        return output[0]
+    else:
+        return None
 
 def build_generated_data(args):
     global version_manifest
     
     if args.manifest_json:
-        args.version = json_read(args.manifest_json, {'id': None})['id']
+        version = json_read(args.manifest_json, {'id': None})['id']
+    else:
+        version = args.version
     
-    temp = os.path.join(temp, args.version)
+    overwrite = args.overwrite
+    zip       = args.zip
+    
+    temp = os.path.join(temp, version)
     if not os.path.exists(temp):
         os.makedirs(temp)
     
-    manifest = os.path.join(temp, 'generated')
-    if not os.path.exists(manifest):
-        os.makedirs(manifest)
-    manifest = os.path.join(manifest, args.version+'.json')
-    
     manifest_url = None
     for v in version_manifest['versions']:
-        if v['id'] == args.version:
+        if v['id'] == version:
             manifest_url = v['url']
             break
     
     if not args.manifest_json and not manifest_url:
-        prints(f'Imposible to build Generated data for {args.version}. The requested version is not in the "version_manifest.json".')
+        prints(f'Imposible to build Generated data for {version}. The requested version is not in the "version_manifest.json".')
         return -1
     
-    prints(f'Build Generated data for {args.version}')
-    
-    if not args.manifest_json:
-        urllib.request.urlretrieve(manifest_url, manifest)
+    if args.manifest_json:
+        manifest_json = json_read(args.manifest_json)
     else:
-        manifest = args.manifest_json
-    
-    
-    manifest_json = json_read(manifest)
+        manifest = os.path.join(temp, version+'.json')
+        urllib.request.urlretrieve(manifest_url, manifest)
+        manifest_json = json_read(manifest)
     
     
     version_json = OrderedDict()
@@ -377,13 +376,31 @@ def build_generated_data(args):
     version_json['time'] = manifest_json['time']
     version_json['releaseTime'] = manifest_json['releaseTime']
     version_json['url'] = manifest_url
-    version_json['asset_index'] = manifest_json['assetIndex']['url']
-    version_json['client'] = manifest_json['downloads']['client']['url']
-    version_json['client_mappings'] = manifest_json['downloads']['client_mappings']['url']
-    version_json['server'] = manifest_json['downloads']['server']['url']
-    version_json['server_mappings'] = manifest_json['downloads']['server_mappings']['url']
     
-    args.output = args.output or version_manifest['paths'][args.version] or os.path.join(version_json['type'], args.version)
+    if 'assetIndex' in manifest_json:
+        #minecraft/original manifest
+        version_json['asset_index'] = manifest_json['assetIndex']['url']
+        version_json['client'] = manifest_json['downloads']['client']['url']
+        version_json['client_mappings'] = manifest_json['downloads']['client_mappings']['url']
+        version_json['server'] = manifest_json['downloads']['server']['url']
+        version_json['server_mappings'] = manifest_json['downloads']['server_mappings']['url']
+    else:
+        #mc Generated data manifest
+        version_json['asset_index'] = manifest_json['asset_index']
+        version_json['client'] = manifest_json['client']
+        version_json['client_mappings'] = manifest_json['client_mappings']
+        version_json['server'] = manifest_json['server']
+        version_json['server_mappings'] = manifest_json['server_mappings']
+    
+    output = args.output or find_output(version) or version_manifest['paths'][version] or os.path.join(version_json['type'], version)
+    
+    
+    if os.path.exists(output) and not overwrite:
+        prints(f'Imposible to build Generated data for {version}. The output "{output}" already exit and the overwrite is not enabled.')
+        return -1
+    
+    
+    prints(f'Build Generated data for {version}')
     
     fix = datetime.datetime.fromisoformat('2021-09-21T14:36:06+00:00')
     dt = datetime.datetime.fromisoformat(version_json['releaseTime'])
@@ -419,7 +436,8 @@ def build_generated_data(args):
                     zip.extract(entry.filename, os.path.join(temp, 'generated'))
     run_animation(data_client, "Extracting data client", "> OK")
     
-    json_write(manifest, version_json)
+    
+    json_write(os.path.join(temp, 'generated', version+'.json') , version_json)
     
     async def listing_various():
         
@@ -452,26 +470,27 @@ def build_generated_data(args):
     run_animation(listing_various, "Listing elements and various", "> OK")
     
     
-    if args.zip:
+    if zip:
         async def make_zip():
             safe_del(os.path.join(temp, 'zip.zip'))
             zip = os.path.join(temp, 'zip')
             shutil.make_archive(zip, 'zip', root_dir=os.path.join(temp, 'generated'))
-            os.rename(zip, os.path.join(temp, 'generated', args.version+'.zip'))
+            os.rename(zip, os.path.join(temp, 'generated', version+'.zip'))
         run_animation(make_zip, "Empack into a ZIP", "> OK")
     
     async def move_generated_data():
-        if args.overwrite and os.path.exists(args.output):
-            safe_del(args.output)
-            os.makedirs(args.output)
-        else:
-            prints(f'The output at "{args.output}" already exit and the overwrite is not enable')
-            return -1
+        if os.path.exists(output):
+            if overwrite:
+                safe_del(output)
+            else:
+                prints(f'The output at "{output}" already exit and the overwrite is not enable')
+                return -1
         
+        os.makedirs(output)
         for dir in os.listdir(os.path.join(temp, 'generated')):
-            shutil.move(os.path.join(temp, 'generated', dir), os.path.join(args.output, dir))
+            shutil.move(os.path.join(temp, 'generated', dir), os.path.join(output, dir))
         
-    run_animation(move_generated_data, f"Move generated data to {args.output}", "> OK")
+    run_animation(move_generated_data, f"Move generated data to {output}", "> OK")
     
 
 
