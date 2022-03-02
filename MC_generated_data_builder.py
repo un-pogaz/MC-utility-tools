@@ -167,33 +167,118 @@ def write_lines(path, lines):
         f.writelines(l+'\n' for l in lines[:-1])
         f.write(lines[-1])
 
+def safe_del(path):
+    def remove(a):
+        pass
+    
+    if os.path.exists(path):
+        if os.path.isfile(path):
+            remove = os.remove
+        if os.path.isdir(path):
+            remove = shutil.rmtree
+        if os.path.islink(path):
+            remove = os.unlink
+    
+    try:
+        remove(path)
+    except Exception as ex:
+        pass
+
+
+temp = os.path.join(tempfile.gettempdir(), 'MC Generated data')
+if not os.path.exists(temp):
+    os.makedirs(temp)
+
+version_manifest = None
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
+
+parser.add_argument('-q', '--quiet', help='Execute without any user interaction. Require --version or --manifest-json.', action='store_true')
+parser.add_argument('-f', '--overwrite', help='Overwrite on the existing ouput folder.', action='store_true')
+
 parser.add_argument('-z', '--zip', help='Empack the folder in a zip after it\'s creation', action='store_true', default=None)
 parser.add_argument('--no-zip', dest='zip', help='Don\'t ask for empack the folder in a zip', action='store_false')
-parser.add_argument('-q', '--quiet', help='Execute without any user interaction. Require --version or --manifest-json.', action='store_true')
-parser.add_argument('-o', '--overwrite', help='Overwrite on the existing ouput folder.', action='store_true')
+
+parser.add_argument('-o', '--output', help='Ouput folder', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='Local JSON manifest file of the target version.', type=pathlib.Path)
 
 args = parser.parse_args()
 
-
 def main():
-    global args, temp
+    global args, temp, version_manifest
     
     prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     prints()
     
-    temp = os.path.join(tempfile.gettempdir(), 'MC Generated data')
-    if not os.path.exists(temp):
-        os.makedirs(temp)
-    
     last, _, _ = github_builder.check_versions()
+    if last > VERSION:
+        prints('A new version is available!')
+        prints('A new version is available!')
     
     
+    if args.manifest_json:
+        args.version = json_read(args.manifest_json, {'id': None})['id']
     
-    ## update version_manifest
+    else:
+        if not args.version:
+            if args.quiet:
+                prints('No version or "manifest_json.json" are declared. One of them are require in quiet mode.')
+            else:
+                prints('Enter the version:\n\tr or release for the latest release / s or snapshot for the latest snapshot')
+                args.version = input()
+        
+        if args.version in ['r','release']:
+            args.version = version_manifest['latest']['release']
+        if args.version in ['s','snapshot']:
+            args.version = version_manifest['latest']['snapshot']
+        
+        version_json = None
+        for v in version_manifest['versions']:
+            if v['id'] == args.version:
+                version_json = v
+                break
+        
+        if not version_json:
+            prints( f'The version {args.version} has invalide.' + '' if args.quiet else ' Press any key to exit.')
+            if not args.quiet:
+                keyboard.read_key()
+            return -1
+    
+    if args.zip == None:
+        if args.quiet:
+            args.zip = False
+        else:
+            prints('Do you want to empack the Generated data folder in a ZIP file?')
+            args.zip = input()[:1] == 'y'
+    
+    if not args.output:
+        output = glob.glob(f'**/{args.version}/', root_dir='.', recursive=True)
+        if len(output):
+            args.output = output[0]
+        else:
+            args.output = None
+    
+    if args.output and os.path.exists(args.output):
+        prints(f'The {args.version} already exit at "{args.output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
+        if (args.quiet and args.overwrite) or input()[:1] == 'y':
+            pass
+        else:
+            return -1
+    
+    error = build_generated_data(args)
+    
+    prints()
+    
+    if not error:
+        prints('Work done with success.','' if args.quiet else 'Press any key to exit.')
+    if not args.quiet:
+        keyboard.read_key()
+    return error
+
+def update_version_manifest():
+    global version_manifest
+    
     version_manifest_path = os.path.join('version_manifest.json')
     version_manifest = json_read(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'paths':{}, 'versioning':{}})
     
@@ -271,71 +356,27 @@ def main():
                 edited = True
     
     
-    
     if edited:
         version_manifest['versions'] = sorted(version_manifest['versions'], key=lambda item: item['releaseTime'], reverse=True)
         json_write(version_manifest_path, version_manifest)
-    ##end update version_manifest
+    
+update_version_manifest()
+
+
+def build_generated_data(args):
+    global version_manifest
     
     if args.manifest_json:
         args.version = json_read(args.manifest_json, {'id': None})['id']
-    
-    else:
-        if not args.version:
-            if args.quiet:
-                prints('No version or "manifest_json.json" are declared. One of them are require in quiet mode.')
-            else:
-                prints('Enter the version:\n\tr or release for the latest release / s or snapshot for the latest snapshot')
-                args.version = input()
-        
-        if args.version in ['r','release']:
-            args.version = version_manifest['latest']['release']
-        if args.version in ['s','snapshot']:
-            args.version = version_manifest['latest']['snapshot']
-        
-        version_json = None
-        for v in version_manifest['versions']:
-            if v['id'] == args.version:
-                version_json = v
-                break
-        
-        if not version_json:
-            prints( f'The version {args.version} has invalide.' + '' if args.quiet else ' Press any key to exit.')
-            if not args.quiet:
-                keyboard.read_key()
-            return -1
-    
-    if args.zip == None:
-        if args.quiet:
-            args.zip = False
-        else:
-            prints('Do you want to empack the Generated data folder in a ZIP file?')
-            args.zip = input()[:1] == 'y'
     
     temp = os.path.join(temp, args.version)
     if not os.path.exists(temp):
         os.makedirs(temp)
     
-    output = glob.glob(f'**/{args.version}/{args.version}.json', root_dir='.', recursive=True)
-    if len(output):
-        output = output[0]
-    else:
-        output = None
-    
-    if output:
-        prints(f'The {args.version} already exit at "{output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
-        if (args.quiet and args.overwrite) or input()[:1] == 'y':
-            pass
-        else:
-            return -1
-    
-    
-    
     manifest = os.path.join(temp, 'generated')
     if not os.path.exists(manifest):
         os.makedirs(manifest)
     manifest = os.path.join(manifest, args.version+'.json')
-    
     
     manifest_url = None
     for v in version_manifest['versions']:
@@ -343,13 +384,19 @@ def main():
             manifest_url = v['url']
             break
     
+    if not args.manifest_json and not manifest_url:
+        prints(f'Imposible to build Generated data for {args.version}. The requested version is not in the "version_manifest.json".')
+        return -1
+    
+    prints(f'Build Generated data for {args.version}')
+    
     if not args.manifest_json:
         urllib.request.urlretrieve(manifest_url, manifest)
     else:
         manifest = args.manifest_json
     
-    manifest_json = json_read(manifest)
     
+    manifest_json = json_read(manifest)
     
     
     version_json = OrderedDict()
@@ -364,7 +411,7 @@ def main():
     version_json['server'] = manifest_json['downloads']['server']['url']
     version_json['server_mappings'] = manifest_json['downloads']['server_mappings']['url']
     
-    output = output or version_manifest['paths'][args.version] or os.path.join(version_json['type'], args.version)
+    args.output = args.output or version_manifest['paths'][args.version] or os.path.join(version_json['type'], args.version)
     
     fix = datetime.datetime.fromisoformat('2021-09-21T14:36:06+00:00')
     dt = datetime.datetime.fromisoformat(version_json['releaseTime'])
@@ -396,7 +443,7 @@ def main():
         with zipfile.ZipFile(client, mode='r') as zip:
             for entry in zip.filelist:
                 if entry.filename.startswith('assets/') or entry.filename.startswith('data/'):
-                    safe_del(temp, os.path.join('generated', entry.filename))
+                    safe_del(os.path.join(temp, 'generated', entry.filename))
                     zip.extract(entry.filename, os.path.join(temp, 'generated'))
     run_animation(data_client, "Extracting data client", "> OK")
     
@@ -404,8 +451,8 @@ def main():
     
     async def listing_various():
         
-        for dir in  ['libraries', 'logs', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
-            safe_del(temp, dir)
+        for dir in ['libraries', 'logs', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
+            safe_del(os.path.join(temp, dir))
         
         
         def enum_json(dir):
@@ -435,42 +482,25 @@ def main():
     
     if args.zip:
         async def make_zip():
-            safe_del(temp, 'zip.zip')
+            safe_del(os.path.join(temp, 'zip.zip'))
             zip = os.path.join(temp, 'zip')
             shutil.make_archive(zip, 'zip', root_dir=os.path.join(temp, 'generated'))
             os.rename(zip, os.path.join(temp, 'generated', args.version+'.zip'))
         run_animation(make_zip, "Empack into a ZIP", "> OK")
     
     async def move_generated_data():
-        safe_del(temp, output)
-        os.makedirs(output)
-        for dir in os.listdir(os.path.join(temp, 'generated')):
-            shutil.move(os.path.join(temp, 'generated', dir), os.path.join(output, dir))
-        
-    run_animation(move_generated_data, f"Move generated data to {output}", "> OK")
-    
-    prints()
-    prints('Work done. Press any key to exit.')
-    if not args.quiet:
-        keyboard.read_key()
-    return 0
-
-def safe_del(temp, path):
-    def remove(a):
-        pass
-    
-    path = os.path.join(temp, path)
-    if os.path.exists(path):
-        if os.path.isfile(path):
-            remove = os.remove
+        if args.overwrite and os.path.exists(args.output):
+            safe_del(args.output)
+            os.makedirs(args.output)
         else:
-            remove = shutil.rmtree
+            prints(f'The output at "{args.output}" already exit and the overwrite is not enable')
+            return -1
+        
+        for dir in os.listdir(os.path.join(temp, 'generated')):
+            shutil.move(os.path.join(temp, 'generated', dir), os.path.join(args.output, dir))
+        
+    run_animation(move_generated_data, f"Move generated data to {args.output}", "> OK")
     
-    try:
-        remove(path)
-    except Exception as ex:
-        pass
-
 
 
 
