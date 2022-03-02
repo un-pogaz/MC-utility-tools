@@ -95,12 +95,11 @@ github_builder = GitHub('un-pogaz', 'MC-generated-data-builder')
 
 animation_loop = ['.  ',' . ','  .']
 
-animation_time = 0.2
 def run_animation(awaitable, text_wait, text_end=None):
-    global animation_run, animation_time
+    global animation_run
     
     def start_animation():
-        global animation_run, animation_time
+        global animation_run
         idx = 0
         while animation_run:
             print(text_wait + animation_loop[idx % len(animation_loop)], end="\r")
@@ -115,7 +114,7 @@ def run_animation(awaitable, text_wait, text_end=None):
     t.start()
     asyncio.run(awaitable())
     animation_run = False
-    time.sleep(animation_time + 0.0005)
+    time.sleep(1)
     del t
     prints(text_wait, text_end or '', ' ' * len(animation_loop[0]))
 
@@ -421,17 +420,17 @@ def build_generated_data(args):
     async def client_dl():
         if not os.path.exists(client):
             urllib.request.urlretrieve(version_json['client'], client)
-    run_animation(client_dl, "Downloading client.jar", "> OK")
+    run_animation(client_dl, 'Downloading client.jar', '> OK')
     
     server = os.path.join(temp, 'server.jar')
     async def server_dl():
         if not os.path.exists(server):
             urllib.request.urlretrieve(version_json['server'], server)
-    run_animation(server_dl, "Downloading server.jar", "> OK")
+    run_animation(server_dl, 'Downloading server.jar', '> OK')
     
     async def data_server():
         subprocess.run('java ' + cmd, cwd=temp, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
-    run_animation(data_server, "Extracting data server", "> OK")
+    run_animation(data_server, 'Extracting data server', '> OK')
     
     
     async def data_client():
@@ -440,7 +439,7 @@ def build_generated_data(args):
                 if entry.filename.startswith('assets/') or entry.filename.startswith('data/'):
                     safe_del(os.path.join(temp, 'generated', entry.filename))
                     zip.extract(entry.filename, os.path.join(temp, 'generated'))
-    run_animation(data_client, "Extracting data client", "> OK")
+    run_animation(data_client, 'Extracting data client', '> OK')
     
     
     json_write(os.path.join(temp, 'generated', version+'.json') , version_json)
@@ -473,7 +472,7 @@ def build_generated_data(args):
         
         
     
-    run_animation(listing_various, "Listing elements and various", "> OK")
+    run_animation(listing_various, 'Listing elements and various', '> OK')
     
     
     if zip:
@@ -482,7 +481,7 @@ def build_generated_data(args):
             zip = os.path.join(temp, 'zip')
             shutil.make_archive(zip, 'zip', root_dir=os.path.join(temp, 'generated'))
             os.rename(zip+'.zip', os.path.join(temp, 'generated', version+'.zip'))
-        run_animation(make_zip, "Empack into a ZIP", "> OK")
+        run_animation(make_zip, 'Empack into a ZIP', '> OK')
     
     async def move_generated_data():
         if os.path.exists(output):
@@ -496,7 +495,7 @@ def build_generated_data(args):
         for dir in os.listdir(os.path.join(temp, 'generated')):
             shutil.move(os.path.join(temp, 'generated', dir), os.path.join(output, dir))
         
-    run_animation(move_generated_data, f"Move generated data to {output}", "> OK")
+    run_animation(move_generated_data, f'Move generated data to "{output}"', '> OK')
     
 
 
