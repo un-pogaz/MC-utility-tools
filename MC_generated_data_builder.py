@@ -83,39 +83,11 @@ import asyncio
 install('keyboard')
 import keyboard
 
+from fr import OrderedDict
 
 if not first_missing:
     prints('All dependency are instaled')
     prints()
-
-
-class GitHub:
-    def __init__(self, user, repository):
-        self.user = user
-        self.repository = repository
-        self.url = 'https://github.com/' + self.user + '/' + self.repository + '/releases'
-        self.api = 'https://api.github.com/repos/' + self.user + '/' + self.repository + '/releases'
-        self.raw = 'https://raw.githubusercontent.com/' + self.user + '/' + self.repository
-    
-    def api_zip(self, tag):
-        return self.api + '/' + tag
-    
-    def html_release(self, tag):
-        return self.url + '/tag/' + tag
-    
-    def get_raw(self, branche_tag, file):
-        return self.raw + '/' + branche_tag + '/' + file.replace('\\','/')
-    
-    def check_versions(self):
-        '''return <latest: tuple>, <versions: list>, <versions_info: dict>'''
-        versions_info = {}
-        with urllib.request.urlopen(self.api) as fl:
-            for item in json.load(fl):
-                tag = item['tag_name']
-                versions_info[tuple(tag.split('.', 3))] = item
-        
-        versions = [ v[0] for v in sorted(versions_info.items(), key=lambda item : item[1]['id'])]
-        return versions[-1], versions, versions_info
 
 github_data = GitHub('un-pogaz', 'MC-generated-data')
 github_builder = GitHub('un-pogaz', 'MC-generated-data-builder')
