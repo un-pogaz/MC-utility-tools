@@ -76,7 +76,7 @@ def install(package, test=None):
 
 
 import sys, argparse, os.path, json, io, glob, time
-import pathlib, tempfile, urllib.request, datetime, subprocess, zipfile, shutil
+import pathlib, urllib.request, shutil
 from collections import OrderedDict
 import asyncio
 
@@ -157,9 +157,6 @@ def safe_del(path):
         pass
 
 
-temp = os.path.join(tempfile.gettempdir(), 'MC Generated data')
-if not os.path.exists(temp):
-    os.makedirs(temp)
 
 version_manifest = None
 
@@ -178,7 +175,7 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
-    global args, temp, version_manifest
+    global args, version_manifest
     
     prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     prints()
@@ -200,10 +197,7 @@ def main():
                 prints('Enter the version:\n\tr or release for the latest release / s or snapshot for the latest snapshot')
                 args.version = input()
         
-        if args.version in ['r','release']:
-            args.version = version_manifest['latest']['release']
-        if args.version in ['s','snapshot']:
-            args.version = version_manifest['latest']['snapshot']
+        args.version = get_latest(args.version)
         
         version_json = None
         for v in version_manifest['versions']:
@@ -337,18 +331,30 @@ def find_output(version):
     else:
         return None
 
+def get_latest(version):
+    if version in ['r','release']:
+        return version_manifest['latest']['release']
+    if version in ['s','snapshot', 'l', 'latest']:
+        return version_manifest['latest']['snapshot']
+    
+    return version
+
 def build_generated_data(args):
+    import subprocess, zipfile, zipimport
+    from tempfile import gettempdir
+    from datetime import datetime
+    
     global version_manifest
     
     if args.manifest_json:
         version = json_read(args.manifest_json, {'id': None})['id']
     else:
-        version = args.version
+        version = get_latest(args.version)
     
     overwrite = args.overwrite
     zip       = args.zip
     
-    temp = os.path.join(temp, version)
+    temp = os.path.join(gettempdir(), 'MC Generated data', version)
     if not os.path.exists(temp):
         os.makedirs(temp)
     
@@ -402,8 +408,8 @@ def build_generated_data(args):
     
     prints(f'Build Generated data for {version}')
     
-    fix = datetime.datetime.fromisoformat('2021-09-21T14:36:06+00:00')
-    dt = datetime.datetime.fromisoformat(version_json['releaseTime'])
+    fix = datetime.fromisoformat('2021-09-21T14:36:06+00:00')
+    dt = datetime.fromisoformat(version_json['releaseTime'])
     
     cmd = '-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all'
     if dt < fix:
