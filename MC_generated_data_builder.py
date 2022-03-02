@@ -78,12 +78,12 @@ def install(package, test=None):
 import sys, argparse, os.path, json, io, glob, time
 import pathlib, urllib.request, shutil
 from collections import OrderedDict
-import asyncio
+
 
 install('keyboard')
 import keyboard
 
-from .github import GitHub
+from github import GitHub
 
 if not first_missing:
     prints('All dependency are instaled')
@@ -96,6 +96,8 @@ github_builder = GitHub('un-pogaz', 'MC-generated-data-builder')
 animation_loop = ['.  ',' . ','  .']
 
 def run_animation(awaitable, text_wait, text_end=None):
+    import asyncio
+    
     global animation_run
     
     def start_animation():
@@ -114,9 +116,9 @@ def run_animation(awaitable, text_wait, text_end=None):
     t.start()
     asyncio.run(awaitable())
     animation_run = False
+    prints(text_wait, text_end or '', ' ' * len(animation_loop[0]))
     time.sleep(1)
     del t
-    prints(text_wait, text_end or '', ' ' * len(animation_loop[0]))
 
 
 def json_read(path, default=None):
@@ -183,6 +185,7 @@ def main():
     if last > VERSION:
         prints('A new version is available!')
         prints('A new version is available!')
+        prints()
     
     
     if args.manifest_json:
@@ -210,15 +213,8 @@ def main():
                 keyboard.read_key()
             return -1
     
-    if args.zip == None:
-        if args.quiet:
-            args.zip = False
-        else:
-            prints('Do you want to empack the Generated data folder in a ZIP file?')
-            args.zip = input()[:1] == 'y'
-    
     if not args.output:
-        args.output = find_output(args)
+        args.output = find_output(args.version)
     
     if args.output and os.path.exists(args.output):
         prints(f'The {args.version} already exit at "{args.output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
@@ -226,6 +222,13 @@ def main():
             args.overwrite = True
         else:
             return -1
+    
+    if args.zip == None:
+        if args.quiet:
+            args.zip = False
+        else:
+            prints('Do you want to empack the Generated data folder in a ZIP file?')
+            args.zip = input()[:1] == 'y'
     
     error = build_generated_data(args)
     

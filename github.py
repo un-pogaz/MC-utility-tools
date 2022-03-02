@@ -1,3 +1,5 @@
+import urllib, json
+
 class GitHub:
     def __init__(self, user, repository):
         self.user = user
@@ -21,10 +23,6 @@ class GitHub:
         with urllib.request.urlopen(self.api) as fl:
             for item in json.load(fl):
                 tag = item['tag_name']
-                
-                for v in tag.split('.', 4):
-                    pass
-                
                 versions_info[tuple(intTryParse(v)[0] for v in tag.split('.', 4))] = item
         
         versions = [ v[0] for v in sorted(versions_info.items(), key=lambda item : item[1]['id'])]

@@ -7,4 +7,6 @@ zz*
 *.code-workspace
 *.lnk
 
+__pycache__
 version_manifest.json
+update.py
