@@ -83,7 +83,7 @@ import asyncio
 install('keyboard')
 import keyboard
 
-from fr import OrderedDict
+from github import GitHub
 
 if not first_missing:
     prints('All dependency are instaled')
