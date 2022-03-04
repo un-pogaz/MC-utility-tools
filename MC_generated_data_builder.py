@@ -117,7 +117,7 @@ def run_animation(awaitable, text_wait, text_end=None):
     asyncio.run(awaitable())
     animation_run = False
     prints(text_wait, text_end or '', ' ' * len(animation_loop[0]))
-    time.sleep(1)
+    time.sleep(0.3)
     del t
 
 
@@ -229,6 +229,8 @@ def main():
         else:
             prints('Do you want to empack the Generated data folder in a ZIP file?')
             args.zip = input()[:1] == 'y'
+    
+    prints()
     
     error = build_generated_data(args)
     
@@ -480,10 +482,10 @@ def build_generated_data(args):
     
     if zip:
         async def make_zip():
-            safe_del(os.path.join(temp, 'zip.zip'))
-            zip = os.path.join(temp, 'zip')
-            shutil.make_archive(zip, 'zip', root_dir=os.path.join(temp, 'generated'))
-            os.rename(zip+'.zip', os.path.join(temp, 'generated', version+'.zip'))
+            zip_path = os.path.join(temp, 'zip.zip')
+            safe_del(zip_path)
+            shutil.make_archive(os.path.splitext(zip_path)[0], 'zip', root_dir=os.path.join(temp, 'generated'))
+            os.rename(zip_path, os.path.join(temp, 'generated', version+'.zip'))
         run_animation(make_zip, 'Empack into a ZIP', '> OK')
     
     async def move_generated_data():
