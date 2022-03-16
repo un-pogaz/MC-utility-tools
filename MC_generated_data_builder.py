@@ -454,6 +454,7 @@ def build_generated_data(args):
         for dir in ['libraries', 'logs', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp, dir))
         
+        write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in json_read(os.path.join(temp, 'generated/reports/registries.json')).keys()])
         
         def enum_json(dir):
             return [j[:-5].replace('\\', '/') for j in glob.glob(f'**/*.json', root_dir=dir, recursive=True)]
