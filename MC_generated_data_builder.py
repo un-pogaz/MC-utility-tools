@@ -128,14 +128,18 @@ def json_read(path, default=None):
     except:
         return default or {}
 
+def make_dirname(path):
+    dir = os.path.dirname(path)
+    if dir and not os.path.exists(dir):
+        os.makedirs(dir)
+
 def json_write(path, obj):
+    make_dirname(path)
     with open(path, 'w',) as f:
         json.dump(obj, f, indent=2)
 
 def write_lines(path, lines):
-    dir = os.path.dirname(path)
-    if dir and not os.path.exists(dir):
-        os.makedirs(dir)
+    make_dirname(path)
     with open(path, 'w') as f:
         f.writelines(l+'\n' for l in lines[:-1])
         f.write(lines[-1])
@@ -455,6 +459,12 @@ def build_generated_data(args):
             safe_del(os.path.join(temp, dir))
         
         write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in json_read(os.path.join(temp, 'generated/reports/registries.json')).keys()])
+        
+        for k,v in json_read(os.path.join(temp, 'generated/reports/blocks.json')).items():
+            name = k.split(':', maxsplit=2)[-1]
+            if 'states' in v: del v['states']
+            json_write(os.path.join(temp, 'generated/lists/blocks', name+'.json') , v)
+        
         
         def enum_json(dir):
             return [j[:-5].replace('\\', '/') for j in glob.glob(f'**/*.json', root_dir=dir, recursive=True)]
