@@ -121,7 +121,7 @@ def run_animation(awaitable, text_wait, text_end=None):
     del t
 
 
-def json_read(path, default=None):
+def read_json(path, default=None):
     try:
         with open(path, 'r') as f:
             return json.load(f)
@@ -133,7 +133,7 @@ def make_dirname(path):
     if dir and not os.path.exists(dir):
         os.makedirs(dir)
 
-def json_write(path, obj):
+def write_json(path, obj):
     make_dirname(path)
     with open(path, 'w',) as f:
         json.dump(obj, f, indent=2)
@@ -193,14 +193,14 @@ def main():
     
     
     if args.manifest_json:
-        args.version = json_read(args.manifest_json, {'id': None})['id']
+        args.version = read_json(args.manifest_json, {'id': None})['id']
     
     else:
         if not args.version:
             if args.quiet:
                 prints('No version or "manifest_json.json" are declared. One of them are require in quiet mode.')
             else:
-                prints('Enter the version:\n\tr or release for the latest release / s or snapshot for the latest snapshot')
+                prints('Enter the version:\nid of the version / r or release for the latest release / s or snapshot for the latest snapshot')
                 args.version = input()
         
         args.version = get_latest(args.version)
@@ -212,7 +212,7 @@ def main():
                 break
         
         if not version_json:
-            prints( f'The version {args.version} has invalide.' + '' if args.quiet else ' Press any key to exit.')
+            prints( f'The version {args.version} has invalide.', '' if args.quiet else ' Press any key to exit.')
             if not args.quiet:
                 keyboard.read_key()
             return -1
@@ -250,7 +250,7 @@ def update_version_manifest():
     global version_manifest
     
     version_manifest_path = os.path.join('version_manifest.json')
-    version_manifest = json_read(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'paths':{}, 'versioning':{}})
+    version_manifest = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'versioning':{}})
     
     edited = False
     def update_version_manifest(read_manifest):
@@ -282,11 +282,6 @@ def update_version_manifest():
             
             if update_version_manifest(github_manifest):
                 edited = True
-            
-            for k in github_manifest['paths']:
-                if k not in version_manifest['paths']:
-                    version_manifest['paths'][k] = github_manifest['paths'][k]
-                    edited = True
             
             for v in github_manifest['versioning']:
                 i = version_manifest['versioning']
@@ -328,7 +323,7 @@ def update_version_manifest():
     
     if edited:
         version_manifest['versions'] = sorted(version_manifest['versions'], key=lambda item: item['releaseTime'], reverse=True)
-        json_write(version_manifest_path, version_manifest)
+        write_json(version_manifest_path, version_manifest)
     
 update_version_manifest()
 
@@ -355,12 +350,10 @@ def build_generated_data(args):
     global version_manifest
     
     if args.manifest_json:
-        version = json_read(args.manifest_json, {'id': None})['id']
+        version = read_json(args.manifest_json, {'id': None})['id']
     else:
         version = get_latest(args.version)
     
-    overwrite = args.overwrite
-    zip       = args.zip
     
     temp = os.path.join(gettempdir(), 'MC Generated data', version)
     if not os.path.exists(temp):
@@ -377,11 +370,21 @@ def build_generated_data(args):
         return -1
     
     if args.manifest_json:
-        manifest_json = json_read(args.manifest_json)
+        manifest_json = read_json(args.manifest_json)
     else:
         manifest = os.path.join(temp, version+'.json')
         urllib.request.urlretrieve(manifest_url, manifest)
-        manifest_json = json_read(manifest)
+        if os.path.splitext(manifest_url)[1].lower() == '.zip':
+            with zipfile.ZipFile(manifest) as zip:
+                for file in zip.filelist:
+                    if os.path.splitext(file.filename)[1].lower() == '.json':
+                        with zip.open(file) as zi:
+                            manifest_json = json.load(zi)
+                        break
+            
+            write_json(manifest, manifest_json)
+            
+        manifest_json = read_json(manifest)
     
     
     version_json = OrderedDict()
@@ -406,10 +409,23 @@ def build_generated_data(args):
         version_json['server'] = manifest_json['server']
         version_json['server_mappings'] = manifest_json['server_mappings']
     
-    output = args.output or find_output(version) or version_manifest['paths'][version] or os.path.join(version_json['type'], version)
+    def build_path():
+        for k,v in version_manifest['versioning'].items():
+            if k == 'special':
+                if version in v:
+                    return os.path.join('special', version)
+            else:
+                if version in v.get('releases', []):
+                    return os.path.join('releases', version)
+                
+                for kk,vv in v.items():
+                    if version in vv:
+                        return os.path.join('snapshots', k, kk, version)
+    
+    output = args.output or find_output(version) or build_path() or os.path.join(version_json['type'], version)
     
     
-    if os.path.exists(output) and not overwrite:
+    if os.path.exists(output) and not args.overwrite:
         prints(f'Imposible to build Generated data for {version}. The output "{output}" already exit and the overwrite is not enabled.')
         return -1
     
@@ -451,25 +467,53 @@ def build_generated_data(args):
     run_animation(data_client, 'Extracting data client', '> OK')
     
     
-    json_write(os.path.join(temp, 'generated', version+'.json') , version_json)
+    write_json(os.path.join(temp, 'generated', version+'.json') , version_json)
     
     async def listing_various():
         
         for dir in ['libraries', 'logs', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp, dir))
         
-        write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in json_read(os.path.join(temp, 'generated/reports/registries.json')).keys()])
+        write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()])
         
-        for k,v in json_read(os.path.join(temp, 'generated/reports/blocks.json')).items():
+        blockstates = {}
+        
+        for k,v in read_json(os.path.join(temp, 'generated/reports/blocks.json')).items():
             name = k.split(':', maxsplit=2)[-1]
             if 'states' in v: del v['states']
-            json_write(os.path.join(temp, 'generated/lists/blocks', name+'.json') , v)
+            write_json(os.path.join(temp, 'generated/lists/blocks', name+'.json') , v)
+            
+            for vk in v:
+                if vk not in blockstates:
+                    blockstates[vk] = {}
+                
+                for vs in v[vk]:
+                    if vs not in blockstates[vk]:
+                        blockstates[vk][vs] = {}
+                    
+                    for vv in v[vk][vs]:
+                        if vv not in blockstates[vk][vs]:
+                            blockstates[vk][vs][vv] = []
+                        
+                        blockstates[vk][vs][vv].append(k)
         
+        for k,v in blockstates.items():
+            if k == 'properties':
+                for kk,vv in v.items():
+                    for zk,zv in vv.items():
+                        write_lines(os.path.join(temp, 'generated/lists/blocks/properties', kk+'='+zk+'.txt') , sorted(zv))
+            else:
+                for kk,vv in v.items():
+                    write_json(os.path.join(temp, 'generated/lists/blocks/', k, kk+'.json') , vv)
+        
+        
+        for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json'))['children'].items():
+            write_json(os.path.join(temp, 'generated/lists/commands/', k+'.json') , v)
         
         def enum_json(dir):
             return [j[:-5].replace('\\', '/') for j in glob.glob(f'**/*.json', root_dir=dir, recursive=True)]
         
-        for k,v in json_read(os.path.join(temp, 'generated/reports/registries.json')).items():
+        for k,v in read_json(os.path.join(temp, 'generated/reports/registries.json')).items():
             name = k.split(':', maxsplit=2)[-1]
             
             tags = os.path.join(temp,'generated/data/minecraft/tags', name)
@@ -480,18 +524,23 @@ def build_generated_data(args):
             tags = ['#minecraft:'+j for j in enum_json(tags)]
             write_lines(os.path.join(temp, 'generated/lists', name +'.txt'), entries + tags)
         
-        for dir in os.scandir(os.path.join(temp, 'generated/reports/worldgen/minecraft/worldgen')):
-            if dir.is_dir:
-                folder = ['minecraft:'+j for j in enum_json(dir.path)]
-                tags = ['#minecraft:'+j for j in enum_json(os.path.join(temp,'generated/data/minecraft/tags/worldgen', dir.name))]
-                write_lines(os.path.join(temp, 'generated/lists/worldgen', dir.name +'.txt'), folder + tags)
+        dir = os.path.join(temp, 'generated/reports/worldgen/minecraft/worldgen')
+        if os.path.exists(dir):
+            for dir in os.scandir(dir):
+                if dir.is_dir:
+                    folder = ['minecraft:'+j for j in enum_json(dir.path)]
+                    tags = ['#minecraft:'+j for j in enum_json(os.path.join(temp,'generated/data/minecraft/tags/worldgen', dir.name))]
+                    write_lines(os.path.join(temp, 'generated/lists/worldgen', dir.name +'.txt'), folder + tags)
         
+        dir = os.path.join(temp, 'generated/reports/biomes') #legacy
+        if os.path.exists(dir):
+            write_lines(os.path.join(temp, 'generated/lists/worldgen', 'biomes.txt'), ['minecraft:'+b for b in enum_json(dir)])
         
     
     run_animation(listing_various, 'Listing elements and various', '> OK')
     
     
-    if zip:
+    if args.zip:
         async def make_zip():
             zip_path = os.path.join(temp, 'zip.zip')
             safe_del(zip_path)
@@ -501,7 +550,7 @@ def build_generated_data(args):
     
     async def move_generated_data():
         if os.path.exists(output):
-            if overwrite:
+            if args.overwrite:
                 safe_del(output)
             else:
                 prints(f'The output at "{output}" already exit and the overwrite is not enable')
