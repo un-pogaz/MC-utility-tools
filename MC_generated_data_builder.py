@@ -1,5 +1,9 @@
 VERSION = (0, 1, 0)
 
+import sys, argparse, os.path, json, io, glob, time
+import pathlib, urllib.request, shutil
+from collections import OrderedDict
+
 def as_bytes(x, encoding='utf-8'):
     if isinstance(x, str):
         return x.encode(encoding)
@@ -58,9 +62,9 @@ def prints(*a, **kw):
             pass
 
 
-first_missing = True
+missing_package = False
 def install(package, test=None):
-    global first_missing
+    global missing_package
     import sys, importlib, subprocess
     
     test = test or package
@@ -68,29 +72,23 @@ def install(package, test=None):
     found = spam_spec is not None
     
     if not found:
-        if first_missing:
+        if missing_package:
             prints('Missing dependency')
-            first_missing = False
+            missing_package = True
         prints('Instaling:', package)
         subprocess.check_call([sys.executable, '-m', 'pip', '-q', 'install', package])
-
-
-import sys, argparse, os.path, json, io, glob, time
-import pathlib, urllib.request, shutil
-from collections import OrderedDict
-
 
 install('keyboard')
 import keyboard
 
 from github import GitHub
 
-if not first_missing:
+if missing_package:
     prints('All dependency are instaled')
     prints()
 
-github_data = GitHub('un-pogaz', 'MC-generated-data')
-github_builder = GitHub('un-pogaz', 'MC-generated-data-builder')
+GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
+GITHUB_BUILDER = GitHub('un-pogaz', 'MC-generated-data-builder')
 
 
 animation_loop = ['.  ',' . ','  .']
@@ -162,8 +160,103 @@ def safe_del(path):
         pass
 
 
+VERSION_MANIFEST = None
+def update_version_manifest():
+    global VERSION_MANIFEST
+    
+    version_manifest_path = os.path.join('version_manifest.json')
+    VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'versioning':{}})
+    
+    edited = False
+    def update_version_manifest(read_manifest):
+            edited = False
+            if VERSION_MANIFEST['latest']['release'] != read_manifest['latest']['release']:
+                VERSION_MANIFEST['latest']['release'] = read_manifest['latest']['release']
+                edited = True
+            
+            if VERSION_MANIFEST['latest']['snapshot'] != read_manifest['latest']['snapshot']:
+                VERSION_MANIFEST['latest']['snapshot'] = read_manifest['latest']['snapshot']
+                edited = True
+            
+            versions = { v['id']:v for v in VERSION_MANIFEST['versions'] }
+            
+            for k,v in { v['id']:v for v in read_manifest['versions'] }.items():
+                if 'sha1' in v: del v['sha1']
+                if 'complianceLevel' in v: del v['complianceLevel']
+                
+                if k not in versions:
+                    versions[k] = v
+                    edited = True
+            
+            VERSION_MANIFEST['versions'] = versions.values()
+            
+            return edited
+    
+    with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
+            github_manifest = json.load(fl)
+            
+            if update_version_manifest(github_manifest):
+                edited = True
+            
+            for v in github_manifest['versioning']:
+                i = VERSION_MANIFEST['versioning']
+                ni = github_manifest['versioning']
+                if v == 'special':
+                    if v not in i:
+                        i[v] = []
+                        edited = True
+                    
+                    iv = i[v]
+                    for idx, e in enumerate(ni[v], start=0):
+                        if e not in iv:
+                            iv.insert(idx, e)
+                            edited = True
+                        
+                else:
+                    if v not in i:
+                        i[v] = {}
+                        edited = True
+                    
+                    iv = i[v]
+                    niv = ni[v]
+                    for t in niv:
+                        if t not in iv:
+                            iv[t] = []
+                            edited = True
+                        
+                        ivt = iv[t]
+                        nivt = niv[t]
+                        for idx, e in enumerate(nivt, start=0):
+                            if e not in ivt:
+                                ivt.insert(idx, e)
+                                edited = True
+    
+    with urllib.request.urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
+            if update_version_manifest(json.load(fl)):
+                edited = True
+    
+    
+    if edited:
+        VERSION_MANIFEST['versions'] = sorted(VERSION_MANIFEST['versions'], key=lambda item: item['releaseTime'], reverse=True)
+        write_json(version_manifest_path, VERSION_MANIFEST)
 
-version_manifest = None
+update_version_manifest()
+
+def find_output(version):
+    output = glob.glob(f'**/{version}/', root_dir='.', recursive=True)
+    if len(output):
+        return output[0]
+    else:
+        return None
+
+def get_latest(version):
+    if version in ['r','release']:
+        return VERSION_MANIFEST['latest']['release']
+    if version in ['s','snapshot', 'l', 'latest']:
+        return VERSION_MANIFEST['latest']['snapshot']
+    
+    return version
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -180,14 +273,13 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
-    global args, version_manifest
+    global args
     
     prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     prints()
     
-    last, _, _ = github_builder.check_versions()
+    last, _, _ = GITHUB_BUILDER.check_versions()
     if last > VERSION:
-        prints('A new version is available!')
         prints('A new version is available!')
         prints()
     
@@ -206,7 +298,7 @@ def main():
         args.version = get_latest(args.version)
         
         version_json = None
-        for v in version_manifest['versions']:
+        for v in VERSION_MANIFEST['versions']:
             if v['id'] == args.version:
                 version_json = v
                 break
@@ -246,108 +338,11 @@ def main():
         keyboard.read_key()
     return error
 
-def update_version_manifest():
-    global version_manifest
-    
-    version_manifest_path = os.path.join('version_manifest.json')
-    version_manifest = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'versioning':{}})
-    
-    edited = False
-    def update_version_manifest(read_manifest):
-            edited = False
-            if version_manifest['latest']['release'] != read_manifest['latest']['release']:
-                version_manifest['latest']['release'] = read_manifest['latest']['release']
-                edited = True
-            
-            if version_manifest['latest']['snapshot'] != read_manifest['latest']['snapshot']:
-                version_manifest['latest']['snapshot'] = read_manifest['latest']['snapshot']
-                edited = True
-            
-            versions = { v['id']:v for v in version_manifest['versions'] }
-            
-            for k,v in { v['id']:v for v in read_manifest['versions'] }.items():
-                if 'sha1' in v: del v['sha1']
-                if 'complianceLevel' in v: del v['complianceLevel']
-                
-                if k not in versions:
-                    versions[k] = v
-                    edited = True
-            
-            version_manifest['versions'] = versions.values()
-            
-            return edited
-    
-    with urllib.request.urlopen(github_data.get_raw('main', 'version_manifest.json')) as fl:
-            github_manifest = json.load(fl)
-            
-            if update_version_manifest(github_manifest):
-                edited = True
-            
-            for v in github_manifest['versioning']:
-                i = version_manifest['versioning']
-                ni = github_manifest['versioning']
-                if v == 'special':
-                    if v not in i:
-                        i[v] = []
-                        edited = True
-                    
-                    iv = i[v]
-                    for idx, e in enumerate(ni[v], start=0):
-                        if e not in iv:
-                            iv.insert(idx, e)
-                            edited = True
-                        
-                else:
-                    if v not in i:
-                        i[v] = {}
-                        edited = True
-                    
-                    iv = i[v]
-                    niv = ni[v]
-                    for t in niv:
-                        if t not in iv:
-                            iv[t] = []
-                            edited = True
-                        
-                        ivt = iv[t]
-                        nivt = niv[t]
-                        for idx, e in enumerate(nivt, start=0):
-                            if e not in ivt:
-                                ivt.insert(idx, e)
-                                edited = True
-    
-    with urllib.request.urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
-            if update_version_manifest(json.load(fl)):
-                edited = True
-    
-    
-    if edited:
-        version_manifest['versions'] = sorted(version_manifest['versions'], key=lambda item: item['releaseTime'], reverse=True)
-        write_json(version_manifest_path, version_manifest)
-    
-update_version_manifest()
-
-def find_output(version):
-    output = glob.glob(f'**/{version}/', root_dir='.', recursive=True)
-    if len(output):
-        return output[0]
-    else:
-        return None
-
-def get_latest(version):
-    if version in ['r','release']:
-        return version_manifest['latest']['release']
-    if version in ['s','snapshot', 'l', 'latest']:
-        return version_manifest['latest']['snapshot']
-    
-    return version
 
 def build_generated_data(args):
     import subprocess, zipfile, zipimport
     from tempfile import gettempdir
     from datetime import datetime
-    
-    global version_manifest
     
     if args.manifest_json:
         version = read_json(args.manifest_json, {'id': None})['id']
@@ -360,7 +355,7 @@ def build_generated_data(args):
         os.makedirs(temp)
     
     manifest_url = None
-    for v in version_manifest['versions']:
+    for v in VERSION_MANIFEST['versions']:
         if v['id'] == version:
             manifest_url = v['url']
             break
@@ -393,6 +388,7 @@ def build_generated_data(args):
     version_json['time'] = manifest_json['time']
     version_json['releaseTime'] = manifest_json['releaseTime']
     version_json['url'] = manifest_url
+    version_json['assets'] = manifest_json['assets']
     
     if 'assetIndex' in manifest_json:
         #minecraft/original manifest
@@ -410,7 +406,7 @@ def build_generated_data(args):
         version_json['server_mappings'] = manifest_json['server_mappings']
     
     def build_path():
-        for k,v in version_manifest['versioning'].items():
+        for k,v in VERSION_MANIFEST['versioning'].items():
             if k == 'special':
                 if version in v:
                     return os.path.join('special', version)
@@ -566,5 +562,4 @@ def build_generated_data(args):
 
 
 if __name__ == "__main__":
-    
     main()
