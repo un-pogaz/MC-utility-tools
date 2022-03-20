@@ -4,258 +4,7 @@ import sys, argparse, os.path, json, io, glob, time
 import pathlib, urllib.request, shutil
 from collections import OrderedDict
 
-def as_bytes(x, encoding='utf-8'):
-    if isinstance(x, str):
-        return x.encode(encoding)
-    if isinstance(x, bytes):
-        return x
-    if isinstance(x, bytearray):
-        return bytes(x)
-    if isinstance(x, memoryview):
-        return x.tobytes()
-    ans = str(x)
-    if isinstance(ans, str):
-        ans = ans.encode(encoding)
-    return ans
-
-def as_unicode(x, encoding='utf-8', errors='strict'):
-    if isinstance(x, bytes):
-        return x.decode(encoding, errors)
-    return str(x)
-
-def is_binary(stream):
-    mode = getattr(stream, "mode", None)
-    if mode:
-        return "b" in mode
-    return not isinstance(stream, io.TextIOBase)
-
-def prints(*a, **kw):
-    " Print either unicode or bytes to either binary or text mode streams "
-    import sys
-    stream = kw.get('file', sys.stdout)
-    if stream is None:
-        return
-    sep, end = kw.get('sep'), kw.get('end')
-    if sep is None:
-        sep = ' '
-    if end is None:
-        end = '\n'
-    if is_binary(stream):
-        encoding = getattr(stream, 'encoding', None) or 'utf-8'
-        a = (as_bytes(x, encoding=encoding) for x in a)
-        sep = as_bytes(sep)
-        end = as_bytes(end)
-    else:
-        a = (as_unicode(x, errors='replace') for x in a)
-        sep = as_unicode(sep)
-        end = as_unicode(end)
-    for i, x in enumerate(a):
-        if sep and i != 0:
-            stream.write(sep)
-        stream.write(x)
-    if end:
-        stream.write(end)
-    if kw.get('flush'):
-        try:
-            stream.flush()
-        except Exception:
-            pass
-
-
-missing_package = False
-def install(package, test=None):
-    global missing_package
-    import sys, importlib, subprocess
-    
-    test = test or package
-    spam_spec = importlib.util.find_spec(package)
-    found = spam_spec is not None
-    
-    if not found:
-        if missing_package:
-            prints('Missing dependency')
-            missing_package = True
-        prints('Instaling:', package)
-        subprocess.check_call([sys.executable, '-m', 'pip', '-q', 'install', package])
-
-install('keyboard')
-import keyboard
-
-from github import GitHub
-
-if missing_package:
-    prints('All dependency are instaled')
-    prints()
-
-GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
-GITHUB_BUILDER = GitHub('un-pogaz', 'MC-generated-data-builder')
-
-
-animation_loop = ['.  ',' . ','  .']
-
-def run_animation(awaitable, text_wait, text_end=None):
-    import asyncio
-    
-    global animation_run
-    
-    def start_animation():
-        global animation_run
-        idx = 0
-        while animation_run:
-            print(text_wait + animation_loop[idx % len(animation_loop)], end="\r")
-            idx += 1
-            if idx == len(animation_loop): idx == 0
-            time.sleep(0.2)
-    
-    from threading import Thread
-    
-    animation_run = True
-    t = Thread(target=start_animation)
-    t.start()
-    asyncio.run(awaitable())
-    animation_run = False
-    prints(text_wait, text_end or '', ' ' * len(animation_loop[0]))
-    time.sleep(0.3)
-    del t
-
-
-def read_json(path, default=None):
-    try:
-        with open(path, 'r') as f:
-            return json.load(f)
-    except:
-        return default or {}
-
-def make_dirname(path):
-    dir = os.path.dirname(path)
-    if dir and not os.path.exists(dir):
-        os.makedirs(dir)
-
-def write_json(path, obj):
-    make_dirname(path)
-    with open(path, 'w',) as f:
-        json.dump(obj, f, indent=2)
-
-def write_lines(path, lines):
-    make_dirname(path)
-    with open(path, 'w') as f:
-        f.writelines(l+'\n' for l in lines[:-1])
-        f.write(lines[-1])
-
-def safe_del(path):
-    def remove(a):
-        pass
-    
-    if os.path.exists(path):
-        if os.path.isfile(path):
-            remove = os.remove
-        if os.path.isdir(path):
-            remove = shutil.rmtree
-        if os.path.islink(path):
-            remove = os.unlink
-    
-    try:
-        remove(path)
-    except Exception as ex:
-        pass
-
-
-VERSION_MANIFEST = None
-def update_version_manifest():
-    global VERSION_MANIFEST
-    
-    version_manifest_path = os.path.join('version_manifest.json')
-    VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'versioning':{}})
-    
-    edited = False
-    def update_version_manifest(read_manifest):
-            edited = False
-            if VERSION_MANIFEST['latest']['release'] != read_manifest['latest']['release']:
-                VERSION_MANIFEST['latest']['release'] = read_manifest['latest']['release']
-                edited = True
-            
-            if VERSION_MANIFEST['latest']['snapshot'] != read_manifest['latest']['snapshot']:
-                VERSION_MANIFEST['latest']['snapshot'] = read_manifest['latest']['snapshot']
-                edited = True
-            
-            versions = { v['id']:v for v in VERSION_MANIFEST['versions'] }
-            
-            for k,v in { v['id']:v for v in read_manifest['versions'] }.items():
-                if 'sha1' in v: del v['sha1']
-                if 'complianceLevel' in v: del v['complianceLevel']
-                
-                if k not in versions:
-                    versions[k] = v
-                    edited = True
-            
-            VERSION_MANIFEST['versions'] = versions.values()
-            
-            return edited
-    
-    with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
-            github_manifest = json.load(fl)
-            
-            if update_version_manifest(github_manifest):
-                edited = True
-            
-            for v in github_manifest['versioning']:
-                i = VERSION_MANIFEST['versioning']
-                ni = github_manifest['versioning']
-                if v == 'special':
-                    if v not in i:
-                        i[v] = []
-                        edited = True
-                    
-                    iv = i[v]
-                    for idx, e in enumerate(ni[v], start=0):
-                        if e not in iv:
-                            iv.insert(idx, e)
-                            edited = True
-                        
-                else:
-                    if v not in i:
-                        i[v] = {}
-                        edited = True
-                    
-                    iv = i[v]
-                    niv = ni[v]
-                    for t in niv:
-                        if t not in iv:
-                            iv[t] = []
-                            edited = True
-                        
-                        ivt = iv[t]
-                        nivt = niv[t]
-                        for idx, e in enumerate(nivt, start=0):
-                            if e not in ivt:
-                                ivt.insert(idx, e)
-                                edited = True
-    
-    with urllib.request.urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
-            if update_version_manifest(json.load(fl)):
-                edited = True
-    
-    
-    if edited:
-        VERSION_MANIFEST['versions'] = sorted(VERSION_MANIFEST['versions'], key=lambda item: item['releaseTime'], reverse=True)
-        write_json(version_manifest_path, VERSION_MANIFEST)
-
-update_version_manifest()
-
-def find_output(version):
-    output = glob.glob(f'**/{version}/', root_dir='.', recursive=True)
-    if len(output):
-        return output[0]
-    else:
-        return None
-
-def get_latest(version):
-    if version in ['r','release']:
-        return VERSION_MANIFEST['latest']['release']
-    if version in ['s','snapshot', 'l', 'latest']:
-        return VERSION_MANIFEST['latest']['snapshot']
-    
-    return version
+from common import prints
 
 
 parser = argparse.ArgumentParser()
@@ -273,7 +22,7 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
-    global args
+    from common import GITHUB_BUILDER, valide_version
     
     prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     prints()
@@ -283,41 +32,9 @@ def main():
         prints('A new version is available!')
         prints()
     
+    args.version = valide_version(args.version, args.quiet, args.manifest_json)
     
-    if args.manifest_json:
-        args.version = read_json(args.manifest_json, {'id': None})['id']
-    
-    else:
-        if not args.version:
-            if args.quiet:
-                prints('No version or "manifest_json.json" are declared. One of them are require in quiet mode.')
-            else:
-                prints('Enter the version:\nid of the version / r or release for the latest release / s or snapshot for the latest snapshot')
-                args.version = input()
-        
-        args.version = get_latest(args.version)
-        
-        version_json = None
-        for v in VERSION_MANIFEST['versions']:
-            if v['id'] == args.version:
-                version_json = v
-                break
-        
-        if not version_json:
-            prints( f'The version {args.version} has invalide.', '' if args.quiet else ' Press any key to exit.')
-            if not args.quiet:
-                keyboard.read_key()
-            return -1
-    
-    if not args.output:
-        args.output = find_output(args.version)
-    
-    if args.output and os.path.exists(args.output):
-        prints(f'The {args.version} already exit at "{args.output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
-        if (args.quiet and args.overwrite) or input()[:1] == 'y':
-            args.overwrite = True
-        else:
-            return -1
+    valide_output(args)
     
     if args.zip == None:
         if args.quiet:
@@ -329,57 +46,25 @@ def main():
     prints()
     
     error = build_generated_data(args)
-    
-    prints()
-    
-    if not error:
-        prints('Work done with success.','' if args.quiet else 'Press any key to exit.')
-    if not args.quiet:
-        keyboard.read_key()
+    work_done(error, args.quiet)
     return error
 
 
 def build_generated_data(args):
-    import subprocess, zipfile, zipimport
+    from common import run_animation, read_json, write_json, write_lines, safe_del, find_output, get_latest, read_manifest_json
+    
+    import subprocess, zipfile
     from tempfile import gettempdir
     from datetime import datetime
     
-    if args.manifest_json:
-        version = read_json(args.manifest_json, {'id': None})['id']
-    else:
-        version = get_latest(args.version)
-    
+    version = get_latest(args.version, args.manifest_json)
     
     temp = os.path.join(gettempdir(), 'MC Generated data', version)
     if not os.path.exists(temp):
         os.makedirs(temp)
     
-    manifest_url = None
-    for v in VERSION_MANIFEST['versions']:
-        if v['id'] == version:
-            manifest_url = v['url']
-            break
     
-    if not args.manifest_json and not manifest_url:
-        prints(f'Imposible to build Generated data for {version}. The requested version is not in the "version_manifest.json".')
-        return -1
-    
-    if args.manifest_json:
-        manifest_json = read_json(args.manifest_json)
-    else:
-        manifest = os.path.join(temp, version+'.json')
-        urllib.request.urlretrieve(manifest_url, manifest)
-        if os.path.splitext(manifest_url)[1].lower() == '.zip':
-            with zipfile.ZipFile(manifest) as zip:
-                for file in zip.filelist:
-                    if os.path.splitext(file.filename)[1].lower() == '.json':
-                        with zip.open(file) as zi:
-                            manifest_json = json.load(zi)
-                        break
-            
-            write_json(manifest, manifest_json)
-            
-        manifest_json = read_json(manifest)
+    manifest_json = read_manifest_json(temp, version, args.manifest_json)
     
     
     version_json = OrderedDict()
@@ -406,6 +91,7 @@ def build_generated_data(args):
         version_json['server_mappings'] = manifest_json['server_mappings']
     
     def build_path():
+        from common import VERSION_MANIFEST
         for k,v in VERSION_MANIFEST['versioning'].items():
             if k == 'special':
                 if version in v:
