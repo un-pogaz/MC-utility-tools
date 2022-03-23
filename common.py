@@ -342,7 +342,7 @@ def read_manifest_json(temp, version, manifest_json_path = None):
             
             write_json(manifest_json_path, manifest_json)
         
-    return read_json(manifest_json_path)
+    return read_json(manifest_json_path), manifest_url
 
 
 def work_done(error, quiet = False):

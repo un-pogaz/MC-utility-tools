@@ -48,7 +48,7 @@ def unindex_assets(args):
         os.makedirs(temp)
     
     
-    manifest_json = read_manifest_json(temp, version, args.manifest_json)
+    manifest_json, manifest_url = read_manifest_json(temp, version, args.manifest_json)
     
     
     assets_json = OrderedDict()
