@@ -5,7 +5,7 @@ print()
 print('It can be a lot of files, are you sure to do it?')
 if not input()[:1] == 'y': sys.exit()
 
-from builder.MC_generated_data_builder import args, build_generated_data, version_manifest
+from builder.generated_data_builder import args, build_generated_data, version_manifest
 
 
 args.manifest_json = None

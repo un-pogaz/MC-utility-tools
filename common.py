@@ -271,7 +271,7 @@ def find_output(version):
     if len(output):
         return output[0]
 
-def get_latest(version, manifest_json_path = None):
+def get_latest(version, manifest_json_path=None):
     if manifest_json_path:
         return read_json(manifest_json_path, {'id': None})['id']
     
