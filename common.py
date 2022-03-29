@@ -94,7 +94,7 @@ import keyboard
 from github import GitHub
 
 GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
-GITHUB_BUILDER = GitHub('un-pogaz', 'MC-generated-data-builder')
+GITHUB_BUILDER = GitHub('un-pogaz', 'MC-utility-tools')
 
 
 animation_loop = ['.  ',' . ','  .']
