@@ -214,14 +214,15 @@ def update_version_manifest():
             return edited
     
     with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
-            github_manifest = json.load(fl)
-            
-            if update_version_manifest(github_manifest):
-                edited = True
-            
-            for v in github_manifest['versioning']:
-                i = VERSION_MANIFEST['versioning']
-                ni = github_manifest['versioning']
+        github_manifest = json.load(fl)
+        
+        if update_version_manifest(github_manifest):
+            edited = True
+        
+        def sub_tree(sub_name):
+            for v in github_manifest[sub_name]:
+                i = VERSION_MANIFEST[sub_name]
+                ni = github_manifest[sub_name]
                 if v == 'special':
                     if v not in i:
                         i[v] = []
@@ -251,6 +252,9 @@ def update_version_manifest():
                             if e not in ivt:
                                 ivt.insert(idx, e)
                                 edited = True
+        
+        sub_tree('versioning')
+        sub_tree('pack_format')
     
     with urllib.request.urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
             if update_version_manifest(json.load(fl)):
