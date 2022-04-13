@@ -22,7 +22,7 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
-    from common import GITHUB_BUILDER, valide_version
+    from common import GITHUB_BUILDER, valide_version, valide_output, work_done
     
     prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     prints()

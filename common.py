@@ -186,7 +186,7 @@ def update_version_manifest():
     global VERSION_MANIFEST
     
     version_manifest_path = os.path.join('version_manifest.json')
-    VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'versioning':{}})
+    VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}})
     
     edited = False
     def update_version_manifest(read_manifest):
