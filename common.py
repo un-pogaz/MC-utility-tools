@@ -145,8 +145,11 @@ def write_json(path, obj):
 def write_lines(path, lines):
     make_dirname(path)
     with open(path, 'w') as f:
-        f.writelines(l+'\n' for l in lines[:-1])
-        f.write(lines[-1])
+        if len(lines) == 0:
+            f.write('')
+        else:
+            f.writelines(l+'\n' for l in lines[:-1])
+            f.write(lines[-1])
 
 def safe_del(path):
     def remove(a):

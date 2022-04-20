@@ -69,6 +69,7 @@ def unindex_assets(args):
     assets_json_path = os.path.join(temp, version+'.json')
     make_dirname(assets_json_path)
     
+    
     async def index_dl():
         urllib.request.urlretrieve(assets_json['asset_index'], assets_json_path)
         pass
@@ -78,7 +79,6 @@ def unindex_assets(args):
         assets_json[k] = v
     
     write_json(assets_json_path, assets_json)
-    
     
     
     async def assets_dl():
@@ -100,6 +100,28 @@ def unindex_assets(args):
                 urllib.request.urlretrieve(link_asset(hash), path)
         
     run_animation(assets_dl, 'Downloading assets', '> OK')
+    
+    
+    async def list_assets():
+        jr = None
+        for p in ['minecraft/sounds.json', 'sounds.json']:
+            jr = os.path.join(temp, p)
+            if os.path.exists(jr):
+                break
+        
+        for k,v in read_json(os.path.join(temp, jr)).items():
+            write_json(os.path.join(temp, 'lists/sounds/', k+'.json'), v)
+            
+            lines = v['sounds']
+            for idx,v in enumerate(lines):
+                try:
+                    lines[idx] = v['name']
+                except:
+                    pass
+            write_lines(os.path.join(temp, 'lists/sounds/', k+'.txt'), lines)
+        
+    run_animation(list_assets, 'List assets', '> OK')
+    
     
     async def copy_assets_data():
         if os.path.exists(output):
