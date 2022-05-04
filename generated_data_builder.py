@@ -186,7 +186,7 @@ def build_generated_data(args):
                         write_lines(os.path.join(temp, 'generated/lists/blocks/properties', kk+'='+zk+'.txt') , sorted(zv))
             else:
                 for kk,vv in v.items():
-                    write_json(os.path.join(temp, 'generated/lists/blocks/', k, kk+'.json') , vv)
+                    write_json(os.path.join(temp, 'generated/lists/blocks/', k, kk+'.json'), vv)
         
         
         for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json'))['children'].items():
@@ -204,6 +204,8 @@ def build_generated_data(args):
             
             entries = [k for k in v['entries'].keys()]
             tags = ['#minecraft:'+j for j in enum_json(tags)]
+            entries.sort()
+            tags.sort()
             write_lines(os.path.join(temp, 'generated/lists', name +'.txt'), entries + tags)
         
         dir = os.path.join(temp, 'generated/reports/worldgen/minecraft/worldgen')
@@ -212,11 +214,13 @@ def build_generated_data(args):
                 if dir.is_dir:
                     folder = ['minecraft:'+j for j in enum_json(dir.path)]
                     tags = ['#minecraft:'+j for j in enum_json(os.path.join(temp,'generated/data/minecraft/tags/worldgen', dir.name))]
+                    folder.sort()
+                    tags.sort()
                     write_lines(os.path.join(temp, 'generated/lists/worldgen', dir.name +'.txt'), folder + tags)
         
         dir = os.path.join(temp, 'generated/reports/biomes') #legacy
         if os.path.exists(dir):
-            write_lines(os.path.join(temp, 'generated/lists/worldgen', 'biomes.txt'), ['minecraft:'+b for b in enum_json(dir)])
+            write_lines(os.path.join(temp, 'generated/lists/worldgen', 'biomes.txt'), sorted(['minecraft:'+b for b in enum_json(dir)]))
         
     
     run_animation(listing_various, 'Listing elements and various', '> OK')
