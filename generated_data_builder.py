@@ -209,6 +209,9 @@ def build_generated_data(args):
             write_lines(os.path.join(temp, 'generated/lists', name +'.txt'), entries + tags)
         
         dir = os.path.join(temp, 'generated/reports/worldgen/minecraft/worldgen')
+        if not os.path.exists(dir):
+            dir = os.path.join(temp, 'generated/reports/minecraft/worldgen')
+        
         if os.path.exists(dir):
             for dir in os.scandir(dir):
                 if dir.is_dir:
