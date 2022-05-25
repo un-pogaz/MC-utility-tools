@@ -104,7 +104,7 @@ def build_generated_data(args):
                     if version in vv:
                         return os.path.join('snapshots', k, kk, version)
     
-    output = args.output or find_output(version) or build_path() or os.path.join(version_json['type'], version)
+    output = os.path.join(args.output, version) if args.output else find_output(version) or build_path() or os.path.join(version_json['type'], version)
     
     
     if os.path.exists(output) and not args.overwrite:

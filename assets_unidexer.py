@@ -59,7 +59,7 @@ def unindex_assets(args):
     else:
         assets_json['asset_index'] = manifest_json['asset_index']
     
-    output = args.output or find_output('assets/assets-'+version) or 'assets/assets-'+version
+    output = os.path.join(args.output, version) if args.output else find_output('assets/assets-'+version) or 'assets/assets-'+version
     
     if os.path.exists(output) and not args.overwrite:
         prints(f'Imposible to unindex assets for {version}. The output "{output}" already exit and the overwrite is not enabled.')
