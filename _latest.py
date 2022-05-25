@@ -7,7 +7,7 @@ from generated_data_builder import args, build_generated_data
 
 args.manifest_json = None
 args.overwrite = False
-args.output = None
+args.output = '..'
 args.quiet = True
 args.zip = True
 
