@@ -9,7 +9,7 @@ args.manifest_json = None
 args.overwrite = False
 args.output = '..'
 args.quiet = True
-args.zip = True
+args.zip = False
 
 args.version = 'l'
 build_generated_data(args)
