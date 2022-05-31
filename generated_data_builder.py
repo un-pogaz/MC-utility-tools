@@ -188,6 +188,9 @@ def build_generated_data(args):
                 for kk,vv in v.items():
                     write_json(os.path.join(temp, 'generated/lists/blocks/', k, kk+'.json'), vv)
         
+        nbt = ['minecraft:'+j[:-4].replace('\\', '/') for j in glob.glob(f'**/*.nbt', root_dir=os.path.join(temp, 'generated/data/minecraft/structures'), recursive=True)]
+        nbt.sort()
+        write_lines(os.path.join(temp, 'generated/lists', 'structures.nbt.txt'), nbt)
         
         for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json'))['children'].items():
             write_json(os.path.join(temp, 'generated/lists/commands/', k+'.json') , v)

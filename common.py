@@ -191,7 +191,7 @@ def update_version_manifest():
     version_manifest_path = os.path.join('version_manifest.json')
     VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}})
     
-    edited = False
+    edited = not os.path.exists(version_manifest_path)
     def update_version_manifest(read_manifest):
             edited = False
             if VERSION_MANIFEST['latest']['release'] != read_manifest['latest']['release']:
