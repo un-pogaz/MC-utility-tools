@@ -69,7 +69,7 @@ def main():
                 
                 if old_seed != None:
                     dimension['generator']['seed'] = seed
-                    dimensions[file.filename] = json.dumps(dimension, indent=2)
+                    dimensions[file.filename] = json.dumps(dimension, indent=2, ensure_ascii=False)
     
     if dimensions:
         with zipfile.ZipFile(datapack, 'r') as zin:

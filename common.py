@@ -140,7 +140,7 @@ def read_json(path, default=None):
 def write_json(path, obj):
     make_dirname(path)
     with open(path, 'w',) as f:
-        json.dump(obj, f, indent=2)
+        json.dump(obj, f, indent=2, ensure_ascii=False)
 
 def write_lines(path, lines):
     make_dirname(path)
