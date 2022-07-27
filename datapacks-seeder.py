@@ -7,7 +7,7 @@ from common import prints
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--seed', help='Seed to set', required=False)
-parser.add_argument('datapack', help='Target Worldgen datapack.', type=pathlib.Path, nargs='?')
+parser.add_argument('datapack', help='Target Worldgen datapack.', type=pathlib.Path)
 args = parser.parse_args()
 
 def main():
