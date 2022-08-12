@@ -27,7 +27,7 @@ def main():
     prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     prints()
     
-    last, _, _ = GITHUB_BUILDER.check_versions()
+    last, _, _ = GITHUB_BUILDER.check_releases()
     if last > VERSION:
         prints('A new version is available!')
         prints()
