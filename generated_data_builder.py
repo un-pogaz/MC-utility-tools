@@ -162,7 +162,7 @@ def build_generated_data(args):
         
         for k,v in read_json(os.path.join(temp, 'generated/reports/blocks.json')).items():
             name = k.split(':', maxsplit=2)[-1]
-            if 'states' in v: del v['states']
+            v.pop('states', None)
             write_json(os.path.join(temp, 'generated/lists/blocks', name+'.json') , v)
             
             for vk in v:
