@@ -211,9 +211,11 @@ def build_generated_data(args):
             tags.sort()
             write_lines(os.path.join(temp, 'generated/lists', name +'.txt'), entries + tags)
         
-        dir = os.path.join(temp, 'generated/reports/worldgen/minecraft/worldgen')
+        dir = os.path.join(temp, 'generated/data/minecraft/worldgen')
         if not os.path.exists(dir):
-            dir = os.path.join(temp, 'generated/reports/minecraft/worldgen')
+            dir = os.path.join(temp, 'generated/reports/minecraft/worldgen') # old
+            if not os.path.exists(dir):
+                dir = os.path.join(temp, 'generated/reports/worldgen/minecraft/worldgen') # legacy
         
         if os.path.exists(dir):
             for dir in os.scandir(dir):
