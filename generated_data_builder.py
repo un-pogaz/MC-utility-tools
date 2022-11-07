@@ -1,4 +1,4 @@
-VERSION = (0, 1, 0)
+VERSION = (0, 2, 0)
 
 import sys, argparse, os.path, json, io, glob, time
 import pathlib, urllib.request, shutil
@@ -145,7 +145,7 @@ def build_generated_data(args):
             
             if not os.path.exists(os.path.join(temp, 'generated', 'assets')):
                 for entry in zip.filelist:
-                    if not entry.filename.startswith('META-INF/') and not entry.filename.endswith('.class'):
+                    if entry.filename.endswith('.png') or entry.filename.endswith('.txt') or entry.filename.endswith('.lang'):
                         safe_del(os.path.join(temp, 'generated/assets', entry.filename))
                         zip.extract(entry.filename, os.path.join(temp, 'generated/assets'))
                 pass
@@ -157,7 +157,7 @@ def build_generated_data(args):
     
     async def listing_various():
         
-        for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot', 'generated/assets/null']:
+        for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp, dir))
         
         write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()])
