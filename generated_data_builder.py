@@ -60,8 +60,7 @@ def build_generated_data(args):
     version = get_latest(args.version, args.manifest_json)
     
     temp = os.path.join(gettempdir(), 'MC Generated data', version)
-    if not os.path.exists(temp):
-        os.makedirs(temp)
+    os.makedirs(temp, exist_ok=True)
     
     
     manifest_json, manifest_url = read_manifest_json(temp, version, args.manifest_json)
@@ -79,9 +78,9 @@ def build_generated_data(args):
         #minecraft/original manifest
         version_json['asset_index'] = manifest_json['assetIndex']['url']
         version_json['client'] = manifest_json['downloads']['client']['url']
-        version_json['client_mappings'] = manifest_json['downloads']['client_mappings']['url']
-        version_json['server'] = manifest_json['downloads']['server']['url']
-        version_json['server_mappings'] = manifest_json['downloads']['server_mappings']['url']
+        version_json['client_mappings'] = manifest_json['downloads'].get('client_mappings', {}).get('url', None)
+        version_json['server'] = manifest_json['downloads'].get('server', {}).get('url', None)
+        version_json['server_mappings'] = manifest_json['downloads'].get('server_mappings', {}).get('url', None)
     else:
         #mc Generated data manifest
         version_json['asset_index'] = manifest_json['asset_index']
@@ -117,10 +116,6 @@ def build_generated_data(args):
     fix = datetime.fromisoformat('2021-09-21T14:36:06+00:00')
     dt = datetime.fromisoformat(version_json['releaseTime'])
     
-    cmd = '-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all'
-    if dt < fix:
-        cmd = '-cp server.jar net.minecraft.data.Main --all'
-    
     prints()
     
     client = os.path.join(temp, 'client.jar')
@@ -131,7 +126,7 @@ def build_generated_data(args):
     
     server = os.path.join(temp, 'server.jar')
     async def server_dl():
-        if not os.path.exists(server):
+        if version_json['server'] and not os.path.exists(server):
             urllib.request.urlretrieve(version_json['server'], server)
     run_animation(server_dl, 'Downloading server.jar', '> OK')
     
@@ -147,6 +142,14 @@ def build_generated_data(args):
                 if entry.filename.startswith('assets/') or entry.filename.startswith('data/'):
                     safe_del(os.path.join(temp, 'generated', entry.filename))
                     zip.extract(entry.filename, os.path.join(temp, 'generated'))
+            
+            if not os.path.exists(os.path.join(temp, 'generated', 'assets')):
+                for entry in zip.filelist:
+                    if not entry.filename.startswith('META-INF/') and not entry.filename.endswith('.class'):
+                        safe_del(os.path.join(temp, 'generated/assets', entry.filename))
+                        zip.extract(entry.filename, os.path.join(temp, 'generated/assets'))
+                pass
+            
     run_animation(data_client, 'Extracting data client', '> OK')
     
     
@@ -154,7 +157,7 @@ def build_generated_data(args):
     
     async def listing_various():
         
-        for dir in ['libraries', 'logs', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
+        for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot', 'generated/assets/null']:
             safe_del(os.path.join(temp, dir))
         
         write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()])
@@ -193,7 +196,7 @@ def build_generated_data(args):
         nbt.sort()
         write_lines(os.path.join(temp, 'generated/lists', 'structures.nbt.txt'), nbt)
         
-        for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json'))['children'].items():
+        for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json')).get('children', {}).items():
             write_json(os.path.join(temp, 'generated/lists/commands/', k+'.json') , v)
         
         def enum_json(dir):
@@ -251,7 +254,7 @@ def build_generated_data(args):
                 prints(f'The output at "{output}" already exit and the overwrite is not enable')
                 return -1
         
-        os.makedirs(output)
+        os.makedirs(output, exist_ok=True)
         for dir in os.listdir(os.path.join(temp, 'generated')):
             shutil.move(os.path.join(temp, 'generated', dir), os.path.join(output, dir))
         

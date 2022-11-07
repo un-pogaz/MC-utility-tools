@@ -127,8 +127,7 @@ def run_animation(awaitable, text_wait, text_end=None):
 
 def make_dirname(path):
     dir = os.path.dirname(path)
-    if dir and not os.path.exists(dir):
-        os.makedirs(dir)
+    os.makedirs(dir, exist_ok=True)
 
 def read_json(path, default=None):
     try:
