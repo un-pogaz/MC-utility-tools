@@ -276,7 +276,7 @@ LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release', None)
 LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot', None)
 
 def find_output(version):
-    output = glob.glob(f'**/{version}/', root_dir='.', recursive=True)
+    output = glob.glob(f'/{version}/', root_dir='.', recursive=False)
     if len(output):
         return output[0]
 
