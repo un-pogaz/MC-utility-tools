@@ -342,7 +342,7 @@ def read_manifest_json(temp, version, manifest_json_path = None):
         manifest_json_path = os.path.join(temp, version+'.json')
         urllib.request.urlretrieve(manifest_url, manifest_json_path)
         if os.path.splitext(manifest_url)[1].lower() == '.zip':
-            with zipfile.ZipFile(manifest) as zip:
+            with zipfile.ZipFile(manifest_json_path) as zip:
                 for file in zip.filelist:
                     if os.path.splitext(file.filename)[1].lower() == '.json':
                         with zip.open(file) as zi:
