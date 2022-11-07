@@ -17,7 +17,6 @@ args.zip = True
 for version in VERSION_MANIFEST['versions']:
     print()
     args.version = version['id']
-    print(args)
     
     build_generated_data(args)
     if args.version == '1.0':
