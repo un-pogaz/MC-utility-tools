@@ -160,7 +160,10 @@ def build_generated_data(args):
         for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp, dir))
         
-        write_lines(os.path.join(temp, 'generated/lists/registries.txt'), [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()])
+        registries = [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()]
+        registries.sort()
+        if registries:
+            write_lines(os.path.join(temp, 'generated/lists/registries.txt'), registries)
         
         blockstates = {}
         
@@ -194,7 +197,8 @@ def build_generated_data(args):
         
         nbt = ['minecraft:'+j[:-4].replace('\\', '/') for j in glob.glob(f'**/*.nbt', root_dir=os.path.join(temp, 'generated/data/minecraft/structures'), recursive=True)]
         nbt.sort()
-        write_lines(os.path.join(temp, 'generated/lists', 'structures.nbt.txt'), nbt)
+        if nbt:
+            write_lines(os.path.join(temp, 'generated/lists', 'structures.nbt.txt'), nbt)
         
         for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json')).get('children', {}).items():
             write_json(os.path.join(temp, 'generated/lists/commands/', k+'.json') , v)
