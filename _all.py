@@ -15,6 +15,7 @@ args.quiet = True
 args.zip = True
 
 for version in VERSION_MANIFEST['versions']:
+    print()
     args.version = version['id']
     print(args)
     
