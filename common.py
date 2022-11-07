@@ -266,6 +266,8 @@ def update_version_manifest():
     
     if edited:
         VERSION_MANIFEST['versions'] = sorted(VERSION_MANIFEST['versions'], key=lambda item: item['releaseTime'], reverse=True)
+        VERSION_MANIFEST['pack_format'] = github_manifest['pack_format']
+        VERSION_MANIFEST['versioning'] = github_manifest['versioning']
         write_json(version_manifest_path, VERSION_MANIFEST)
 
 update_version_manifest()
