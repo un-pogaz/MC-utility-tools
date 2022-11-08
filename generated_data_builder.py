@@ -157,7 +157,7 @@ def build_generated_data(args):
     
     async def listing_various():
         
-        for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
+        for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp, dir))
         
         registries = [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()]
