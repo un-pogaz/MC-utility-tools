@@ -128,7 +128,8 @@ def build_generated_data(args):
     async def server_dl():
         if version_json['server'] and not os.path.exists(server):
             urllib.request.urlretrieve(version_json['server'], server)
-    run_animation(server_dl, 'Downloading server.jar', '> OK')
+    if dt.year >= 2018:
+        run_animation(server_dl, 'Downloading server.jar', '> OK')
     
     async def data_server():
         for cmd in ['-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all', '-cp server.jar net.minecraft.data.Main --all']:
