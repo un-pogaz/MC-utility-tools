@@ -246,9 +246,11 @@ def build_generated_data(args):
     if args.zip:
         async def make_zip():
             zip_path = os.path.join(temp, 'zip.zip')
+            zip_version_path = os.path.join(temp, 'generated', version+'.zip')
             safe_del(zip_path)
+            safe_del(zip_version_path)
             shutil.make_archive(os.path.splitext(zip_path)[0], 'zip', root_dir=os.path.join(temp, 'generated'))
-            os.rename(zip_path, os.path.join(temp, 'generated', version+'.zip'))
+            os.rename(zip_path, zip_version_path)
         run_animation(make_zip, 'Empack into a ZIP', '> OK')
     
     async def move_generated_data():
