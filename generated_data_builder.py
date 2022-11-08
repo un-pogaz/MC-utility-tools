@@ -133,7 +133,8 @@ def build_generated_data(args):
     async def data_server():
         for cmd in ['-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all', '-cp server.jar net.minecraft.data.Main --all']:
             subprocess.run('java ' + cmd, cwd=temp, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
-    run_animation(data_server, 'Extracting data server', '> OK')
+    if dt.year >= 2018:
+        run_animation(data_server, 'Extracting data server', '> OK')
     
     
     async def data_client():
