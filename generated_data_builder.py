@@ -124,17 +124,16 @@ def build_generated_data(args):
             urllib.request.urlretrieve(version_json['client'], client)
     run_animation(client_dl, 'Downloading client.jar', '> OK')
     
-    server = os.path.join(temp, 'server.jar')
-    async def server_dl():
-        if version_json['server'] and not os.path.exists(server):
-            urllib.request.urlretrieve(version_json['server'], server)
     if dt.year >= 2018:
+        server = os.path.join(temp, 'server.jar')
+        async def server_dl():
+            if version_json['server'] and not os.path.exists(server):
+                urllib.request.urlretrieve(version_json['server'], server)
         run_animation(server_dl, 'Downloading server.jar', '> OK')
-    
-    async def data_server():
-        for cmd in ['-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all', '-cp server.jar net.minecraft.data.Main --all']:
-            subprocess.run('java ' + cmd, cwd=temp, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
-    if dt.year >= 2018:
+        
+        async def data_server():
+            for cmd in ['-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all', '-cp server.jar net.minecraft.data.Main --all']:
+                subprocess.run('java ' + cmd, cwd=temp, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
         run_animation(data_server, 'Extracting data server', '> OK')
     
     
