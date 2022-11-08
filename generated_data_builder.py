@@ -236,7 +236,7 @@ def build_generated_data(args):
         
         dir = os.path.join(temp, 'generated/reports/biomes') #legacy
         if os.path.exists(dir):
-            write_lines(os.path.join(temp, 'generated/lists/worldgen', 'biomes.txt'), sorted(['minecraft:'+b for b in enum_json(dir)]))
+            write_lines(os.path.join(temp, 'generated/lists/worldgen', 'biome.txt'), sorted(['minecraft:'+b for b in enum_json(dir)]))
         
     
     run_animation(listing_various, 'Listing elements and various', '> OK')
