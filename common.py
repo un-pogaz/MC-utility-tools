@@ -125,6 +125,33 @@ def run_animation(awaitable, text_wait, text_end=None):
     time.sleep(0.3)
     del t
 
+def run_command(command_line, wait=True):
+    """
+    Lauch a command line and return the subprocess
+    
+    :type filepath:     string
+    :param filepath:    Path to the file to open
+    :type wait:         bool
+    :param wait:        Wait for the file to be closed
+    :rtype:             subprocess
+    :return:            The pointer the subprocess returned by the Popen call
+    """
+    
+    import os
+    from subprocess import Popen, PIPE
+    
+    if not isinstance(command_line, str):
+        for idx in range(len(command_line)):
+            if ' ' in command_line[idx]: command_line[idx] = '"'+command_line[idx]+'"'
+        command_line = ' '.join(command_line)
+    
+    subproc = Popen(command_line, shell=True)
+    #subproc = Popen(command_line, stdout=PIPE, stderr=PIPE, shell=True)
+    
+    if wait:
+        subproc.wait()
+    return subproc
+
 
 def make_dirname(path):
     dir = os.path.dirname(path)
