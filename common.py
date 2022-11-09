@@ -94,6 +94,7 @@ import keyboard
 from github import GitHub
 
 GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
+GITHUB_DATA_LATEST = GitHub('un-pogaz', 'MC-generated-data-latest')
 GITHUB_BUILDER = GitHub('un-pogaz', 'MC-utility-tools')
 
 
@@ -274,6 +275,19 @@ update_version_manifest()
 
 LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release', None)
 LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot', None)
+
+def version_path(version):
+    for k,v in VERSION_MANIFEST['versioning'].items():
+        if k == 'special':
+            if version in v:
+                return os.path.join('special', version)
+        else:
+            if version in v.get('releases', []):
+                return os.path.join('releases', version)
+            
+            for kk,vv in v.items():
+                if version in vv:
+                    return os.path.join('snapshots', k, kk, version)
 
 def find_output(version):
     output = glob.glob(f'/{version}/', root_dir='.', recursive=False)

@@ -51,7 +51,7 @@ def main():
 
 
 def build_generated_data(args):
-    from common import run_animation, read_json, write_json, write_lines, safe_del, find_output, get_latest, read_manifest_json
+    from common import run_animation, read_json, write_json, write_lines, safe_del, find_output, get_latest, read_manifest_json, version_path
     
     import subprocess, zipfile
     from tempfile import gettempdir
@@ -89,21 +89,7 @@ def build_generated_data(args):
         version_json['server'] = manifest_json['server']
         version_json['server_mappings'] = manifest_json['server_mappings']
     
-    def build_path():
-        from common import VERSION_MANIFEST
-        for k,v in VERSION_MANIFEST['versioning'].items():
-            if k == 'special':
-                if version in v:
-                    return os.path.join('special', version)
-            else:
-                if version in v.get('releases', []):
-                    return os.path.join('releases', version)
-                
-                for kk,vv in v.items():
-                    if version in vv:
-                        return os.path.join('snapshots', k, kk, version)
-    
-    output = os.path.join(args.output, version) if args.output else find_output(version) or build_path() or os.path.join(version_json['type'], version)
+    output = os.path.join(args.output, version) if args.output else find_output(version) or version_path(version) or os.path.join(version_json['type'], version)
     
     
     if os.path.exists(output) and not args.overwrite:
@@ -113,7 +99,6 @@ def build_generated_data(args):
     
     prints(f'Build Generated data for {version}')
     
-    fix = datetime.fromisoformat('2021-09-21T14:36:06+00:00')
     dt = datetime.fromisoformat(version_json['releaseTime'])
     
     prints()
