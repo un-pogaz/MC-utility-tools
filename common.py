@@ -138,15 +138,15 @@ def run_command(command_line, wait=True):
     """
     
     import os
-    from subprocess import Popen, PIPE
+    from subprocess import Popen, DEVNULL, PIPE
     
     if not isinstance(command_line, str):
         for idx in range(len(command_line)):
             if ' ' in command_line[idx]: command_line[idx] = '"'+command_line[idx]+'"'
         command_line = ' '.join(command_line)
     
-    subproc = Popen(command_line, shell=True)
-    #subproc = Popen(command_line, stdout=PIPE, stderr=PIPE, shell=True)
+    #subproc = Popen(command_line, shell=True)
+    subproc = Popen(command_line, stdout=DEVNULL, stderr=PIPE, shell=True)
     
     if wait:
         subproc.wait()
@@ -220,15 +220,15 @@ def update_version_manifest():
     VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}})
     
     edited = not os.path.exists(version_manifest_path)
+    _init_release = VERSION_MANIFEST['latest']['release']
+    _init_snapshot = VERSION_MANIFEST['latest']['snapshot']
     def update_version_manifest(read_manifest):
             edited = False
             if VERSION_MANIFEST['latest']['release'] != read_manifest['latest']['release']:
                 VERSION_MANIFEST['latest']['release'] = read_manifest['latest']['release']
-                edited = True
             
             if VERSION_MANIFEST['latest']['snapshot'] != read_manifest['latest']['snapshot']:
                 VERSION_MANIFEST['latest']['snapshot'] = read_manifest['latest']['snapshot']
-                edited = True
             
             versions = { v['id']:v for v in VERSION_MANIFEST['versions'] }
             
@@ -241,7 +241,6 @@ def update_version_manifest():
                     edited = True
             
             VERSION_MANIFEST['versions'] = versions.values()
-            
             return edited
     
     with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
@@ -291,11 +290,14 @@ def update_version_manifest():
             if update_version_manifest(json.load(fl)):
                 edited = True
     
+    if _init_release != VERSION_MANIFEST['latest']['release']:
+        edited = True
+    if _init_snapshot != VERSION_MANIFEST['latest']['snapshot']:
+        edited = True
     
     if edited:
         VERSION_MANIFEST['versions'] = sorted(VERSION_MANIFEST['versions'], key=lambda item: item['releaseTime'], reverse=True)
-        VERSION_MANIFEST['pack_format'] = github_manifest['pack_format']
-        VERSION_MANIFEST['versioning'] = github_manifest['versioning']
+        print('INFO: version_manifest.json has been updated')
         write_json(version_manifest_path, VERSION_MANIFEST)
 
 update_version_manifest()
@@ -402,3 +404,14 @@ def work_done(error, quiet = False):
         prints('Work done with success.','' if quiet else 'Press any key to exit.')
     if not quiet:
         keyboard.read_key()
+
+if __name__ == "__main__":
+    for v in VERSION_MANIFEST['versions']:
+        if v['id'] == LATEST_SNAPSHOT:
+            latest = v
+    for v in VERSION_MANIFEST['versions']:
+        if v['id'] == LATEST_RELEASE:
+            release = v
+    prints('latest:', LATEST_SNAPSHOT, '['+latest['releaseTime']+']')
+    prints('release:', LATEST_RELEASE, '['+release['releaseTime']+']')
+    print()
