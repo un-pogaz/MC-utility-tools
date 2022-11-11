@@ -160,8 +160,8 @@ def make_dirname(path):
 
 def read_json(path, default=None):
     try:
-        with open(path, 'r') as f:
-            return json.load(f)
+        with open(path, 'rb') as f:
+            return json.loads(f.read())
     except:
         return default or {}
 
