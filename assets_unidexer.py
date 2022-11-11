@@ -78,6 +78,10 @@ def unindex_assets(args):
     for k,v in read_json(assets_json_path).items():
         assets_json[k] = v
     
+    for k,v in assets_json['objects'].items():
+        hash = v['hash']
+        v['url'] = 'http://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
+    
     write_json(assets_json_path, assets_json)
     
     
@@ -85,19 +89,13 @@ def unindex_assets(args):
         import hashlib
         from common import hash_file
         
-        def link_asset(hash):
-            return 'http://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
-        
-        for name,v in assets_json['objects'].items():
-            path = os.path.join(temp, name)
-            hash = v['hash']
+        for name,asset in assets_json['objects'].items():
+            file = os.path.join(temp, name)
             
-            hash2 = hash_file(hashlib.sha1(), path)
-            
-            if hash != hash2:
-                safe_del(path)
-                make_dirname(path)
-                urllib.request.urlretrieve(link_asset(hash), path)
+            if asset['hash'] != hash_file(hashlib.sha1(), file):
+                safe_del(file)
+                make_dirname(file)
+                urllib.request.urlretrieve(asset['url'], file)
         
     run_animation(assets_dl, 'Downloading assets', '> OK')
     
