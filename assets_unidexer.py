@@ -109,20 +109,20 @@ def unindex_assets(args):
                     
                     lines = v['sounds']
                     for idx,v in enumerate(lines):
-                        try:
+                        if isinstance(v, dict):
                             lines[idx] = v['name']
-                        except:
-                            pass
                     write_lines(os.path.join(temp,'lists/sounds', k+'.txt'), lines)
                 
                 break
         
-        src_lang = read_json(os.path.join(temp,'pack.mcmeta'))['language']
-        languages = {}
-        languages['en_us'] = src_lang.pop('en_us')
-        languages.update({l:src_lang[l] for l in sorted(src_lang.keys())})
-        
-        write_json(os.path.join(temp,'lists', 'languages.json'), languages)
+        src_lang = read_json(os.path.join(temp,'pack.mcmeta')).get('language', None)
+        if src_lang:
+            languages = {}
+            for en in ['en_us', 'en_US']:
+                if en in src_lang:
+                    languages['en_us'] = src_lang.pop(en)
+            languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
+            write_json(os.path.join(temp,'lists', 'languages.json'), languages)
         
         
     run_animation(list_assets, 'List assets', '> OK')
