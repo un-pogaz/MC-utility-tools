@@ -101,22 +101,29 @@ def unindex_assets(args):
     
     
     async def list_assets():
-        jr = None
-        for p in ['minecraft/sounds.json', 'sounds.json']:
-            jr = os.path.join(temp, p)
-            if os.path.exists(jr):
+        for sounds in ['minecraft/sounds.json', 'sounds.json']:
+            sounds = os.path.join(temp, sounds)
+            if os.path.exists(sounds):
+                for k,v in read_json(sounds).items():
+                    write_json(os.path.join(temp,'lists/sounds', k+'.json'), v)
+                    
+                    lines = v['sounds']
+                    for idx,v in enumerate(lines):
+                        try:
+                            lines[idx] = v['name']
+                        except:
+                            pass
+                    write_lines(os.path.join(temp,'lists/sounds', k+'.txt'), lines)
+                
                 break
         
-        for k,v in read_json(os.path.join(temp, jr)).items():
-            write_json(os.path.join(temp, 'lists/sounds/', k+'.json'), v)
-            
-            lines = v['sounds']
-            for idx,v in enumerate(lines):
-                try:
-                    lines[idx] = v['name']
-                except:
-                    pass
-            write_lines(os.path.join(temp, 'lists/sounds/', k+'.txt'), lines)
+        src_lang = read_json(os.path.join(temp,'pack.mcmeta'))['language']
+        languages = {}
+        languages['en_us'] = src_lang.pop('en_us')
+        languages.update({l:src_lang[l] for l in sorted(src_lang.keys())})
+        
+        write_json(os.path.join(temp,'lists', 'languages.json'), languages)
+        
         
     run_animation(list_assets, 'List assets', '> OK')
     
