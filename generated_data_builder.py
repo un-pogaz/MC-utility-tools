@@ -197,7 +197,7 @@ def build_generated_data(args):
         
         # blocks
         for k,v in read_json(os.path.join(temp, 'generated/reports/blocks.json')).items():
-            name = k.split(':', maxsplit=2)[-1]
+            name = k.split(':', maxsplit=2)[1]
             
             states = []
             for bs in v.pop('states', {}):
@@ -235,10 +235,55 @@ def build_generated_data(args):
                     write_json(os.path.join(temp, 'generated/lists/blocks/', k, kk+'.json'), vv)
         
         # structures.nbt
-        nbt = ['minecraft:'+j[:-4].replace('\\', '/') for j in glob.glob(f'**/*.nbt', root_dir=os.path.join(temp, 'generated/data/minecraft/structures'), recursive=True)]
+        dir = os.path.join(temp, 'generated/data/minecraft/structures')
+        if not os.path.exists(dir):
+            dir = os.path.join(temp, 'generated/assets/minecraft/structures') # old
+        nbt = ['minecraft:'+j[:-4].replace('\\', '/') for j in glob.glob('**/*.nbt', root_dir=dir, recursive=True)]
         nbt.sort()
         if nbt:
             write_lines(os.path.join(temp, 'generated/lists', 'structures.nbt.txt'), nbt)
+        
+        # loot_tables
+        dir = os.path.join(temp, 'generated/data/minecraft/loot_tables')
+        if not os.path.exists(dir):
+            dir = os.path.join(temp, 'generated/assets/minecraft/loot_tables') # old
+        for loot in glob.glob('**/*.json', root_dir=dir, recursive=True):
+            if loot == 'empty.json':
+                continue
+            table = read_json(os.path.join(dir, loot))
+            simple = []
+            
+            def test_type(name, target):
+                return name == target or name == 'minecraft:'+target
+            
+            if loot.startswith('blocks'):
+                continue
+            else:
+                
+                for l in table.get('pools', {}):
+                    if 'items' in l:
+                        for e in l['items']:
+                            simple.append(e.get('item', 'minecraft:empty'))
+                    elif 'entries' in l:
+                        for e in l['entries']:
+                            t = e['type']
+                            if test_type(t, 'empty'):
+                                simple.append('minecraft:empty')
+                            elif test_type(t, 'item'):
+                                simple.append(e['name'])
+                            elif test_type(t, 'tag'):
+                                simple.append('#'+e['name'])
+                            elif test_type(t, 'loot_table'):
+                                simple.append('loot_table[]'+e['name'])
+                            else:
+                                raise TypeError("Unknow type '{}' in loot_tables '{}'".format(t,loot))
+                    
+                    simple.append('')
+            
+            while simple and not simple[-1]:
+                simple.pop(-1)
+            
+            write_lines(os.path.join(temp, 'generated/lists/loot_tables', os.path.splitext(loot)[0]+'.txt'), simple)
         
         
         # commands
@@ -251,7 +296,7 @@ def build_generated_data(args):
             return [j[:-5].replace('\\', '/') for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
         
         for k,v in read_json(os.path.join(temp, 'generated/reports/registries.json')).items():
-            name = k.split(':', maxsplit=2)[-1]
+            name = k.split(':', maxsplit=2)[1]
             
             tags = os.path.join(temp,'generated/data/minecraft/tags', name)
             if not os.path.exists(tags):
