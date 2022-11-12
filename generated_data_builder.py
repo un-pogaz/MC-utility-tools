@@ -1,7 +1,7 @@
 VERSION = (0, 2, 0)
 
 import sys, argparse, os.path, json, io, glob, time
-import pathlib, urllib.request, shutil
+import pathlib, urllib.request, shutil, hashlib
 from collections import OrderedDict
 
 from common import prints
@@ -51,7 +51,8 @@ def main():
 
 
 def build_generated_data(args):
-    from common import run_animation, read_json, write_json, write_lines, safe_del, find_output, get_latest, read_manifest_json, version_path
+    from common import run_animation, read_json, write_json, write_lines, safe_del
+    from common import find_output, get_latest, read_manifest_json, version_path, hash_file, make_dirname
     
     import subprocess, zipfile
     from tempfile import gettempdir
@@ -109,6 +110,43 @@ def build_generated_data(args):
             urllib.request.urlretrieve(version_json['client'], client)
     run_animation(client_dl, 'Downloading client.jar', '> OK')
     
+    global assets, assets_json
+    assets = assets_json = {}
+    
+    def write_asset(file):
+        if file in assets:
+            asset = assets[file]
+            file = os.path.join(temp,'generated/assets',file)
+            if hash_file(hashlib.sha1(), file) != asset['hash']:
+                safe_del(file)
+                make_dirname(file)
+                urllib.request.urlretrieve(asset['url'], file)
+    
+    async def assets_dl():
+        global assets, assets_json
+        assets_json['assets'] = version_json['assets']
+        assets_json['asset_index'] = version_json['asset_index']
+        
+        assets_file = os.path.join(temp, 'assets.json')
+        if not os.path.exists(assets_file):
+            urllib.request.urlretrieve(version_json['asset_index'], assets_file)
+        
+        for k,v in read_json(assets_file).items():
+            if k == 'objects':
+                assets = v
+            else:
+                assets_json[k] = v
+        
+        assets = {k:assets[k] for k in sorted(assets.keys())}
+        for a in assets:
+            hash = assets[a]['hash']
+            assets[a]['url'] = 'http://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
+        
+        assets_json['objects'] = assets
+        
+    run_animation(assets_dl, 'Downloading assets', '> OK')
+    
+    
     if dt.year >= 2018:
         server = os.path.join(temp, 'server.jar')
         async def server_dl():
@@ -136,15 +174,19 @@ def build_generated_data(args):
                         zip.extract(entry.filename, os.path.join(temp, 'generated/assets'))
                 pass
             
+            for a in ['minecraft/sounds.json', 'sounds.json', 'pack.mcmeta']:
+                write_asset(a)
+            
     run_animation(data_client, 'Extracting data client', '> OK')
     
     
-    write_json(os.path.join(temp, 'generated', version+'.json') , version_json)
+    write_json(os.path.join(temp, 'generated',version+'.json') , version_json)
+    write_json(os.path.join(temp, 'generated','assets.json'), assets_json)
     
     async def listing_various():
         
-        for dir in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
-            safe_del(os.path.join(temp, dir))
+        for f in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
+            safe_del(os.path.join(temp, f))
         
         registries = [k for k in read_json(os.path.join(temp, 'generated/reports/registries.json')).keys()]
         registries.sort()
@@ -153,9 +195,20 @@ def build_generated_data(args):
         
         blockstates = {}
         
+        # blocks
         for k,v in read_json(os.path.join(temp, 'generated/reports/blocks.json')).items():
             name = k.split(':', maxsplit=2)[-1]
-            v.pop('states', None)
+            
+            states = []
+            for bs in v.pop('states', {}):
+                default = bs.get('default', False)
+                properties = bs.get('properties', {})
+                if properties:
+                    states.append(','.join(['='.join(s) for s in properties.items()]) + ('  [default]' if default else ''))
+            
+            if states:
+                write_lines(os.path.join(temp, 'generated/lists/blocks/states', name+'.txt') , states)
+            
             write_json(os.path.join(temp, 'generated/lists/blocks', name+'.json') , v)
             
             for vk in v:
@@ -181,16 +234,21 @@ def build_generated_data(args):
                 for kk,vv in v.items():
                     write_json(os.path.join(temp, 'generated/lists/blocks/', k, kk+'.json'), vv)
         
+        # structures.nbt
         nbt = ['minecraft:'+j[:-4].replace('\\', '/') for j in glob.glob(f'**/*.nbt', root_dir=os.path.join(temp, 'generated/data/minecraft/structures'), recursive=True)]
         nbt.sort()
         if nbt:
             write_lines(os.path.join(temp, 'generated/lists', 'structures.nbt.txt'), nbt)
         
+        
+        # commands
         for k,v in read_json(os.path.join(temp, 'generated/reports/commands.json')).get('children', {}).items():
             write_json(os.path.join(temp, 'generated/lists/commands/', k+'.json') , v)
         
+        
+        # registries
         def enum_json(dir):
-            return [j[:-5].replace('\\', '/') for j in glob.glob(f'**/*.json', root_dir=dir, recursive=True)]
+            return [j[:-5].replace('\\', '/') for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
         
         for k,v in read_json(os.path.join(temp, 'generated/reports/registries.json')).items():
             name = k.split(':', maxsplit=2)[-1]
@@ -205,6 +263,8 @@ def build_generated_data(args):
             tags.sort()
             write_lines(os.path.join(temp, 'generated/lists', name +'.txt'), entries + tags)
         
+        
+        # worldgen
         dir = os.path.join(temp, 'generated/data/minecraft/worldgen')
         if not os.path.exists(dir):
             dir = os.path.join(temp, 'generated/reports/minecraft/worldgen') # old
@@ -223,6 +283,36 @@ def build_generated_data(args):
         dir = os.path.join(temp, 'generated/reports/biomes') #legacy
         if os.path.exists(dir):
             write_lines(os.path.join(temp, 'generated/lists/worldgen', 'biome.txt'), sorted(['minecraft:'+b for b in enum_json(dir)]))
+        
+        
+        # sounds
+        for sounds in ['minecraft/sounds.json', 'sounds.json']:
+            sounds = os.path.join(temp,'generated/assets',sounds)
+            if os.path.exists(sounds):
+                for k,v in read_json(sounds).items():
+                    write_json(os.path.join(temp,'generated/lists/sounds/', k+'.json'), v)
+                    
+                    lines = v['sounds']
+                    for idx,v in enumerate(lines):
+                        if isinstance(v, dict):
+                            lines[idx] = v['name']
+                    write_lines(os.path.join(temp,'generated/lists/sounds/', k+'.txt'), lines)
+                
+                break
+        
+        
+        # languages
+        pack_mcmeta = os.path.join(temp,'generated/assets','pack.mcmeta')
+        src_lang = read_json(pack_mcmeta).get('language', None)
+        if src_lang:
+            languages = {}
+            for en in ['en_us', 'en_US']:
+                if en in src_lang:
+                    languages['en_us'] = src_lang.pop(en)
+            languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
+            write_json(os.path.join(temp,'generated/lists', 'languages.json'), languages)
+        
+        safe_del(pack_mcmeta)
         
     
     run_animation(listing_various, 'Listing elements and various', '> OK')
