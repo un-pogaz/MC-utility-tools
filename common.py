@@ -181,7 +181,7 @@ def write_lines(path, lines):
             f.write(lines[-1])
 
 def read_text(path):
-    with open(path, 'rt') as f:
+    with open(path, 'rt', encoding='utf-8') as f:
         return ''.join(f.readlines())
 
 def write_text(path, text):
