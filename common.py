@@ -167,17 +167,27 @@ def read_json(path, default=None):
 
 def write_json(path, obj):
     make_dirname(path)
-    with open(path, 'wb',) as f:
-        f.write(json.dumps(obj, indent=2, ensure_ascii=False).encode('utf-8'))
+    with open(path, 'wt', newline='\n', encoding='utf-8') as f:
+        f.write(json.dumps(obj, indent=2, ensure_ascii=False))
 
 def write_lines(path, lines):
     make_dirname(path)
-    with open(path, 'w') as f:
+    with open(path, 'wt', newline='\n', encoding='utf-8') as f:
         if len(lines) == 0:
             f.write('')
         else:
-            f.writelines(l+'\n' for l in lines[:-1])
+            for l in lines[:-1]:
+                f.write(l+'\n')
             f.write(lines[-1])
+
+def read_text(path):
+    with open(path, 'rt') as f:
+        return ''.join(f.readlines())
+
+def write_text(path, text):
+    with open(path, 'wt', newline='\n', encoding='utf-8') as f:
+        f.write(text)
+
 
 def safe_del(path):
     def remove(a):
