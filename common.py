@@ -253,9 +253,13 @@ def update_version_manifest():
             VERSION_MANIFEST['versions'] = versions.values()
             return edited
     
-    with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
-        github_manifest = json.load(fl)
-        
+    try:
+        with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
+            github_manifest = json.load(fl)
+    except:
+        github_manifest = None
+    
+    if github_manifest:
         if update_version_manifest(github_manifest):
             edited = True
         
@@ -297,8 +301,8 @@ def update_version_manifest():
         sub_tree('pack_format')
     
     with urllib.request.urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
-            if update_version_manifest(json.load(fl)):
-                edited = True
+        if update_version_manifest(json.load(fl)):
+            edited = True
     
     if _init_release != VERSION_MANIFEST['latest']['release']:
         edited = True
