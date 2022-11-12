@@ -331,6 +331,8 @@ def version_path(version):
             for kk,vv in v.items():
                 if version in vv:
                     return os.path.join('snapshots', k, kk, version)
+    
+    return version
 
 def find_output(version):
     output = glob.glob(f'/{version}/', root_dir='.', recursive=False)
