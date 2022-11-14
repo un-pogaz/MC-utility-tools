@@ -1,6 +1,6 @@
 VERSION = (1, 0, 0)
 
-import sys, argparse, os.path, json, io, glob, time
+import sys, argparse, os.path, glob, time
 import pathlib, urllib.request, shutil
 from collections import OrderedDict
 
@@ -86,13 +86,12 @@ def unindex_assets(args):
     
     
     async def assets_dl():
-        import hashlib
-        from common import hash_file
+        from common import hash_test
         
         for name,asset in assets_json['objects'].items():
             file = os.path.join(temp, name)
             
-            if asset['hash'] != hash_file(hashlib.sha1(), file):
+            if not hash_test(asset['hash'], file):
                 safe_del(file)
                 make_dirname(file)
                 urllib.request.urlretrieve(asset['url'], file)

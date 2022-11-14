@@ -208,10 +208,11 @@ def safe_del(path):
 
 
 BUF_SIZE = 65536
-def hash_file(algo, path):
-    import hashlib
-    if os.path.exists(path):
-        with open(path, 'rb') as f:
+def hash_file(file):
+    if os.path.exists(file):
+        import hashlib
+        algo = hashlib.sha1()
+        with open(file, 'rb') as f:
             while True:
                 data = f.read(BUF_SIZE)
                 if not data:
@@ -219,6 +220,13 @@ def hash_file(algo, path):
                 algo.update(data)
         
         return algo.hexdigest()
+    
+    return False
+
+def hash_test(hash, file):
+    if hash and os.path.exists(file):
+        return hash == hash_file(file)
+    return False
 
 
 
@@ -373,7 +381,7 @@ def valide_version(version, quiet = False, manifest_json_path = None):
         prints(f'The version {version} has invalide.', '' if quiet else ' Press any key to exit.')
         if not quiet:
             keyboard.read_key()
-        sys.exit(-1)
+        sys.exit()
 
 def valide_output(args):
     if args.output and os.path.exists(args.output):
@@ -381,7 +389,7 @@ def valide_output(args):
         if (args.quiet and args.overwrite) or input()[:1] == 'y':
             args.overwrite = True
         else:
-            sys.exit(-1)
+            sys.exit()
 
 
 def read_manifest_json(temp, version, manifest_json_path = None):
@@ -399,6 +407,7 @@ def read_manifest_json(temp, version, manifest_json_path = None):
     
     if not manifest_json_path:
         manifest_json_path = os.path.join(temp, version+'.json')
+        safe_del(manifest_json_path)
         urllib.request.urlretrieve(manifest_url, manifest_json_path)
         if os.path.splitext(manifest_url)[1].lower() == '.zip':
             with zipfile.ZipFile(manifest_json_path) as zip:
