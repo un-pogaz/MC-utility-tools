@@ -430,7 +430,7 @@ def work_done(error, quiet = False):
     if not quiet:
         keyboard.read_key()
 
-if __name__ == "__main__":
+def info_latest_version():
     for v in VERSION_MANIFEST['versions']:
         if v['id'] == LATEST_SNAPSHOT:
             latest = v
@@ -439,4 +439,7 @@ if __name__ == "__main__":
             release = v
     prints('latest:', LATEST_SNAPSHOT, '['+latest['releaseTime']+']')
     prints('release:', LATEST_RELEASE, '['+release['releaseTime']+']')
+
+if __name__ == "__main__":
+    info_latest_version()
     print()
