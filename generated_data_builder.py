@@ -199,7 +199,7 @@ def build_generated_data(args):
         for f in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp_root, f))
         
-        run_listing_various(temp)
+        listing_various_data(temp)
     run_animation(listing_various, 'Listing elements and various', '> OK')
     
     
@@ -228,7 +228,7 @@ def build_generated_data(args):
     run_animation(move_generated_data, f'Move generated data to "{output}"', '> OK')
 
 
-def run_listing_various(temp):
+def listing_various_data(temp):
     from common import read_json, write_json, write_lines, safe_del
     
     def flatering(name):
@@ -357,9 +357,10 @@ def run_listing_various(temp):
             
             type = entry.get('parser', '')
             if type:
+                type = namespace(type)
                 if type not in lines:
                     lines.append(type)
-                type = ' '+namespace(type)
+                type = ' '+type
             
             properties = []
             for k,v in entry.get('properties', {}).items():
@@ -382,6 +383,9 @@ def run_listing_various(temp):
             rslt.append(base)
         
         if 'redirect' in entry:
+            if len(entry['redirect']) > 1:
+                raise TypeError("Over number 'redirect' in commands '{}'".format(name))
+            
             rslt.append(base +' >>redirect{'+ entry['redirect'][0] +'}')
         
         elif 'children' in entry:
