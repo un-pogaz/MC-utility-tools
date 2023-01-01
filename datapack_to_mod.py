@@ -76,6 +76,15 @@ def package_datapack(path):
         work = path
         name = os.path.basename(path)
     
+    if work == temp:
+        new_path = os.path.splitext(path)[0]+'.jar'
+    else:
+        new_path = os.path.abspath(path)+'.jar'
+    
+    if os.path.exists(new_path):
+        print('Error: packaged Datapack already exist {}'.format(os.path.basename(new_path)))
+        return None
+    
     id = slugify(name)
     
     if not os.path.isdir(work):
@@ -111,14 +120,6 @@ def package_datapack(path):
         fc = id.encode('utf-8').join(forge_class)
         zip.writestr(f'net/pdpm/{id}/pdpmWrapper.class', fc)
     
-    if work == temp:
-        new_path = os.path.splitext(path)[0]+'.jar'
-    else:
-        new_path = os.path.abspath(path)+'.jar'
-    
-    if os.path.exists(new_path):
-        print('Error: packaged Datapack already exist {}'.format(os.path.basename(new_path)))
-        
     shutil.move(temp+'.zip', new_path)
     
     safe_del(temp)
@@ -130,7 +131,9 @@ if __name__ == "__main__":
     args = argv[1:]
     if args:
         for a in args:
+            print('>> '+os.path.basename(a))
             package_datapack(a)
+            print()
     
     else:
         while True:
