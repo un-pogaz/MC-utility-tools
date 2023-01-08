@@ -30,8 +30,7 @@ def slugify(value, allow_unicode=False):
 
 
 
-forge = """
-modLoader = "javafml"
+forge = """modLoader = "javafml"
 loaderVersion = "[25,)"
 license = "Unknow"
 showAsResourcePack = true
@@ -52,13 +51,9 @@ forge_class = [
     b"_pdpm\x01\x00\x06<init>\x01\x00\x03()V\x0c\x00\t\x00\n\n\x00\x04\x00\x0b\x01\x00\x04this\x01\x00'Lcom/pdpm/wrappera/pdpmWrapper;\x01\x00\x04Code\x01\x00\x0fLineNumberTable\x01\x00\x12LocalVariableTable\x01\x00\nSourceFile\x01\x00\x19RuntimeVisibleAnnotations\x00!\x00\x02\x00\x04\x00\x00\x00\x00\x00\x01\x00\x01\x00\t\x00\n\x00\x01\x00\x0f\x00\x00\x00/\x00\x01\x00\x01\x00\x00\x00\x05*\xb7\x00\x0c\xb1\x00\x00\x00\x02\x00\x10\x00\x00\x00\x06\x00\x01\x00\x00\x00\x06\x00\x11\x00\x00\x00\x0c\x00\x01\x00\x00\x00\x05\x00\r\x00\x0e\x00\x00\x00\x02\x00\x12\x00\x00\x00\x02\x00\x05\x00\x13\x00\x00\x00\x0b\x00\x01\x00\x06\x00\x01\x00\x07s\x00\x08",
 ]
 
-fabric = """
-{{"schemaVersion":1,"id":"{id}_pdpm","version":"1-mcmeta-{mcmeta}","name":"{name}","description":"{description}","license":"Unknow","icon":"{id}_pack.png","environment":"*","depends":{{"fabric-resource-loader-v0":"*"}}}}
-"""
+fabric = """{{"schemaVersion":1,"id":"{id}_pdpm","version":"1-mcmeta-{mcmeta}","name":"{name}","description":"{description}","license":"Unknow","icon":"{id}_pack.png","environment":"*","depends":{{"fabric-resource-loader-v0":"*"}}}}"""
 
-quilt = """
-{{"schema_version":1,"quilt_loader":{{"group": "net.pdpm","id":"{id}_pdpm","version":"1-mcmeta-{mcmeta}","metadata":{{"name":"{name}","description":"{description}","icon":"{id}_pack.png"}},"intermediate_mappings":"net.fabricmc:intermediary","depends":[{{"id":"quilt_resource_loader","versions":"*","unless":"fabric-resource-loader-v0"}}]}}}}
-"""
+quilt = """{{"schema_version":1,"quilt_loader":{{"group": "net.pdpm","id":"{id}_pdpm","version":"1-mcmeta-{mcmeta}","metadata":{{"name":"{name}","description":"{description}","icon":"{id}_pack.png"}},"intermediate_mappings":"net.fabricmc:intermediary","depends":[{{"id":"quilt_resource_loader","versions":"*","unless":"fabric-resource-loader-v0"}}]}}}}"""
 
 def package_datapack(path):
     safe_del(temp)
@@ -86,6 +81,8 @@ def package_datapack(path):
         return None
     
     id = slugify(name)
+    id = re.sub(r'^([0-9])',r'n\1', id)
+    id = re.sub(r'^([^a-z])',r'a\1', id)
     
     if not os.path.isdir(work):
         print(f'Error: the target path is not a folder or a ZIP "{path}"')
