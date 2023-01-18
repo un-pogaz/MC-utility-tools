@@ -1,10 +1,10 @@
-VERSION = (0, 3, 0)
+VERSION = (0, 3, 1)
 
 import sys, argparse, os.path, glob, time
-import pathlib, urllib.request, shutil
+import pathlib, shutil
 from collections import OrderedDict
 
-from common import prints
+from common import prints, urlretrieve
 
 
 parser = argparse.ArgumentParser()
@@ -116,7 +116,7 @@ def build_generated_data(args):
     async def client_dl():
         if not hash_test(client_sha1, client):
             safe_del(client)
-            urllib.request.urlretrieve(version_json['client'], client)
+            urlretrieve(version_json['client'], client)
     run_animation(client_dl, 'Downloading client.jar', '> OK')
     
     global assets, assets_json
@@ -129,7 +129,7 @@ def build_generated_data(args):
             if not hash_test(asset['hash'], file):
                 safe_del(file)
                 make_dirname(file)
-                urllib.request.urlretrieve(asset['url'], file)
+                urlretrieve(asset['url'], file)
     
     async def assets_dl():
         global assets, assets_json
@@ -139,7 +139,7 @@ def build_generated_data(args):
         assets_file = os.path.join(temp_root, 'assets.json')
         if not hash_test(asset_sha1, assets_file):
             safe_del(assets_file)
-            urllib.request.urlretrieve(version_json['asset_index'], assets_file)
+            urlretrieve(version_json['asset_index'], assets_file)
         
         for k,v in read_json(assets_file).items():
             if k == 'objects':
@@ -162,7 +162,7 @@ def build_generated_data(args):
         async def server_dl():
             if version_json['server'] and not hash_test(server_sha1, server):
                 safe_del(server)
-                urllib.request.urlretrieve(version_json['server'], server)
+                urlretrieve(version_json['server'], server)
         run_animation(server_dl, 'Downloading server.jar', '> OK')
         
         async def data_server():

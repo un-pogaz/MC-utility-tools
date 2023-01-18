@@ -1,7 +1,7 @@
 #common
 
 import sys, argparse, os.path, json, io, glob, time
-import pathlib, urllib.request, shutil, zipfile
+import pathlib, shutil, zipfile
 from collections import OrderedDict
 
 
@@ -229,6 +229,16 @@ def hash_test(hash, file):
     return False
 
 
+def urlretrieve(url, filename, reporthook=None, data=None):
+    import urllib.request
+    url = url.replace('http://', 'https://')
+    return urllib.request.urlretrieve(url, filename, reporthook, data)
+
+def urlopen(url) :
+    import urllib.request
+    url = url.replace('http://', 'https://')
+    return urllib.request.urlopen(url, )
+
 
 VERSION_MANIFEST = None
 def update_version_manifest():
@@ -262,7 +272,7 @@ def update_version_manifest():
             return edited
     
     try:
-        with urllib.request.urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
+        with urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
             github_manifest = json.load(fl)
     except:
         github_manifest = None
@@ -308,7 +318,7 @@ def update_version_manifest():
         sub_tree('versioning')
         sub_tree('pack_format')
     
-    with urllib.request.urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
+    with urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
         if update_version_manifest(json.load(fl)):
             edited = True
     
@@ -408,7 +418,7 @@ def read_manifest_json(temp, version, manifest_json_path = None):
     if not manifest_json_path:
         manifest_json_path = os.path.join(temp, version+'.json')
         safe_del(manifest_json_path)
-        urllib.request.urlretrieve(manifest_url, manifest_json_path)
+        urlretrieve(manifest_url, manifest_json_path)
         if os.path.splitext(manifest_url)[1].lower() == '.zip':
             with zipfile.ZipFile(manifest_json_path) as zip:
                 for file in zip.filelist:

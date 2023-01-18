@@ -1,10 +1,10 @@
-VERSION = (1, 0, 0)
+VERSION = (1, 0, 1)
 
 import sys, argparse, os.path, glob, time
-import pathlib, urllib.request, shutil
+import pathlib, shutil
 from collections import OrderedDict
 
-from common import prints
+from common import prints, urlretrieve
 
 
 parser = argparse.ArgumentParser()
@@ -71,7 +71,7 @@ def unindex_assets(args):
     
     
     async def index_dl():
-        urllib.request.urlretrieve(assets_json['asset_index'], assets_json_path)
+        urlretrieve(assets_json['asset_index'], assets_json_path)
         pass
     run_animation(index_dl, 'Downloading index.json', '> OK')
     
@@ -94,7 +94,7 @@ def unindex_assets(args):
             if not hash_test(asset['hash'], file):
                 safe_del(file)
                 make_dirname(file)
-                urllib.request.urlretrieve(asset['url'], file)
+                urlretrieve(asset['url'], file)
         
     run_animation(assets_dl, 'Downloading assets', '> OK')
     
