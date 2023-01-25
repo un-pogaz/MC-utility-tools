@@ -98,7 +98,7 @@ GITHUB_DATA_LATEST = GitHub('un-pogaz', 'MC-generated-data-latest')
 GITHUB_BUILDER = GitHub('un-pogaz', 'MC-utility-tools')
 
 
-animation_loop = ['.  ',' . ','  .']
+animation_loop = [' |',' /',' —',' \\']
 
 def run_animation(awaitable, text_wait, text_end=None):
     import asyncio
