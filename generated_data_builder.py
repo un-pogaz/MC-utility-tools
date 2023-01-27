@@ -1,4 +1,4 @@
-VERSION = (0, 3, 1)
+VERSION = (0, 4, 0)
 
 import sys, argparse, os.path, glob, time
 import pathlib, shutil
@@ -244,64 +244,97 @@ def listing_various_data(temp):
     def test_type(entry, target_type):
         return namespace(entry['type']) == namespace(target_type)
     
+    def enum_json(dir):
+        return [namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
+    
+    def get_simple(name, entry):
+        rslt = []
+        if test_type(entry, 'empty'):
+            rslt.append(namespace('empty'))
+        elif test_type(entry, 'item'):
+            rslt.append(namespace(entry['name']))
+        elif test_type(entry, 'tag'):
+            rslt.append('#'+namespace(entry['name']))
+        elif test_type(entry, 'loot_table'):
+            rslt.append('loot_table[]'+namespace(entry['name']))
+        
+        else:
+            raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
+        
+        return rslt
+    
+    sub_datapacks = 'data/minecraft/datapacks'
+    
+    data_paths = [('','')]
+    for dp in glob.glob('*/', root_dir=os.path.join(temp, sub_datapacks), recursive=False):
+        data_paths.append((dp, os.path.join(sub_datapacks, dp)))
+    
+    
     # structures.nbt
-    dir = os.path.join(temp, 'data/minecraft/structures')
-    if not os.path.exists(dir):
-        dir = os.path.join(temp, 'assets/minecraft/structures') # old
-    lines = [namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=dir, recursive=True)]
-    lines.sort()
+    dir = 'data/minecraft/structures'
+    if not os.path.exists(os.path.join(temp, dir)):
+        dir = 'assets/minecraft/structures' # old
+    lines = set()
+    for dp, p in data_paths:
+        lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True)])
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), lines)
+        write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
     
     # loot_tables
-    dir = os.path.join(temp, 'data/minecraft/loot_tables')
-    if not os.path.exists(dir):
-        dir = os.path.join(temp, 'assets/minecraft/loot_tables') # old
-    for loot in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-        if loot == 'empty.json':
-            continue
-        table = read_json(os.path.join(dir, loot))
-        name = filename(loot)
-        
-        lines = []
-        
-        def get_simple(entry):
-            rslt = []
-            if test_type(entry, 'empty'):
-                rslt.append(namespace('empty'))
-            elif test_type(entry, 'item'):
-                rslt.append(namespace(entry['name']))
-            elif test_type(entry, 'tag'):
-                rslt.append('#'+namespace(entry['name']))
-            elif test_type(entry, 'loot_table'):
-                rslt.append('loot_table[]'+namespace(entry['name']))
+    dir = 'data/minecraft/loot_tables'
+    if not os.path.exists(os.path.join(temp, 'data/minecraft/loot_tables')):
+        dir = 'assets/minecraft/loot_tables' # old
+    
+    for dp, p in data_paths:
+        for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, dir), recursive=True):
+            if loot == 'empty.json':
+                continue
+            table = read_json(os.path.join(temp, p, dir, loot))
+            name = filename(loot)
             
+            lines = []
+            
+            if name.startswith('blocks'):
+                continue
             else:
-                raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
-            
-            return rslt
-        
-        if name.startswith('blocks'):
-            continue
-        else:
-            
-            for pool in table.get('pools', {}):
-                if 'items' in pool:
-                    for e in pool['items']:
-                        lines.append(namespace(e.get('item', 'empty')))
-                elif 'entries' in pool:
-                    for e in pool['entries']:
-                        lines.extend(get_simple(e))
-                else:
-                    raise TypeError("Invalid input pool")
                 
-                lines.append('')
-        
-        while lines and not lines[-1]:
-            lines.pop(-1)
-        
-        if lines:
-            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines)
+                for pool in table.get('pools', {}):
+                    if 'items' in pool:
+                        for e in pool['items']:
+                            lines.append(namespace(e.get('item', 'empty')))
+                    elif 'entries' in pool:
+                        for e in pool['entries']:
+                            lines.extend(get_simple(name, e))
+                    else:
+                        raise TypeError("Invalid input pool")
+                    
+                    lines.append('')
+            
+            while lines and not lines[-1]:
+                lines.pop(-1)
+            
+            if lines:
+                write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines)
+    
+    # worldgen
+    dir = 'data/minecraft/worldgen'
+    if not os.path.exists(os.path.join(temp, dir)):
+        dir = 'reports/minecraft/worldgen' # old
+        if not os.path.exists(os.path.join(temp, dir)):
+            dir = 'reports/worldgen/minecraft/worldgen' # legacy
+    
+    for subdir in glob.iglob('*/', root_dir=os.path.join(temp, dir), recursive=False):
+        subdir = subdir.strip('/\\')
+        entries = set()
+        tags = set()
+        for dp, p in data_paths:
+            entries.update([j for j in enum_json(os.path.join(temp, p, dir, subdir))])
+            tags.update(['#'+j for j in enum_json(os.path.join(temp, p, 'data/minecraft/tags/worldgen', subdir))])
+        write_lines(os.path.join(temp, 'lists/worldgen', subdir +'.txt'), sorted(entries) + sorted(tags))
+    
+    dir = os.path.join(temp, 'reports/biomes') #legacy
+    if os.path.exists(dir):
+        write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted([b for b in enum_json(dir)]))
     
     
     # blocks
@@ -416,46 +449,23 @@ def listing_various_data(temp):
         write_lines(os.path.join(temp, 'lists/registries.txt'), lines)
     
     
-    def enum_json(dir):
-        return [namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
-    
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
         
-        dir = os.path.join(temp, 'data/minecraft', name)
-        if not os.path.exists(dir):
+        dir = os.path.join('data/minecraft', name)
+        if not os.path.exists(os.path.join(temp, dir)):
             dir = dir + 's'
         
-        tags = os.path.join(temp, 'data/minecraft/tags', name)
-        if not os.path.exists(tags):
-            tags = tags + 's'
+        tagdir = os.path.join('data/minecraft/tags', name)
+        if not os.path.exists(os.path.join(temp, tagdir)):
+            tagdir = tagdir + 's'
         
-        entries = [namespace(k) for k in v['entries'].keys()]
-        tags = ['#'+j for j in enum_json(tags)]
-        entries.sort()
-        tags.sort()
-        write_lines(os.path.join(temp, 'lists', name +'.txt'), entries + tags)
-    
-    
-    # worldgen
-    dir = os.path.join(temp, 'data/minecraft/worldgen')
-    if not os.path.exists(dir):
-        dir = os.path.join(temp, 'reports/minecraft/worldgen') # old
-        if not os.path.exists(dir):
-            dir = os.path.join(temp, 'reports/worldgen/minecraft/worldgen') # legacy
-    
-    if os.path.exists(dir):
-        for dir in os.scandir(dir):
-            if dir.is_dir:
-                entries = [j for j in enum_json(dir.path)]
-                tags = ['#'+j for j in enum_json(os.path.join(temp, 'data/minecraft/tags/worldgen', dir.name))]
-                entries.sort()
-                tags.sort()
-                write_lines(os.path.join(temp, 'lists/worldgen', dir.name +'.txt'), entries + tags)
-    
-    dir = os.path.join(temp, 'reports/biomes') #legacy
-    if os.path.exists(dir):
-        write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted([b for b in enum_json(dir)]))
+        entries = set()
+        tags = set()
+        for dp, p in data_paths:
+            entries.update([namespace(k) for k in v['entries'].keys()])
+            tags.update(['#'+j for j in enum_json(os.path.join(temp, p, tagdir))])
+        write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
     
     
     # sounds
