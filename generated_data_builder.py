@@ -187,6 +187,8 @@ def build_generated_data(args):
             
             for a in ['minecraft/sounds.json', 'sounds.json', 'pack.mcmeta']:
                 write_asset(a)
+            for a in ['panorama_0.png', 'panorama_1.png', 'panorama_2.png', 'panorama_3.png', 'panorama_4.png', 'panorama_5.png', 'panorama_overlay.png']:
+                write_asset('minecraft/textures/gui/title/background/' + a)
             
     run_animation(data_client, 'Extracting data client', '> OK')
     
