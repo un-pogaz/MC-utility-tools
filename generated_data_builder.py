@@ -1,4 +1,4 @@
-VERSION = (0, 4, 0)
+VERSION = (0, 4, 1)
 
 import sys, argparse, os.path, glob, time
 import pathlib, shutil
@@ -283,6 +283,18 @@ def listing_various_data(temp):
         lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True)])
     if lines:
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
+    
+    # special subdir (not in registries)
+    for subdir in ['trim_material', 'trim_pattern', 'damage_type']:
+        entries = set()
+        tags = set()
+        for dp, p in data_paths:
+            entries.update([    namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, 'data/minecraft',      subdir), recursive=True)])
+            tags.update(   ['#'+namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, 'data/minecraft/tags', subdir), recursive=True)])
+        lines = sorted(entries) + sorted(tags)
+        if lines:
+            write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
+    
     
     # loot_tables
     dir = 'data/minecraft/loot_tables'
