@@ -150,7 +150,7 @@ def build_generated_data(args):
         assets = {k:assets[k] for k in sorted(assets.keys())}
         for a in assets:
             hash = assets[a]['hash']
-            assets[a]['url'] = 'http://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
+            assets[a]['url'] = 'https://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
         
         assets_json['objects'] = assets
         
