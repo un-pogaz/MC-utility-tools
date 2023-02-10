@@ -1,4 +1,4 @@
-VERSION = (0, 4, 1)
+VERSION = (0, 5, 0)
 
 import sys, argparse, os.path, glob, time
 import pathlib, shutil
@@ -232,7 +232,34 @@ def build_generated_data(args):
     run_animation(move_generated_data, f'Move generated data to "{output}"', '> OK')
 
 
+class CSVpool():
+    def __init__(self) -> None:
+        self.rolls = ''
+        self.comment = ''
+        self.entries = []
+    
+    def __iter__(self):
+        return self.entries.__iter__()
+
+class CSVentrie():
+    def __init__(self, pool) -> None:
+        self._pool = pool
+        self.name = ''
+        self.count = '1'
+        self.weight = 1
+        self.comment = ''
+    
+    @property
+    def chance(self):
+        tw = 0
+        for e in self._pool:
+            tw += e.weight
+        
+        return (self.weight/tw)*100
+
+
 def listing_various_data(temp):
+    from copy import deepcopy
     from common import read_json, write_json, write_lines, safe_del
     
     def flatering(name):
@@ -245,27 +272,17 @@ def listing_various_data(temp):
             ns = name.split(':', maxsplit=2)[0]
         return ns+':'+flatering(name)
     
+    def test_n(entry, n, target_type):
+        return namespace(entry[n]) == namespace(target_type)
     def test_type(entry, target_type):
-        return namespace(entry['type']) == namespace(target_type)
+        return test_n(entry,'type', namespace(target_type))
+    def test_function(entry, target_type):
+        return test_n(entry,'function', namespace(target_type))
+    def test_condition(entry, target_type):
+        return test_n(entry,'condition', namespace(target_type))
     
     def enum_json(dir):
         return [namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
-    
-    def get_simple(name, entry):
-        rslt = []
-        if test_type(entry, 'empty'):
-            rslt.append(namespace('empty'))
-        elif test_type(entry, 'item'):
-            rslt.append(namespace(entry['name']))
-        elif test_type(entry, 'tag'):
-            rslt.append('#'+namespace(entry['name']))
-        elif test_type(entry, 'loot_table'):
-            rslt.append('loot_table[]'+namespace(entry['name']))
-        
-        else:
-            raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
-        
-        return rslt
     
     sub_datapacks = 'data/minecraft/datapacks'
     
@@ -301,6 +318,112 @@ def listing_various_data(temp):
     if not os.path.exists(os.path.join(temp, 'data/minecraft/loot_tables')):
         dir = 'assets/minecraft/loot_tables' # old
     
+    def get_simple(name, entry):
+        def convert(item):
+            item = namespace(item)
+            if item == 'minecraft:book':
+                for f in entry.get('functions', []):
+                    for ef in ['enchant_randomly', 'enchant_with_levels', 'set_enchantments']:
+                        if test_function(f, ef):
+                            return namespace('enchanted_book')
+            
+            if item == 'minecraft:golden_apple':
+                for f in entry.get('functions', []):
+                    if test_function(f, 'set_data') and f['data'] == 1:
+                        return namespace('enchanted_golden_apple')
+            
+            if item == 'minecraft:map':
+                for f in entry.get('functions', []):
+                    if test_function(f, 'exploration_map'):
+                        return namespace('explorer_map')
+            
+            return item
+        
+        if 'type' not in entry:
+            if 'item' in entry:
+                return convert(entry['item'])
+            else:
+                return 'empty'
+        
+        if test_type(entry, 'item'):
+            return convert(entry['name'])
+        if test_type(entry, 'empty'):
+            return 'empty'
+        if test_type(entry, 'tag'):
+            return '#'+namespace(entry['name'])
+        if test_type(entry, 'loot_table'):
+            return 'loot_table[]'+namespace(entry['name'])
+        
+        raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
+    
+    def no_end_0(num):
+        num = str(num)
+        if num.endswith('.0'):
+            num = num[:-2]
+        return num
+    def mcrange(name, entry, limit=None):
+        if isinstance(entry, dict):
+            
+            if 'type' not in entry and 'min' in entry and 'max' in entry:
+                entry['type'] = 'uniform'
+            
+            if test_type(entry, 'uniform'):
+                min = entry['min']
+                max = entry['max']
+                
+                if limit:
+                    if isinstance(limit, dict):
+                        if 'min' in limit:
+                            min = limit['min']
+                        if 'max' in limit:
+                            max = limit['max']
+                    else:
+                        max = limit
+                
+                if min != max:
+                    return no_end_0(min) +'..'+ no_end_0(max)
+                else:
+                    return no_end_0(min)
+            
+            if test_type(entry, 'constant') or ('value' in entry):
+                return no_end_0(entry['value'])
+            
+            raise TypeError("Unknow range type '{}' in loot_tables '{}'".format(entry['type'], name))
+        
+        else:
+            return no_end_0(entry)
+    
+    def lootcount(name, entry):
+        count = None
+        limit = None
+        for e in entry.get('functions', []):
+            if test_function(e, 'set_count'):
+                count = e.get('count', 1)
+            if test_function(e, 'limit_count'):
+                limit = e.get('limit', None)
+        
+        if count:
+            return mcrange(name, e.get('count', 1), limit)
+        else:
+            return '1'
+    
+    def lootcomment(name, entry):
+        comment = []
+        for e in entry.get('functions', []):
+            if test_function(e, 'furnace_smelt'):
+                comment.append('furnace smelt')
+            if test_function(e, 'explosion_decay'):
+                comment.append('explosion decay')
+        
+        for e in entry.get('conditions', []):
+            if test_condition(e, 'killed_by_player'):
+                comment.append('killed by player')
+            if test_condition(e, 'random_chance') or test_condition(e, 'random_chance_with_looting'):
+                comment.append('random chance: '+no_end_0(e['chance'])+'%')
+        
+        
+        return ', '.join(comment)
+    
     for dp, p in data_paths:
         for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, dir), recursive=True):
             if loot == 'empty.json':
@@ -308,29 +431,139 @@ def listing_various_data(temp):
             table = read_json(os.path.join(temp, p, dir, loot))
             name = filename(loot)
             
-            lines = []
+            csv = []
             
             if name.startswith('blocks'):
                 continue
             else:
                 
                 for pool in table.get('pools', {}):
+                    csvpool = CSVpool()
+                    csvpool.rolls = mcrange(name, pool.get('rolls', 1))
+                    
+                    bonus = pool.get('bonus_rolls', 0)
+                    comment = lootcomment(name, pool)
+                    if bonus and comment:
+                        csvpool.comment = bonus +', '+ comment
+                    elif bonus:
+                        csvpool.comment = bonus
+                    elif comment:
+                        csvpool.comment = comment
+                    else:
+                        csvpool.comment = ''
+                    
+                    csv.append(csvpool)
+                    
+                    def addentrie(e):
+                        csventrie = CSVentrie(csvpool)
+                        csventrie.name = get_simple(name, e)
+                        csventrie.weight = e.get('weight', 1)
+                        if csventrie.name == 'empty':
+                            csventrie.count = ''
+                        else:
+                            csventrie.count = lootcount(name, e)
+                        csventrie.comment = lootcomment(name, e)
+                        csvpool.entries.append(csventrie)
+                    
                     if 'items' in pool:
                         for e in pool['items']:
-                            lines.append(namespace(e.get('item', 'empty')))
+                            addentrie(e)
                     elif 'entries' in pool:
                         for e in pool['entries']:
-                            lines.extend(get_simple(name, e))
+                            addentrie(e)
                     else:
                         raise TypeError("Invalid input pool")
-                    
-                    lines.append('')
             
-            while lines and not lines[-1]:
-                lines.pop(-1)
+            lines_txt = []
+            lines_tbl = []
             
-            if lines:
-                write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines)
+            for l in csv:
+                line = []
+                if '..' in l.rolls:
+                    line.append(' to '.join(l.rolls.split('..', 1))+' time')
+                else:
+                    line.append(l.rolls+' time')
+                line.append('--')
+                line.append('--')
+                line.append(l.comment)
+                lines_tbl.append(line)
+                
+                for e in l:
+                    lines_txt.append(e.name)
+                    c = e.chance
+                    if c < 1:
+                        c = str(round(c, 2))
+                    else:
+                        c = no_end_0(round(c, 1))
+                    lines_tbl.append([e.name, e.count, c+'%', e.comment])
+                
+                lines_txt.append('')
+                lines_tbl.append(None)
+            
+            while lines_txt and not lines_txt[-1]:
+                lines_txt.pop(-1)
+            if not lines_txt:
+                lines_txt.append('empty')
+            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines_txt)
+            
+            
+            head_tbl = ['Name', 'Count', 'Chance', 'Comment']
+            while lines_tbl and not lines_tbl[-1]:
+                lines_tbl.pop(-1)
+            if not lines_tbl:
+                lines_tbl.append(['empty','','100%',''])
+            
+            for i in range(len(lines_tbl)):
+                if lines_tbl[i]:
+                    for y in range(len(lines_tbl[i])):
+                        d = str(lines_tbl[i][y])
+                        if d: lines_tbl[i][y] = no_end_0(d)
+            
+            lines_csv = deepcopy(lines_tbl)
+            lines_csv.insert(0, head_tbl.copy())
+            lines_csv.insert(1, None)
+            
+            for i in range(len(lines_csv)):
+                if lines_csv[i]:
+                    for y in range(len(lines_csv[i])):
+                        d = str(lines_csv[i][y])
+                        if d: lines_csv[i][y] = '"'+d+'"'
+                    lines_csv[i] = ','.join(lines_csv[i])
+                else:
+                    lines_csv[i] = ','*(len(head_tbl)-1)
+            
+            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.csv'), lines_csv)
+            
+            
+            lines_md_col = [len(i) for i in head_tbl]
+            for i in range(len(lines_tbl)):
+                if lines_tbl[i]:
+                    for y in range(len(lines_tbl[i])):
+                        l = len(lines_tbl[i][y])
+                        if l > lines_md_col[y]:
+                            lines_md_col[y] = l
+            
+            def concatline(line):
+                return '| '+ ' | '.join(line) +' |'
+            def calcspace(line, col):
+                return ' '*(lines_md_col[col] - len(line[col]))
+            lines_md = []
+            lines_md.append(concatline([head_tbl[i]+calcspace(head_tbl, i) for i in range(len(head_tbl))]))
+            lines_md.append(concatline(['-'*i for i in lines_md_col]))
+            lines_md_empty = concatline([' '*i for i in lines_md_col])
+            for line in lines_tbl:
+                if line:
+                    line = line.copy()
+                    line[0] = line[0]+calcspace(line, 0)
+                    for idx in range(1, len(line)-1):
+                        line[idx] = calcspace(line, idx)+line[idx]
+                    idx = len(line)-1
+                    line[idx] = line[idx]+calcspace(line, idx)
+                    lines_md.append(concatline(line))
+                else:
+                    lines_md.append(lines_md_empty)
+            
+            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.md'), lines_md)
     
     # worldgen
     dir = 'data/minecraft/worldgen'
