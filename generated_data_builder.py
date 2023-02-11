@@ -750,7 +750,7 @@ def listing_various_data(temp):
     # list assets
     lst_assets = read_json(os.path.join(temp, 'assets.json')).get('objects', {})
     if lst_assets:
-        write_lines(os.path.join(temp, 'lists', 'assets.txt'), sorted(lst_assets.keys()))
+        write_lines(os.path.join(temp, 'assets.txt'), sorted(lst_assets.keys()))
 
 if __name__ == "__main__":
     main()
