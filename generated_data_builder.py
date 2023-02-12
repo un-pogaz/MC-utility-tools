@@ -403,7 +403,7 @@ def listing_various_data(temp):
                 limit = e.get('limit', None)
         
         if count:
-            return mcrange(name, e.get('count', 1), limit)
+            return mcrange(name, count, limit)
         else:
             return '1'
     
