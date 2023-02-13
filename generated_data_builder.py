@@ -667,6 +667,9 @@ def listing_various_data(temp):
             
             rslt.append(base +' >>redirect{'+ entry['redirect'][0] +'}')
         
+        elif entry.get('type') == 'literal' and len(entry) == 1:
+            rslt.append(base +' >>redirect{*}')
+        
         elif 'children' in entry:
             for k,v in entry['children'].items():
                 build = base +' '+ get_argument(k, v)
