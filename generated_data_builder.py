@@ -394,7 +394,7 @@ def listing_various_data(temp):
             return no_end_0(entry)
     
     def lootcount(name, entry):
-        count = None
+        count = 1
         limit = None
         for e in entry.get('functions', []):
             if test_function(e, 'set_count'):
@@ -402,10 +402,7 @@ def listing_various_data(temp):
             if test_function(e, 'limit_count'):
                 limit = e.get('limit', None)
         
-        if count:
-            return mcrange(name, count, limit)
-        else:
-            return '1'
+        return mcrange(name, count, limit)
     
     def lootcomment(name, entry):
         comment = []
