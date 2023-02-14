@@ -9,4 +9,10 @@ zz*
 *.lnk
 
 __pycache__
+
 version_manifest.json
+releases/
+release/
+snapshots/
+snapshot/
+special/
