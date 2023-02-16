@@ -265,7 +265,7 @@ def listing_various_data(temp):
     def flatering(name):
         return name.split(':', maxsplit=2)[-1].replace('\\', '/')
     def filename(name):
-        return os.path.splitext(flatering(name))[0]
+        return flatering(os.path.splitext(name)[0])
     def namespace(name):
         ns = 'minecraft'
         if ':' in name:
