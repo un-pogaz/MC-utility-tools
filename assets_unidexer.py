@@ -73,7 +73,7 @@ def unindex_assets(args):
     async def index_dl():
         urlretrieve(assets_json['asset_index'], assets_json_path)
         pass
-    run_animation(index_dl, 'Downloading index.json', '> OK')
+    run_animation(index_dl, 'Downloading index.json')
     
     for k,v in read_json(assets_json_path).items():
         assets_json[k] = v
@@ -96,7 +96,7 @@ def unindex_assets(args):
                 make_dirname(file)
                 urlretrieve(asset['url'], file)
         
-    run_animation(assets_dl, 'Downloading assets', '> OK')
+    run_animation(assets_dl, 'Downloading assets')
     
     
     async def list_assets():
@@ -124,7 +124,7 @@ def unindex_assets(args):
             write_json(os.path.join(temp,'lists', 'languages.json'), languages)
         
         
-    run_animation(list_assets, 'List assets', '> OK')
+    run_animation(list_assets, 'List assets')
     
     
     async def copy_assets_data():
@@ -137,7 +137,7 @@ def unindex_assets(args):
         
         shutil.copytree(temp, output)
         
-    run_animation(copy_assets_data, f'Move generated data to "{output}"', '> OK')
+    run_animation(copy_assets_data, f'Move generated data to "{output}"')
     
 
 

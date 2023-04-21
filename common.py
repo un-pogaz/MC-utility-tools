@@ -98,20 +98,21 @@ GITHUB_DATA_LATEST = GitHub('un-pogaz', 'MC-generated-data-latest')
 GITHUB_BUILDER = GitHub('un-pogaz', 'MC-utility-tools')
 
 
-animation_loop = [' |',' /',' —',' \\']
-
 def run_animation(awaitable, text_wait, text_end=None):
-    import asyncio
-    
-    global animation_run
+    import asyncio, time
+    global animation_run, msg_last
+    run_animation.extra = ''
+    msg_last = ''
     
     def start_animation():
-        global animation_run
+        global animation_run, msg_last
         idx = 0
         while animation_run:
-            print(text_wait + animation_loop[idx % len(animation_loop)], end="\r")
+            msg = ' '.join([text_wait, run_animation.loop[idx % len(run_animation.loop)],(run_animation.extra or '')])
+            print(msg + ' '*(len(msg_last)-len(msg)+1), end='\r')
+            msg_last = msg
             idx += 1
-            if idx == len(animation_loop): idx == 0
+            if idx == len(run_animation.loop): idx == 0
             time.sleep(0.2)
     
     from threading import Thread
@@ -121,9 +122,12 @@ def run_animation(awaitable, text_wait, text_end=None):
     t.start()
     asyncio.run(awaitable())
     animation_run = False
-    prints(text_wait, text_end or '', ' ' * len(animation_loop[0]))
-    time.sleep(0.3)
+    msg = ' '.join([text_wait, text_end or '> OK'])
+    print(msg+' '*(len(msg_last)-len(msg)+1))
+    time.sleep(0.2)
     del t
+run_animation.extra = ''
+run_animation.loop = ['|','/','—','\\']
 
 def run_command(command_line, wait=True):
     """
@@ -221,7 +225,7 @@ def hash_file(file):
         
         return algo.hexdigest()
     
-    return False
+    return None
 
 def hash_test(hash, file):
     if hash and os.path.exists(file):

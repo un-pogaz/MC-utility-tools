@@ -117,7 +117,7 @@ def build_generated_data(args):
         if not hash_test(client_sha1, client):
             safe_del(client)
             urlretrieve(version_json['client'], client)
-    run_animation(client_dl, 'Downloading client.jar', '> OK')
+    run_animation(client_dl, 'Downloading client.jar')
     
     global assets, assets_json
     assets = assets_json = {}
@@ -154,7 +154,7 @@ def build_generated_data(args):
         
         assets_json['objects'] = assets
         
-    run_animation(assets_dl, 'Downloading assets.json', '> OK')
+    run_animation(assets_dl, 'Downloading assets.json')
     
     
     if dt.year >= 2018:
@@ -163,12 +163,12 @@ def build_generated_data(args):
             if version_json['server'] and not hash_test(server_sha1, server):
                 safe_del(server)
                 urlretrieve(version_json['server'], server)
-        run_animation(server_dl, 'Downloading server.jar', '> OK')
+        run_animation(server_dl, 'Downloading server.jar')
         
         async def data_server():
             for cmd in ['-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all', '-cp server.jar net.minecraft.data.Main --all']:
                 subprocess.run('java ' + cmd, cwd=temp_root, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
-        run_animation(data_server, 'Extracting data server', '> OK')
+        run_animation(data_server, 'Extracting data server')
     
     
     async def data_client():
@@ -192,7 +192,7 @@ def build_generated_data(args):
                 if a.startswith('minecraft/textures'):
                     write_asset(a)
             
-    run_animation(data_client, 'Extracting data client', '> OK')
+    run_animation(data_client, 'Extracting data client')
     
     
     write_json(os.path.join(temp, version+'.json') , version_json)
@@ -204,7 +204,7 @@ def build_generated_data(args):
             safe_del(os.path.join(temp_root, f))
         
         listing_various_data(temp)
-    run_animation(listing_various, 'Listing elements and various', '> OK')
+    run_animation(listing_various, 'Listing elements and various')
     
     
     if args.zip:
@@ -215,7 +215,7 @@ def build_generated_data(args):
             safe_del(zip_version_path)
             shutil.make_archive(os.path.splitext(zip_path)[0], 'zip', root_dir=temp)
             os.rename(zip_path, zip_version_path)
-        run_animation(make_zip, 'Empack into a ZIP', '> OK')
+        run_animation(make_zip, 'Empack into a ZIP')
     
     async def move_generated_data():
         if os.path.exists(output):
@@ -229,7 +229,7 @@ def build_generated_data(args):
         for dir in os.listdir(temp):
             shutil.move(os.path.join(temp, dir), os.path.join(output, dir))
         
-    run_animation(move_generated_data, f'Move generated data to "{output}"', '> OK')
+    run_animation(move_generated_data, f'Move generated data to "{output}"')
 
 
 class CSVpool():
