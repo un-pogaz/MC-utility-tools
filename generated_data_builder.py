@@ -301,6 +301,14 @@ def listing_various_data(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
     
+    # advancements
+    dir = 'assets/minecraft/advancements' # old
+    lines = set()
+    for dp, p in data_paths:
+        lines.update([namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir, p), recursive=True)])
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
+    
     # special subdir (not in registries)
     for subdir in ['advancements', 'recipes', 'chat_type', 'trim_material', 'trim_pattern', 'damage_type']:
         entries = set()
