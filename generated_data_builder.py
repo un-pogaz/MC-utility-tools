@@ -1,4 +1,4 @@
-VERSION = (0, 5, 0)
+VERSION = (0, 5, 1)
 
 import sys, argparse, os.path, glob, time
 import pathlib, shutil
@@ -302,7 +302,7 @@ def listing_various_data(temp):
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
     
     # special subdir (not in registries)
-    for subdir in ['trim_material', 'trim_pattern', 'damage_type']:
+    for subdir in ['advancements', 'chat_type', 'trim_material', 'trim_pattern', 'damage_type']:
         entries = set()
         tags = set()
         for dp, p in data_paths:
