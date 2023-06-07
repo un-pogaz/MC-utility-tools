@@ -1,4 +1,4 @@
-VERSION = (0, 5, 1)
+VERSION = (0, 6, 0)
 
 import sys, argparse, os.path, glob, time
 import pathlib, shutil
@@ -286,9 +286,13 @@ def listing_various_data(temp):
     
     sub_datapacks = 'data/minecraft/datapacks'
     
+    lines = []
     data_paths = [('','')]
     for dp in glob.glob('*/', root_dir=os.path.join(temp, sub_datapacks), recursive=False):
         data_paths.append((dp, os.path.join(sub_datapacks, dp)))
+        lines.append(namespace(dp.strip('\\').strip('//')))
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
     
     
     # structures.nbt
@@ -309,8 +313,17 @@ def listing_various_data(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
     
+    # dimension_type
+    lines = set()
+    dir = 'reports/minecraft/dimension_type' # old
+    if not os.path.exists(os.path.join(temp, dir)):
+        dir = 'reports/worldgen/minecraft/dimension_type' # legacy
+    lines.update([namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True)])
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'dimension_type.txt'), sorted(lines))
+    
     # special subdir (not in registries)
-    for subdir in ['advancements', 'recipes', 'chat_type', 'trim_material', 'trim_pattern', 'damage_type']:
+    for subdir in ['advancements', 'recipes', 'dimension_type', 'chat_type', 'trim_material', 'trim_pattern', 'damage_type']:
         entries = set()
         tags = set()
         for dp, p in data_paths:
