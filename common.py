@@ -63,34 +63,6 @@ def prints(*a, **kw):
             pass
 
 
-# dependency package
-
-missing_package = False
-def install(package, test=None):
-    global missing_package
-    import sys, importlib, subprocess
-    
-    test = test or package
-    spam_spec = importlib.util.find_spec(package)
-    found = spam_spec is not None
-    
-    if not found:
-        if missing_package:
-            prints('Missing dependency')
-            missing_package = True
-        prints('Instaling:', package)
-        subprocess.check_call([sys.executable, '-m', 'pip', '-q', 'install', package])
-
-install('keyboard')
-
-if missing_package:
-    prints('All dependency are instaled')
-    prints()
-
-import keyboard
-
-
-
 from github import GitHub
 
 GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
@@ -209,6 +181,15 @@ def safe_del(path):
         remove(path)
     except Exception as ex:
         pass
+
+def remove_empty(path):
+    """
+    recursive remove empty folder
+    """
+    import os
+    for p, _, _ in list(os.walk(path))[::-1]:
+        if len(os.listdir(p)) == 0:
+            os.rmdir(p)
 
 
 BUF_SIZE = 65536
@@ -394,7 +375,7 @@ def valide_version(version, quiet = False, manifest_json_path = None):
         
         prints(f'The version {version} has invalide.', '' if quiet else ' Press any key to exit.')
         if not quiet:
-            keyboard.read_key()
+            input()
         sys.exit()
 
 def valide_output(args):
@@ -442,7 +423,20 @@ def work_done(error, quiet = False):
     if not error:
         prints('Work done with success.','' if quiet else 'Press any key to exit.')
     if not quiet:
-        keyboard.read_key()
+        input()
+
+
+def serialize_nbt(file):
+    from nbtlib import nbt
+    from nbtlib.literal.serializer import serialize_tag
+    snbt = serialize_tag(nbt.load(file), indent=2, compact=False, quote='"').replace('\r\n', '\n')
+    while ' \n' in snbt:
+        snbt = snbt.replace(' \n', '\n')
+    
+    file = os.path.splitext(file)[0]+'.snbt'
+    with open(file, mode='wt', newline='\n') as f:
+        f.write(snbt)
+
 
 def info_latest_version():
     for v in VERSION_MANIFEST['versions']:

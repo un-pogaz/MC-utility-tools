@@ -1,7 +1,7 @@
-VERSION = (0, 6, 0)
+VERSION = (0, 7, 0)
 
 import sys, argparse, os.path, glob, time
-import pathlib, shutil
+import pathlib
 from collections import OrderedDict
 
 from common import prints, urlretrieve
@@ -51,6 +51,7 @@ def main():
 
 
 def build_generated_data(args):
+    import shutil
     from common import run_animation, read_json, write_json, write_lines, safe_del
     from common import find_output, get_latest, read_manifest_json, version_path, make_dirname, hash_test
     
@@ -260,7 +261,7 @@ class CSVentrie():
 
 def listing_various_data(temp):
     from copy import deepcopy
-    from common import read_json, write_json, write_lines, safe_del
+    from common import read_json, write_json, write_lines, safe_del, serialize_nbt
     
     def flatering(name):
         return name.split(':', maxsplit=2)[-1].replace('\\', '/')
@@ -304,6 +305,10 @@ def listing_various_data(temp):
         lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True)])
     if lines:
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
+    
+    # structures.snbt
+    for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True):
+        serialize_nbt(f)
     
     # advancements
     dir = 'assets/minecraft/advancements' # old
