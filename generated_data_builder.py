@@ -307,8 +307,9 @@ def listing_various_data(temp):
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
     
     # structures.snbt
-    for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True):
-        serialize_nbt(f)
+    for dp, p in data_paths:
+        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True):
+            serialize_nbt(os.path.join(temp, dir, p, f))
     
     # advancements
     dir = 'assets/minecraft/advancements' # old
