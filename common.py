@@ -122,7 +122,7 @@ def run_command(command_line, wait=True):
         command_line = ' '.join(command_line)
     
     #subproc = Popen(command_line, shell=True)
-    subproc = Popen(command_line, stdout=DEVNULL, stderr=PIPE, shell=True)
+    subproc = Popen(command_line, stdout=DEVNULL, stderr=DEVNULL, shell=True)
     
     if wait:
         subproc.wait()
