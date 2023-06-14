@@ -429,7 +429,7 @@ def work_done(error, quiet = False):
 def serialize_nbt(file):
     from nbtlib import nbt
     from nbtlib.literal.serializer import serialize_tag
-    snbt = serialize_tag(nbt.load(file), indent=2, compact=False, quote='"').replace('\r\n', '\n')
+    snbt = serialize_tag(nbt.load(file), indent=2, compact=False, quote='"').replace('\r\n', '\n').replace('\r', '\n')
     while ' \n' in snbt:
         snbt = snbt.replace(' \n', '\n')
     
