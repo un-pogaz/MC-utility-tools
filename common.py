@@ -105,12 +105,12 @@ def run_command(command_line, wait=True):
     """
     Lauch a command line and return the subprocess
     
-    :type filepath:     string
-    :param filepath:    Path to the file to open
-    :type wait:         bool
-    :param wait:        Wait for the file to be closed
-    :rtype:             subprocess
-    :return:            The pointer the subprocess returned by the Popen call
+    :type command_line:     string
+    :param command_line:    commands to execute
+    :type wait:             bool
+    :param wait:            Wait for the file to be closed
+    :rtype:                 subprocess
+    :return:                The pointer the subprocess returned by the Popen call
     """
     
     import os
