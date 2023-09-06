@@ -1,6 +1,6 @@
-VERSION = (0, 7, 0)
+VERSION = (0, 8, 0)
 
-import sys, argparse, os.path, glob, time
+import sys, argparse, os.path, glob, json, re
 import pathlib
 from collections import OrderedDict
 
@@ -282,6 +282,10 @@ def listing_various_data(temp):
     def test_condition(entry, target_type):
         return test_n(entry,'condition', namespace(target_type))
     
+    def unquoted_json(obj):
+        # remove the quote around the name of the propety {name: "Value"}
+        return re.sub(r'"([^"]+)":', r'\1:', json.dumps(obj, indent=None))
+    
     def enum_json(dir):
         return [namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
     
@@ -384,10 +388,7 @@ def listing_various_data(temp):
         raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
     
     def no_end_0(num):
-        num = str(num)
-        if num.endswith('.0'):
-            num = num[:-2]
-        return num
+        return str(num).removesuffix('.0')
     def mcrange(name, entry, limit=None):
         if isinstance(entry, dict):
             
@@ -438,6 +439,26 @@ def listing_various_data(temp):
                 comment.append('furnace smelt')
             if test_function(e, 'explosion_decay'):
                 comment.append('explosion decay')
+            
+            if test_function(e, 'enchant_randomly'):
+                enchantments = e.get('enchantments', None)
+                if enchantments is None:
+                    enchantments = '*'
+                elif len(enchantments) == 1:
+                    enchantments = namespace(enchantments[0])
+                else:
+                    enchantments = '['+', '.join(namespace(echt) for echt in enchantments)+']'
+                comment.append('enchantments: '+ enchantments)
+            if test_function(e, 'enchant_with_levels'):
+                levels = {'level':e['levels']}
+                if e.get('treasure', False):
+                    levels['treasure'] = True
+                comment.append('enchantments: '+ unquoted_json(levels))
+            if test_function(e, 'set_enchantments'):
+                TypeError("Unsupported function '{}' in loot_tables '{}'".format('set_enchantments', name))
+            
+            if test_function(e, 'exploration_map'):
+                comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
         
         for e in entry.get('conditions', []):
             if test_condition(e, 'killed_by_player'):
@@ -466,15 +487,11 @@ def listing_various_data(temp):
                     csvpool.rolls = mcrange(name, pool.get('rolls', 1))
                     
                     bonus = pool.get('bonus_rolls', 0)
+                    if bonus:
+                        bonus = 'bonus rolls: '+ no_end_0(bonus)
                     comment = lootcomment(name, pool)
-                    if bonus and comment:
-                        csvpool.comment = bonus +', '+ comment
-                    elif bonus:
-                        csvpool.comment = bonus
-                    elif comment:
-                        csvpool.comment = comment
-                    else:
-                        csvpool.comment = ''
+                    
+                    csvpool.comment = ', '.join([e for e in [bonus, comment] if e])
                     
                     csv.append(csvpool)
                     
