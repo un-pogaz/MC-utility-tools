@@ -1,4 +1,4 @@
-VERSION = (0, 8, 0)
+VERSION = (0, 8, 1)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -789,9 +789,15 @@ def listing_various_data(temp):
         languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
         write_json(os.path.join(temp, 'lists', 'languages.json'), languages)
     
+    languages_json = os.path.join(temp, 'lists', 'languages.json')
+    languages = read_json(languages_json)
+    if languages:
+        write_json(languages_json, languages)
+    else:
+        safe_del(languages_json)
     safe_del(pack_mcmeta)
     
-    # list assets
+    # list assets.txt
     lst_assets = read_json(os.path.join(temp, 'assets.json')).get('objects', {})
     if lst_assets:
         write_lines(os.path.join(temp, 'assets.txt'), sorted(lst_assets.keys()))
