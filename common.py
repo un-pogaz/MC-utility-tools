@@ -146,6 +146,17 @@ def write_json(path, obj):
     with open(path, 'wt', newline='\n', encoding='utf-8') as f:
         f.write(json.dumps(obj, indent=2, ensure_ascii=False))
 
+def read_text(path):
+    with open(path, 'rt', encoding='utf-8') as f:
+        return ''.join(f.readlines())
+
+def write_text(path, text):
+    with open(path, 'wt', newline='\n', encoding='utf-8') as f:
+        f.write(text)
+
+def read_lines(path):
+    return [l.strip('\r\n') for l in read_text(path).splitlines()]
+
 def write_lines(path, lines):
     make_dirname(path)
     with open(path, 'wt', newline='\n', encoding='utf-8') as f:
@@ -155,14 +166,6 @@ def write_lines(path, lines):
             for l in lines[:-1]:
                 f.write(l+'\n')
             f.write(lines[-1])
-
-def read_text(path):
-    with open(path, 'rt', encoding='utf-8') as f:
-        return ''.join(f.readlines())
-
-def write_text(path, text):
-    with open(path, 'wt', newline='\n', encoding='utf-8') as f:
-        f.write(text)
 
 
 def safe_del(path):

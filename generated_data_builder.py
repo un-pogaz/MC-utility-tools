@@ -1,4 +1,4 @@
-VERSION = (0, 8, 1)
+VERSION = (0, 9, 0)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -261,14 +261,14 @@ class CSVentrie():
 
 def listing_various_data(temp):
     from copy import deepcopy
-    from common import read_json, write_json, write_lines, safe_del, serialize_nbt
+    from common import read_json, write_json, read_lines, write_lines, safe_del, serialize_nbt
     
     def flatering(name):
         return name.split(':', maxsplit=2)[-1].replace('\\', '/')
     def filename(name):
         return flatering(os.path.splitext(name)[0])
-    def namespace(name):
-        ns = 'minecraft'
+    def namespace(name, ns=None):
+        ns = (ns or 'minecraft').lower()
         if ':' in name:
             ns = name.split(':', maxsplit=2)[0]
         return ns+':'+flatering(name)
@@ -763,7 +763,7 @@ def listing_various_data(temp):
     
     # sounds
     for sounds in ['minecraft/sounds.json', 'sounds.json']:
-        sounds = os.path.join(temp, 'assets',sounds)
+        sounds = os.path.join(temp, 'assets', sounds)
         if os.path.exists(sounds):
             for k,v in read_json(sounds).items():
                 name = flatering(k)
@@ -779,9 +779,28 @@ def listing_various_data(temp):
             break
     
     # languages
+    src_lang = {}
+    search_term = ['code', 'name', 'region']
+    for lang in glob.iglob('assets/lang/*.lang', root_dir=temp, recursive=False):
+        # old format
+        new_lang = {}
+        for l in read_lines(os.path.join(temp, lang)):
+            for st in search_term:
+                if l.startswith('language.'+st+'='):
+                    new_lang[st] = l.split('=',1)[1]
+            
+            if len(search_term) == len(new_lang):
+                break
+        
+        if len(search_term) == len(new_lang):
+            src_lang[new_lang['code']] = {'region':new_lang['region'], 'name':new_lang['name']}
+    
     pack_mcmeta = os.path.join(temp, 'assets', 'pack.mcmeta')
-    src_lang = read_json(pack_mcmeta).get('language', None)
+    if not src_lang:
+        src_lang = read_json(pack_mcmeta).get('language', None)
+    
     if src_lang:
+        # actual format
         languages = {}
         for en in ['en_us', 'en_US']:
             if en in src_lang:
@@ -789,6 +808,8 @@ def listing_various_data(temp):
         languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
         write_json(os.path.join(temp, 'lists', 'languages.json'), languages)
     
+    ## need this to update the last edit attribut of the file
+    ## to the last parsing
     languages_json = os.path.join(temp, 'lists', 'languages.json')
     languages = read_json(languages_json)
     if languages:
@@ -801,6 +822,69 @@ def listing_various_data(temp):
     lst_assets = read_json(os.path.join(temp, 'assets.json')).get('objects', {})
     if lst_assets:
         write_lines(os.path.join(temp, 'assets.txt'), sorted(lst_assets.keys()))
+    
+    
+    # list /assets/
+    lst_exlude = ['lang', 'shaders']
+    root_dir = os.path.join(temp, 'assets')
+    if os.path.exists(os.path.join(temp, 'assets', 'minecraft')):
+        lst_namespace = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, 'assets'), recursive=False)]
+        lst_dir = set()
+        for ns in lst_namespace:
+            lst_dir.update([flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, 'assets', ns), recursive=False)])
+        
+        lst_dir = list(lst_dir)
+        for exlude in lst_exlude:
+            if exlude in lst_dir:
+                lst_dir.remove(exlude)
+    else:
+        lst_namespace = []
+        lst_dir = []
+    
+    lst_ext = ['json', 'txt', 'png']
+    
+    def get_lines_assets(dir, ext):
+        rslt = []
+        for ns in lst_namespace:
+            root = os.path.join(root_dir, ns, dir)
+            for f in glob.iglob('**/*.'+ext, root_dir=root, recursive=True):
+                l = namespace(filename(f), ns=ns)
+                if ext == 'png':
+                    if os.path.exists(os.path.join(root, f +'.mcmeta')):
+                        l = l+ '  [mcmeta]'
+                rslt.append(l)
+        return rslt
+    
+    for dir in lst_dir:
+        for ext in lst_ext:
+            lines = get_lines_assets(dir, ext)
+            if lines:
+                txt_path = dir + ('' if ext == 'json' else '.'+ext) +'.txt'
+                write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
+    
+    lines = {}
+    shaders_dir = os.path.join(root_dir, 'shaders')
+    for f in glob.iglob('**/*', root_dir=shaders_dir, recursive=True):
+        if os.path.isdir(os.path.join(shaders_dir, f)):
+            continue
+        name, ext = os.path.splitext(f)
+        name = flatering(name)
+        ext = ext.strip('.').lower()
+        if name not in lines:
+            lines[name] = set()
+        lines[name].add(ext)
+    
+    if lines:
+        lines = [k +'  ['+ ','.join(sorted(v))+']' for k,v in lines.items()]
+        write_lines(os.path.join(temp, 'lists', 'shaders.txt'), sorted(lines))
+    
+    if not lst_dir:
+        # old /assets/
+        for name, ext in [('textures','png'), ('texts','txt')]:
+            lines = [namespace(filename(f)) for f in glob.iglob('**/*.'+ext, root_dir=root_dir, recursive=True)]
+            if lines:
+                txt_path = name + '.'+ext +'.txt'
+                write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
 
 if __name__ == "__main__":
     main()
