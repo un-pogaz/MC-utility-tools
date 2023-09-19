@@ -1,4 +1,4 @@
-VERSION = (0, 9, 1)
+VERSION = (0, 10, 0)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -323,17 +323,40 @@ def listing_various_data(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
     
-    # dimension_type
-    lines = set()
-    dir = 'reports/minecraft/dimension_type' # old
-    if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'reports/worldgen/minecraft/dimension_type' # legacy
-    lines.update(enum_json(os.path.join(temp, dir)))
-    if lines:
-        write_lines(os.path.join(temp, 'lists', 'dimension_type.txt'), sorted(lines))
+    # subdir /reports/
+    lst_subdir = [
+        'dimension',
+        'dimension_type',
+        'biome_parameters',
+        'chat_type',
+    ]
+    for subdir in lst_subdir:
+        dir = 'reports/'+ subdir +'/minecraft' # root
+        if not os.path.exists(os.path.join(temp, dir)):
+            dir = 'reports/'+ subdir # alt root
+            if not os.path.exists(os.path.join(temp, dir)):
+                dir = 'reports/minecraft/'+ subdir # old
+                if not os.path.exists(os.path.join(temp, dir)):
+                    dir = 'reports/worldgen/minecraft/'+ subdir # legacy
+        
+        lines.update(enum_json(os.path.join(temp, dir)))
+        if lines:
+            write_lines(os.path.join(temp, 'lists', subdir+'.txt'), sorted(lines))
     
     # special subdir (not in registries)
-    for subdir in ['advancements', 'recipes', 'dimension_type', 'chat_type', 'trim_material', 'trim_pattern', 'damage_type']:
+    lst_subdir = [
+        'dimension',
+        'dimension_type',
+        'biome_parameters',
+        'chat_type',
+        
+        'advancements',
+        'recipes',
+        'trim_material',
+        'trim_pattern',
+        'damage_type',
+    ]
+    for subdir in lst_subdir:
         entries = set()
         tags = set()
         for dp, p in data_paths:
