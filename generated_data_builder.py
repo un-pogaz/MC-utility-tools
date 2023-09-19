@@ -1,4 +1,4 @@
-VERSION = (0, 9, 0)
+VERSION = (0, 9, 1)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -319,7 +319,7 @@ def listing_various_data(temp):
     dir = 'assets/minecraft/advancements' # old
     lines = set()
     for dp, p in data_paths:
-        lines.update([namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir, p), recursive=True)])
+        lines.update(enum_json(os.path.join(temp, dir, p)))
     if lines:
         write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
     
@@ -328,7 +328,7 @@ def listing_various_data(temp):
     dir = 'reports/minecraft/dimension_type' # old
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'reports/worldgen/minecraft/dimension_type' # legacy
-    lines.update([namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True)])
+    lines.update(enum_json(os.path.join(temp, dir)))
     if lines:
         write_lines(os.path.join(temp, 'lists', 'dimension_type.txt'), sorted(lines))
     
@@ -337,8 +337,8 @@ def listing_various_data(temp):
         entries = set()
         tags = set()
         for dp, p in data_paths:
-            entries.update([    namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, 'data/minecraft',      subdir), recursive=True)])
-            tags.update(   ['#'+namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, 'data/minecraft/tags', subdir), recursive=True)])
+            entries.update([ j for j in enum_json(os.path.join(temp, p, 'data/minecraft',      subdir))])
+            tags.update(['#'+j for j in enum_json(os.path.join(temp, p, 'data/minecraft/tags', subdir))])
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
