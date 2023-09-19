@@ -757,6 +757,7 @@ def listing_various_data(temp):
         tags = set()
         for dp, p in data_paths:
             entries.update([namespace(k) for k in v['entries'].keys()])
+            entries.update(enum_json(os.path.join(temp, p, dir)))
             tags.update(['#'+j for j in enum_json(os.path.join(temp, p, tagdir))])
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
     
