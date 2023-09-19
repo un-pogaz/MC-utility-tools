@@ -647,7 +647,7 @@ def listing_various_data(temp):
     
     dir = os.path.join(temp, 'reports/biomes') #legacy
     if os.path.exists(dir):
-        write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted([b for b in enum_json(dir)]))
+        write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted(enum_json(dir)))
     
     
     # blocks
