@@ -786,6 +786,7 @@ def listing_various_data(temp):
     
     
     # sounds
+    full_lines = set()
     for sounds in ['minecraft/sounds.json', 'sounds.json']:
         sounds = os.path.join(temp, 'assets', sounds)
         if os.path.exists(sounds):
@@ -798,9 +799,13 @@ def listing_various_data(temp):
                     if isinstance(v, dict):
                         lines[idx] = v['name']
                     lines[idx] = namespace(lines[idx])
+                full_lines.update(lines)
                 write_lines(os.path.join(temp, 'lists/sounds/', name+'.txt'), lines)
             
             break
+    
+    if full_lines:
+        write_lines(os.path.join(temp, 'lists/sounds.txt'), sorted(full_lines))
     
     # languages
     src_lang = {}
