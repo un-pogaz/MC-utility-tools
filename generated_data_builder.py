@@ -286,8 +286,8 @@ def listing_various_data(temp):
         # remove the quote around the name of the propety {name: "Value"}
         return re.sub(r'"([^"]+)":', r'\1:', json.dumps(obj, indent=None))
     
-    def enum_json(dir):
-        return [namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
+    def enum_json(dir, is_tag=False):
+        return [('#' if is_tag else '')+ namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
     
     sub_datapacks = 'data/minecraft/datapacks'
     
@@ -331,6 +331,7 @@ def listing_various_data(temp):
         'chat_type',
     ]
     for subdir in lst_subdir:
+        lines = set()
         dir = 'reports/'+ subdir +'/minecraft' # root
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'reports/'+ subdir # alt root
@@ -360,8 +361,8 @@ def listing_various_data(temp):
         entries = set()
         tags = set()
         for dp, p in data_paths:
-            entries.update([ j for j in enum_json(os.path.join(temp, p, 'data/minecraft',      subdir))])
-            tags.update(['#'+j for j in enum_json(os.path.join(temp, p, 'data/minecraft/tags', subdir))])
+            entries.update(enum_json(os.path.join(temp, p, 'data/minecraft',      subdir)))
+            tags.update(   enum_json(os.path.join(temp, p, 'data/minecraft/tags', subdir), is_tag=True))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
@@ -641,8 +642,8 @@ def listing_various_data(temp):
         entries = set()
         tags = set()
         for dp, p in data_paths:
-            entries.update([j for j in enum_json(os.path.join(temp, p, dir, subdir))])
-            tags.update(['#'+j for j in enum_json(os.path.join(temp, p, 'data/minecraft/tags/worldgen', subdir))])
+            entries.update(enum_json(os.path.join(temp, p, dir,                            subdir)))
+            tags.update(   enum_json(os.path.join(temp, p, 'data/minecraft/tags/worldgen', subdir), is_tag=True))
         write_lines(os.path.join(temp, 'lists/worldgen', subdir +'.txt'), sorted(entries) + sorted(tags))
     
     dir = os.path.join(temp, 'reports/biomes') #legacy
@@ -781,7 +782,7 @@ def listing_various_data(temp):
         for dp, p in data_paths:
             entries.update([namespace(k) for k in v['entries'].keys()])
             entries.update(enum_json(os.path.join(temp, p, dir)))
-            tags.update(['#'+j for j in enum_json(os.path.join(temp, p, tagdir))])
+            tags.update(   enum_json(os.path.join(temp, p, tagdir), is_tag=True))
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
     
     
