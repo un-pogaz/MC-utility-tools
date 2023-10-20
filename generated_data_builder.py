@@ -1,8 +1,8 @@
-VERSION = (0, 10, 0)
+VERSION = (0, 11, 0)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 from common import prints, urlretrieve
 
@@ -784,6 +784,23 @@ def listing_various_data(temp):
             entries.update(enum_json(os.path.join(temp, p, dir)))
             tags.update(   enum_json(os.path.join(temp, p, tagdir), is_tag=True))
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
+    
+    
+    # tags
+    entries = set()
+    for dp, p in data_paths:
+        dir = os.path.join(temp, p, 'data/minecraft/tags')
+        entries.update(flatering(j) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True))
+    
+    for name in entries:
+        lines = []
+        for dp, p in data_paths:
+            j = os.path.join(temp, p, 'data/minecraft/tags', name)
+            for v in read_json(j).get('values', []):
+                if v not in lines:
+                    lines.append(v)
+        
+        write_lines(os.path.join(temp, 'lists', 'tags', filename(name)+'.txt'), lines)
     
     
     # sounds
