@@ -1,4 +1,4 @@
-VERSION = (0, 11, 0)
+VERSION = (0, 12, 0)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -483,6 +483,30 @@ def listing_various_data(temp):
             
             if test_function(e, 'exploration_map'):
                 comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
+            
+            if test_function(e, 'set_potion'):
+                if not test_n(e, 'id', 'empty'):
+                    id = flatering(e['id'])
+                    m = []
+                    modifer = [
+                        'strong',
+                        'long',
+                    ]
+                    for k in modifer:
+                        p = k+'_'
+                        if p in id:
+                            id = id.replace(p,'')
+                            m.append(k)
+                    
+                    if m:
+                        id = id + ' ('+ ', '.join(m) +')'
+                    comment.append(id)
+            
+            if test_function(e, 'set_nbt'):
+                from nbtlib import parse_nbt
+                j = parse_nbt(e['tag']).unpack(json=True)
+                if 'Potion':
+                    comment.append(flatering(j['Potion']))
         
         for e in entry.get('conditions', []):
             if test_condition(e, 'killed_by_player'):
