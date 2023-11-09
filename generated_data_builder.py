@@ -316,12 +316,28 @@ def listing_various_data(temp):
             serialize_nbt(os.path.join(temp, dir, p, f))
     
     # advancements
-    dir = 'assets/minecraft/advancements' # old
-    lines = set()
+    dir = 'data/minecraft/advancements'
+    if not os.path.exists(os.path.join(temp, dir)):
+        dir = 'assets/minecraft/advancements' # old
+    entries = set()
+    recipes = set()
+    tags = set()
     for dp, p in data_paths:
-        lines.update(enum_json(os.path.join(temp, dir, p)))
+        for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, dir), recursive=True):
+            j = filename(j)
+            if j.startswith('recipes/'):
+                t = recipes
+            else:
+                t = entries
+            t.add(namespace(j))
+        
+        tags.update(enum_json(os.path.join(temp, p, 'data/minecraft/tags/advancements'), is_tag=True))
+    
+    lines = sorted(entries) + sorted(tags)
     if lines:
         write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
+    if recipes:
+        write_lines(os.path.join(temp, 'lists', 'advancements.recipes.txt'), sorted(recipes))
     
     # subdir /reports/
     lst_subdir = [
@@ -351,7 +367,6 @@ def listing_various_data(temp):
         'biome_parameters',
         'chat_type',
         
-        'advancements',
         'recipes',
         'trim_material',
         'trim_pattern',
@@ -901,7 +916,7 @@ def listing_various_data(temp):
     
     
     # list /assets/
-    lst_exlude = ['lang', 'shaders']
+    lst_exlude = ['lang', 'shaders', 'advancements']
     root_dir = os.path.join(temp, 'assets')
     if os.path.exists(os.path.join(temp, 'assets', 'minecraft')):
         lst_namespace = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, 'assets'), recursive=False)]
