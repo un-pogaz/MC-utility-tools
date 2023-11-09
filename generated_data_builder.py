@@ -259,8 +259,60 @@ class CSVentrie():
         return (self.weight/tw)*100
 
 
-def listing_various_data(temp):
+def write_tbl_csv(path, head_tbl, lines_tbl):
     from copy import deepcopy
+    from common import write_lines
+    
+    rslt = deepcopy(lines_tbl)
+    rslt.insert(0, head_tbl.copy())
+    rslt.insert(1, None)
+    
+    for i in range(len(rslt)):
+        if rslt[i]:
+            for y in range(len(rslt[i])):
+                d = str(rslt[i][y])
+                if d: rslt[i][y] = '"'+d+'"'
+            rslt[i] = ','.join(rslt[i])
+        else:
+            rslt[i] = ','*(len(head_tbl)-1)
+    
+    write_lines(path, rslt)
+
+def write_tbl_md(path, head_tbl, lines_tbl):
+    from copy import deepcopy
+    from common import write_lines
+    
+    col_len = [len(i) for i in head_tbl]
+    for i in range(len(lines_tbl)):
+        if lines_tbl[i]:
+            for y in range(len(lines_tbl[i])):
+                l = len(lines_tbl[i][y])
+                if l > col_len[y]:
+                    col_len[y] = l
+    
+    def concatline(line):
+        return '| '+ ' | '.join(line) +' |'
+    def calcspace(line, col):
+        return ' '*(col_len[col] - len(line[col]))
+    rslt = []
+    rslt.append(concatline([head_tbl[i]+calcspace(head_tbl, i) for i in range(len(head_tbl))]))
+    rslt.append(concatline(['-'*i for i in col_len]))
+    empty_line = concatline([' '*i for i in col_len])
+    for line in deepcopy(lines_tbl):
+        if line:
+            line[0] = line[0]+calcspace(line, 0)
+            for idx in range(1, len(line)-1):
+                line[idx] = calcspace(line, idx)+line[idx]
+            idx = len(line)-1
+            line[idx] = line[idx]+calcspace(line, idx)
+            rslt.append(concatline(line))
+        else:
+            rslt.append(empty_line)
+    
+    write_lines(path, rslt)
+
+
+def listing_various_data(temp):
     from common import read_json, write_json, read_lines, write_lines, safe_del, serialize_nbt
     
     def flatering(name):
@@ -628,51 +680,8 @@ def listing_various_data(temp):
                         d = str(lines_tbl[i][y])
                         if d: lines_tbl[i][y] = no_end_0(d)
             
-            lines_csv = deepcopy(lines_tbl)
-            lines_csv.insert(0, head_tbl.copy())
-            lines_csv.insert(1, None)
-            
-            for i in range(len(lines_csv)):
-                if lines_csv[i]:
-                    for y in range(len(lines_csv[i])):
-                        d = str(lines_csv[i][y])
-                        if d: lines_csv[i][y] = '"'+d+'"'
-                    lines_csv[i] = ','.join(lines_csv[i])
-                else:
-                    lines_csv[i] = ','*(len(head_tbl)-1)
-            
-            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.csv'), lines_csv)
-            
-            
-            lines_md_col = [len(i) for i in head_tbl]
-            for i in range(len(lines_tbl)):
-                if lines_tbl[i]:
-                    for y in range(len(lines_tbl[i])):
-                        l = len(lines_tbl[i][y])
-                        if l > lines_md_col[y]:
-                            lines_md_col[y] = l
-            
-            def concatline(line):
-                return '| '+ ' | '.join(line) +' |'
-            def calcspace(line, col):
-                return ' '*(lines_md_col[col] - len(line[col]))
-            lines_md = []
-            lines_md.append(concatline([head_tbl[i]+calcspace(head_tbl, i) for i in range(len(head_tbl))]))
-            lines_md.append(concatline(['-'*i for i in lines_md_col]))
-            lines_md_empty = concatline([' '*i for i in lines_md_col])
-            for line in lines_tbl:
-                if line:
-                    line = line.copy()
-                    line[0] = line[0]+calcspace(line, 0)
-                    for idx in range(1, len(line)-1):
-                        line[idx] = calcspace(line, idx)+line[idx]
-                    idx = len(line)-1
-                    line[idx] = line[idx]+calcspace(line, idx)
-                    lines_md.append(concatline(line))
-                else:
-                    lines_md.append(lines_md_empty)
-            
-            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.md'), lines_md)
+            write_tbl_csv(os.path.join(temp, 'lists/loot_tables', name+'.csv'), head_tbl, lines_tbl)
+            write_tbl_md(os.path.join(temp, 'lists/loot_tables', name+'.md'), head_tbl, lines_tbl)
     
     # worldgen
     dir = 'data/minecraft/worldgen'
