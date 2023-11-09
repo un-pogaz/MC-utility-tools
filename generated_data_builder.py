@@ -469,15 +469,20 @@ def listing_various_data(temp):
                 if enchantments is None:
                     enchantments = '*'
                 elif len(enchantments) == 1:
-                    enchantments = namespace(enchantments[0])
+                    enchantments = flatering(enchantments[0])
                 else:
-                    enchantments = '['+', '.join(namespace(echt) for echt in enchantments)+']'
+                    enchantments = '['+', '.join(flatering(echt) for echt in enchantments)+']'
                 comment.append('enchantments: '+ enchantments)
             if test_function(e, 'enchant_with_levels'):
-                levels = {'level':e['levels']}
+                levels = []
+                range = mcrange(name, e['levels'])
+                try:
+                    levels.append('level: '+str(int(range)))
+                except:
+                    levels.append('levels: '+str(range))
                 if e.get('treasure', False):
-                    levels['treasure'] = True
-                comment.append('enchantments: '+ unquoted_json(levels))
+                    levels.append('treasure: true')
+                comment.append('enchantments: '+ '{'+ ', '.join(levels) +'}')
             if test_function(e, 'set_enchantments'):
                 TypeError("Unsupported function '{}' in loot_tables '{}'".format('set_enchantments', name))
             
