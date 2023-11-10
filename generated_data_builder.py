@@ -577,7 +577,7 @@ def listing_various_data(temp):
             if test_function(e, 'set_nbt'):
                 from nbtlib import parse_nbt
                 j = parse_nbt(e['tag']).unpack(json=True)
-                if 'Potion':
+                if 'Potion' in j:
                     comment.append(flatering(j['Potion']))
         
         for e in entry.get('conditions', []):
