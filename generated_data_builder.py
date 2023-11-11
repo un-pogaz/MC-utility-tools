@@ -205,7 +205,7 @@ def build_generated_data(args):
             safe_del(os.path.join(temp_root, f))
         
         listing_various_data(temp)
-    run_animation(listing_various, 'Listing elements and various')
+    run_animation(listing_various, 'Generating /list/ folder')
     
     
     if args.zip:
