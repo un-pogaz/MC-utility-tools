@@ -285,6 +285,8 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
                 d = str(rslt[i][y])
                 if d: rslt[i][y] = '"'+d+'"'
             rslt[i] = ','.join(rslt[i])
+        elif rslt[i] is None:
+            rslt[i] = ','.join('——' for _ in head_tbl)
         else:
             rslt[i] = ','*(len(head_tbl)-1)
     
@@ -310,6 +312,7 @@ def write_tbl_md(path, head_tbl, lines_tbl):
     rslt.append(concatline([head_tbl[i]+calcspace(head_tbl, i) for i in range(len(head_tbl))]))
     rslt.append(concatline(['-'*i for i in col_len]))
     empty_line = concatline([' '*i for i in col_len])
+    separator_line = concatline(['– '*(i//2) + ('–' if i % 2 != 0 else '') for i in col_len])
     for line in deepcopy(lines_tbl):
         if line:
             line[0] = line[0]+calcspace(line, 0)
@@ -318,6 +321,8 @@ def write_tbl_md(path, head_tbl, lines_tbl):
             idx = len(line)-1
             line[idx] = line[idx]+calcspace(line, idx)
             rslt.append(concatline(line))
+        elif line is None:
+            rslt.append(separator_line)
         else:
             rslt.append(empty_line)
     
