@@ -1,4 +1,4 @@
-VERSION = (0, 12, 0)
+VERSION = (0, 13, 0)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -233,30 +233,42 @@ def build_generated_data(args):
     run_animation(move_generated_data, f'Move generated data to "{output}"')
 
 
-class CSVpool():
-    def __init__(self) -> None:
+class TBLpool():
+    def __init__(self):
         self.rolls = ''
         self.comment = ''
-        self.entries = []
+        self.entries :list[TBLentrie] = []
     
     def __iter__(self):
-        return self.entries.__iter__()
+        return iter(self.entries)
+    
+    def append(self, item):
+        self.entries.append(item)
+    
+    def total_weight_entries(self):
+        rslt = 0
+        for e in self:
+            rslt += e.weight
+        return rslt
 
-class CSVentrie():
-    def __init__(self, pool) -> None:
-        self._pool = pool
+class TBLentrie():
+    def __init__(self, pool: TBLpool):
+        self.pool = pool
         self.name = ''
         self.count = '1'
         self.weight = 1
         self.comment = ''
     
     @property
-    def chance(self):
-        tw = 0
-        for e in self._pool:
-            tw += e.weight
-        
-        return (self.weight/tw)*100
+    def chance(self) -> float:
+        return (self.weight/self.pool.total_weight_entries())*100
+    
+    @property
+    def propabilty(self) -> str:
+        tw = self.pool.total_weight_entries()
+        if self.weight == 1 and tw == 1:
+            return '1'
+        return str(self.weight) +'/'+ str(tw)
 
 
 def write_tbl_csv(path, head_tbl, lines_tbl):
@@ -596,35 +608,35 @@ def listing_various_data(temp):
             table = read_json(os.path.join(temp, p, dir, loot))
             name = filename(loot)
             
-            csv = []
+            rslt_tbl :list[TBLpool] = []
             
             if name.startswith('blocks'):
                 continue
             else:
                 
                 for pool in table.get('pools', {}):
-                    csvpool = CSVpool()
-                    csvpool.rolls = mcrange(name, pool.get('rolls', 1))
+                    tbl_pool = TBLpool()
+                    tbl_pool.rolls = mcrange(name, pool.get('rolls', 1))
                     
                     bonus = pool.get('bonus_rolls', 0)
                     if bonus:
                         bonus = 'bonus rolls: '+ no_end_0(bonus)
                     comment = lootcomment(name, pool)
                     
-                    csvpool.comment = ', '.join([e for e in [bonus, comment] if e])
+                    tbl_pool.comment = ', '.join([e for e in [bonus, comment] if e])
                     
-                    csv.append(csvpool)
+                    rslt_tbl.append(tbl_pool)
                     
                     def addentrie(e):
-                        csventrie = CSVentrie(csvpool)
-                        csventrie.name = get_simple(name, e)
-                        csventrie.weight = e.get('weight', 1)
-                        if csventrie.name == 'empty':
-                            csventrie.count = ''
+                        tbl_entrie = TBLentrie(tbl_pool)
+                        tbl_entrie.name = get_simple(name, e)
+                        tbl_entrie.weight = e.get('weight', 1)
+                        if tbl_entrie.name == 'empty':
+                            tbl_entrie.count = ''
                         else:
-                            csventrie.count = lootcount(name, e)
-                        csventrie.comment = lootcomment(name, e)
-                        csvpool.entries.append(csventrie)
+                            tbl_entrie.count = lootcount(name, e)
+                        tbl_entrie.comment = lootcomment(name, e)
+                        tbl_pool.append(tbl_entrie)
                     
                     if 'items' in pool:
                         for e in pool['items']:
@@ -638,16 +650,13 @@ def listing_various_data(temp):
             lines_txt = []
             lines_tbl = []
             
-            for l in csv:
-                line = []
+            head_tbl = ['Name', 'Count', 'Chance', 'Weight', 'Comment']
+            for l in rslt_tbl:
                 if '..' in l.rolls:
-                    line.append(' to '.join(l.rolls.split('..', 1))+' time')
+                    roll = ' to '.join(l.rolls.split('..', 1))+' time'
                 else:
-                    line.append(l.rolls+' time')
-                line.append('--')
-                line.append('--')
-                line.append(l.comment)
-                lines_tbl.append(line)
+                    roll = l.rolls+' time'
+                lines_tbl.append([roll,'--','--','--',l.comment])
                 
                 for e in l:
                     lines_txt.append(e.name)
@@ -656,7 +665,7 @@ def listing_various_data(temp):
                         c = str(round(c, 2))
                     else:
                         c = no_end_0(round(c, 1))
-                    lines_tbl.append([e.name, e.count, c+'%', e.comment])
+                    lines_tbl.append([e.name, e.count, c+'%', e.propabilty, e.comment])
                 
                 lines_txt.append('')
                 lines_tbl.append(None)
@@ -668,11 +677,10 @@ def listing_various_data(temp):
             write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines_txt)
             
             
-            head_tbl = ['Name', 'Count', 'Chance', 'Comment']
             while lines_tbl and not lines_tbl[-1]:
                 lines_tbl.pop(-1)
             if not lines_tbl:
-                lines_tbl.append(['empty','','100%',''])
+                lines_tbl.append(['empty','','100%','1',''])
             
             for i in range(len(lines_tbl)):
                 if lines_tbl[i]:
