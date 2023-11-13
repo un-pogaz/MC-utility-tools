@@ -1,4 +1,4 @@
-VERSION = (0, 13, 0)
+VERSION = (0, 13, 1)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -277,7 +277,7 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
     
     rslt = deepcopy(lines_tbl)
     rslt.insert(0, head_tbl.copy())
-    rslt.insert(1, None)
+    rslt.insert(1, '')
     
     for i in range(len(rslt)):
         if rslt[i]:
