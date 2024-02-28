@@ -199,6 +199,9 @@ def build_generated_data(args):
     write_json(os.path.join(temp, version+'.json') , version_json)
     write_json(os.path.join(temp, 'assets.json'), assets_json)
     
+    async def write_serialize():
+        write_serialize_nbt(temp)
+    run_animation(write_serialize, 'Generating NBT serialized')
     
     async def listing_various():
         for f in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
@@ -335,8 +338,23 @@ def get_datapack_paths(temp) -> list[tuple[str,str]]:
         rslt.append((dp.replace('\\', '/').strip('/'), os.path.join(sub_datapacks, dp)))
     return rslt
 
+def _structures_dir(temp) -> str:
+    dir = 'data/minecraft/structures'
+    if not os.path.exists(os.path.join(temp, dir)):
+        dir = 'assets/minecraft/structures' # old
+    return dir
+
+def write_serialize_nbt(temp):
+    from common import serialize_nbt
+    
+    # structures.snbt
+    dir = _structures_dir(temp)
+    for dp, p in get_datapack_paths(temp):
+        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True):
+            serialize_nbt(os.path.join(temp, dir, p, f))
+
 def listing_various_data(temp):
-    from common import read_json, write_json, read_lines, write_lines, safe_del, serialize_nbt
+    from common import read_json, write_json, read_lines, write_lines, safe_del
     
     def flatering(name):
         return name.split(':', maxsplit=2)[-1].replace('\\', '/')
@@ -371,19 +389,13 @@ def listing_various_data(temp):
     
     
     # structures.nbt
-    dir = 'data/minecraft/structures'
-    if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'assets/minecraft/structures' # old
+    dir = _structures_dir(temp)
     lines = set()
     for dp, p in data_paths:
         lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True)])
     if lines:
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
     
-    # structures.snbt
-    for dp, p in data_paths:
-        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True):
-            serialize_nbt(os.path.join(temp, dir, p, f))
     
     # advancements
     dir = 'data/minecraft/advancements'
