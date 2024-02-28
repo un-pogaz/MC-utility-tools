@@ -491,7 +491,7 @@ def listing_various_data(temp):
         if test_type(entry, 'tag'):
             return '#'+namespace(entry['name'])
         if test_type(entry, 'loot_table'):
-            return 'loot_table[]'+namespace(entry['name'])
+            return 'loot_table[]'+namespace(entry.get('value') or entry['name'])
         
         raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
     
@@ -718,7 +718,7 @@ def listing_various_data(temp):
     
     
     # blocks
-    blockstates = {}
+    blockstates = defaultdict(dict)
     for k,v in read_json(os.path.join(temp, 'reports/blocks.json')).items():
         name = flatering(k)
         
@@ -735,18 +735,18 @@ def listing_various_data(temp):
             write_lines(os.path.join(temp, 'lists/blocks/states', name+'.txt'), lines)
         
         for vk in v:
-            if vk not in blockstates:
-                blockstates[vk] = {}
-            
-            for vs in v[vk]:
-                if vs not in blockstates[vk]:
-                    blockstates[vk][vs] = {}
-                
-                for vv in v[vk][vs]:
-                    if vv not in blockstates[vk][vs]:
-                        blockstates[vk][vs][vv] = []
+            if vk == 'properties':
+                for vs in v[vk]:
+                    if vs not in blockstates[vk]:
+                        blockstates[vk][vs] = {}
                     
-                    blockstates[vk][vs][vv].append(namespace(k))
+                    for vv in v[vk][vs]:
+                        if vv not in blockstates[vk][vs]:
+                            blockstates[vk][vs][vv] = []
+                        
+                        blockstates[vk][vs][vv].append(namespace(k))
+            else:
+                blockstates[vk][name] = v[vk]
     
     for k,v in blockstates.items():
         if k == 'properties':
@@ -755,6 +755,8 @@ def listing_various_data(temp):
                     write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(zv))
         else:
             for kk,vv in v.items():
+                if isinstance(vv, dict):
+                    vv = {_k:vv[_k] for _k in sorted(vv.keys())}
                 write_json(os.path.join(temp, 'lists/blocks/', k, kk+'.json'), vv)
     
     # commands
