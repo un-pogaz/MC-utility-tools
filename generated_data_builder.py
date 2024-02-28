@@ -328,6 +328,12 @@ def write_tbl_md(path, head_tbl, lines_tbl):
     
     write_lines(path, rslt)
 
+def get_datapack_paths(temp) -> list[tuple[str,str]]:
+    sub_datapacks = 'data/minecraft/datapacks'
+    rslt = [('','')]
+    for dp in glob.glob('*/', root_dir=os.path.join(temp, sub_datapacks), recursive=False):
+        rslt.append((dp.replace('\\', '/').strip('/'), os.path.join(sub_datapacks, dp)))
+    return rslt
 
 def listing_various_data(temp):
     from common import read_json, write_json, read_lines, write_lines, safe_del, serialize_nbt
@@ -358,13 +364,8 @@ def listing_various_data(temp):
     def enum_json(dir, is_tag=False):
         return [('#' if is_tag else '')+ namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
     
-    sub_datapacks = 'data/minecraft/datapacks'
-    
-    lines = []
-    data_paths = [('','')]
-    for dp in glob.glob('*/', root_dir=os.path.join(temp, sub_datapacks), recursive=False):
-        data_paths.append((dp, os.path.join(sub_datapacks, dp)))
-        lines.append(namespace(dp.strip('\\').strip('//')))
+    data_paths = get_datapack_paths(temp)
+    lines = [namespace(dp) for dp, _ in data_paths[1:]]
     if lines:
         write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
     
