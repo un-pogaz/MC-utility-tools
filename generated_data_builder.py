@@ -750,16 +750,15 @@ def listing_various_data(temp):
         for vk in v:
             if vk == 'properties':
                 for vs in v[vk]:
-                    if vs not in blockstates[vk]:
-                        blockstates[vk][vs] = {}
-                    
                     for vv in v[vk][vs]:
-                        if vv not in blockstates[vk][vs]:
-                            blockstates[vk][vs][vv] = []
+                        if vs not in blockstates[vk]:
+                            blockstates[vk][vs] = defaultdict(list)
                         
                         blockstates[vk][vs][vv].append(namespace(k))
-            else:
+            elif vk in ['definition']:
                 blockstates[vk][name] = v[vk]
+            else:
+                raise NotImplementedError(f'BlockStates "{vk}" not implemented.')
     
     for k,v in blockstates.items():
         for kk,vv in v.items():
