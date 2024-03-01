@@ -1,4 +1,4 @@
-VERSION = (0, 13, 1)
+VERSION = (0, 14, 0)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -377,7 +377,7 @@ def listing_various_data(temp):
     
     def unquoted_json(obj):
         # remove the quote around the name of the propety {name: "Value"}
-        return re.sub(r'"([^"]+)":', r'\1:', json.dumps(obj, indent=None))
+        return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
     
     def enum_json(dir, is_tag=False):
         return [('#' if is_tag else '')+ namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
@@ -762,15 +762,83 @@ def listing_various_data(temp):
                 blockstates[vk][name] = v[vk]
     
     for k,v in blockstates.items():
-        if k == 'properties':
-            for kk,vv in v.items():
+        for kk,vv in v.items():
+            if k == 'properties':
                 for zk,zv in vv.items():
                     write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(zv))
-        else:
-            for kk,vv in v.items():
+            else:
                 if isinstance(vv, dict):
                     vv = {_k:vv[_k] for _k in sorted(vv.keys())}
                 write_json(os.path.join(temp, 'lists/blocks/', k, kk+'.json'), vv)
+    
+    
+    # items
+    itemstates = defaultdict(dict)
+    for k,v in read_json(os.path.join(temp, 'reports/items.json')).items():
+        name = flatering(k)
+        
+        write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
+        
+        for vk in v:
+            if vk == 'components':
+                for vs in v[vk]:
+                    type = flatering(vs['type'])
+                    if type not in itemstates[vk]:
+                        itemstates[vk][type] = defaultdict(dict)
+                    
+                    value = vs['value']
+                    if isinstance(value, dict):
+                        for m in value.get('modifiers', []):
+                            m.pop('uuid', None)
+                    
+                    itemstates[vk][type][namespace(k)] = value
+            else:
+                raise NotImplementedError(f'ItemStates "{vk}" not implemented.')
+    
+    def _one_key_dict(value):
+        if len(value) == 1:
+            return list(value.keys())[0]
+        return None
+    
+    def _test_value(value):
+        if value:
+            if isinstance(value, dict):
+                sub_key = _one_key_dict(value)
+                if sub_key:
+                    if isinstance(value[sub_key], (dict, list)):
+                        return bool(value[sub_key])
+                    else:
+                        return False
+                
+                return bool(value)
+            
+            if isinstance(value, list):
+                return True
+        return False
+    
+    def _text_value(value):
+        rslt = None
+        if not isinstance(value, (dict, list)):
+            if isinstance(value, bool) or value:
+                rslt = str(value)
+        if isinstance(value, dict):
+            sub_key = _one_key_dict(value)
+            if sub_key and not isinstance(value[sub_key], (dict, list)):
+                rslt = unquoted_json(value)
+        
+        if rslt:
+            return '  = ' + rslt
+        return ''
+    
+    for k,v in itemstates.items():
+        if k == 'components':
+            for t,e in v.items():
+                write_lines(os.path.join(temp, 'lists/items/components', t+'.txt'), sorted([n + _text_value(v) for n,v in e.items()]))
+                
+                for n,v in e.items():
+                    if _test_value(v):
+                        write_json(os.path.join(temp, 'lists/items/components', f'{t}.value', flatering(n)+'.json'), v)
+    
     
     # commands
     lines = []
@@ -845,7 +913,6 @@ def listing_various_data(temp):
     lines.sort()
     if lines:
         write_lines(os.path.join(temp, 'lists/registries.txt'), lines)
-    
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
