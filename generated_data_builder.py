@@ -788,7 +788,7 @@ def listing_various_data(temp):
             else:
                 if isinstance(vv, dict):
                     vv = {_k:vv[_k] for _k in sorted(vv.keys())}
-                write_json(os.path.join(temp, 'lists/blocks/', k, kk+'.json'), vv)
+                write_json(os.path.join(temp, 'lists/blocks', k, kk+'.json'), vv)
     
     
     # items
@@ -921,19 +921,19 @@ def listing_various_data(temp):
     
     for k,v in read_json(os.path.join(temp, 'reports/commands.json')).get('children', {}).items():
         name = flatering(k)
-        write_json(os.path.join(temp, 'lists/commands/', name+'.json'), v)
-        write_lines(os.path.join(temp, 'lists/commands/', name+'.txt'), get_syntaxes(name, v))
+        write_json(os.path.join(temp, 'lists/commands', name+'.json'), v)
+        write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), get_syntaxes(name, v))
     
     lines.sort()
     if lines:
-        write_lines(os.path.join(temp, 'lists/command_argument_type.txt'), lines)
+        write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), lines)
     
     
     # registries
     lines = [namespace(k) for k in read_json(os.path.join(temp, 'reports/registries.json')).keys()]
     lines.sort()
     if lines:
-        write_lines(os.path.join(temp, 'lists/registries.txt'), lines)
+        write_lines(os.path.join(temp, 'lists', 'registries.txt'), lines)
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
@@ -969,7 +969,7 @@ def listing_various_data(temp):
                 if v not in lines:
                     lines.append(v)
         
-        write_lines(os.path.join(temp, 'lists', 'tags', filename(name)+'.txt'), lines)
+        write_lines(os.path.join(temp, 'lists/tags', filename(name)+'.txt'), lines)
     
     
     # sounds
@@ -979,7 +979,7 @@ def listing_various_data(temp):
         if os.path.exists(sounds):
             for k,v in read_json(sounds).items():
                 name = flatering(k)
-                write_json(os.path.join(temp, 'lists/sounds/', name+'.json'), v)
+                write_json(os.path.join(temp, 'lists/sounds', name+'.json'), v)
                 
                 lines = v['sounds']
                 for idx,v in enumerate(lines):
@@ -987,12 +987,12 @@ def listing_various_data(temp):
                         lines[idx] = v['name']
                     lines[idx] = namespace(lines[idx])
                 full_lines.update(lines)
-                write_lines(os.path.join(temp, 'lists/sounds/', name+'.txt'), lines)
+                write_lines(os.path.join(temp, 'lists/sounds', name+'.txt'), lines)
             
             break
     
     if full_lines:
-        write_lines(os.path.join(temp, 'lists/sounds.ogg.txt'), sorted(full_lines))
+        write_lines(os.path.join(temp, 'lists', 'sounds.ogg.txt'), sorted(full_lines))
     
     # languages
     src_lang = {}
