@@ -992,7 +992,7 @@ def listing_various_data(temp):
             break
     
     if full_lines:
-        write_lines(os.path.join(temp, 'lists/sounds.txt'), sorted(full_lines))
+        write_lines(os.path.join(temp, 'lists/sounds.ogg.txt'), sorted(full_lines))
     
     # languages
     src_lang = {}
