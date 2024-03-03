@@ -780,8 +780,11 @@ def listing_various_data(temp):
     for k,v in blockstates.items():
         for kk,vv in v.items():
             if k == 'properties':
+                lines = []
                 for zk,zv in vv.items():
-                    write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(zv))
+                    lines.extend(zv)
+                    write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(set(zv)))
+                write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'.txt'), sorted(set(lines)))
             else:
                 if isinstance(vv, dict):
                     vv = {_k:vv[_k] for _k in sorted(vv.keys())}
