@@ -746,7 +746,10 @@ def listing_various_data(temp):
     
     # blocks
     blockstates = defaultdict(dict)
-    for k,v in read_json(os.path.join(temp, 'reports/blocks.json')).items():
+    rj = read_json(os.path.join(temp, 'reports/blocks.json'))
+    if rj:
+        write_lines(os.path.join(temp, 'lists', 'block.txt'), sorted(rj.keys()))
+    for k,v in rj.items():
         name = flatering(k)
         
         lines = []
@@ -787,10 +790,15 @@ def listing_various_data(temp):
     
     # items
     itemstates = defaultdict(dict)
-    for k,v in read_json(os.path.join(temp, 'reports/items.json')).items():
+    rj = read_json(os.path.join(temp, 'reports/items.json'))
+    if rj:
+        write_lines(os.path.join(temp, 'lists', 'item.txt'), sorted(rj.keys()))
+    for k,v in rj.items():
         name = flatering(k)
         
-        write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
+        v.pop('protocol_id', None)
+        if v:
+            write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
         
         for vk in v:
             if vk == 'components':
