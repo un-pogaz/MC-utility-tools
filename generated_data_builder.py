@@ -379,8 +379,23 @@ def listing_various_data(temp):
         # remove the quote around the name of the propety {name: "Value"}
         return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
     
-    def enum_json(dir, is_tag=False):
-        return [('#' if is_tag else '')+ namespace(filename(j)) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
+    def enum_json(dir, is_tag=False, ns=None):
+        return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
+    
+    def lst_sub_folder(subdir, exlude=[]):
+        if os.path.exists(os.path.join(temp, subdir, 'minecraft')):
+            rslt_namespace = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir), recursive=False)]
+            rslt_dir = set()
+            for ns in rslt_namespace:
+                rslt_dir.update([flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir, ns), recursive=False)])
+            
+            rslt_dir = list(sorted(rslt_dir.difference(exlude)))
+        else:
+            rslt_namespace = []
+            rslt_dir = []
+        
+        return rslt_namespace, rslt_dir
+    
     
     data_paths = get_datapack_paths(temp)
     lines = [namespace(dp) for dp, _ in data_paths[1:]]
@@ -443,23 +458,22 @@ def listing_various_data(temp):
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), sorted(lines))
     
     # special subdir (not in registries)
-    lst_subdir = [
-        'dimension',
-        'dimension_type',
-        'biome_parameters',
-        'chat_type',
-        
-        'recipes',
-        'trim_material',
-        'trim_pattern',
-        'damage_type',
+    lst_exlude = [
+        'advancements',
+        'datapacks',
+        'loot_tables',
+        'tags',
+        'worldgen',
     ]
+    lst_namespace, lst_subdir = lst_sub_folder('data', lst_exlude)
+    
     for subdir in lst_subdir:
         entries = set()
         tags = set()
-        for dp, p in data_paths:
-            entries.update(enum_json(os.path.join(temp, p, 'data/minecraft',      subdir)))
-            tags.update(   enum_json(os.path.join(temp, p, 'data/minecraft/tags', subdir), is_tag=True))
+        for ns in lst_namespace:
+            for dp, p in data_paths:
+                entries.update(enum_json(os.path.join(temp, p, 'data', ns,         subdir), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, p, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
@@ -1019,28 +1033,19 @@ def listing_various_data(temp):
     
     
     # list /assets/
-    lst_exlude = ['lang', 'shaders', 'advancements']
-    root_dir = os.path.join(temp, 'assets')
-    if os.path.exists(os.path.join(temp, 'assets', 'minecraft')):
-        lst_namespace = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, 'assets'), recursive=False)]
-        lst_dir = set()
-        for ns in lst_namespace:
-            lst_dir.update([flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, 'assets', ns), recursive=False)])
-        
-        lst_dir = list(lst_dir)
-        for exlude in lst_exlude:
-            if exlude in lst_dir:
-                lst_dir.remove(exlude)
-    else:
-        lst_namespace = []
-        lst_dir = []
+    lst_exlude = [
+        'advancements',
+        'lang',
+        'shaders',
+    ]
+    lst_namespace, lst_subdir = lst_sub_folder('assets', lst_exlude)
     
     lst_ext = ['json', 'txt', 'png']
     
     def get_lines_assets(dir, ext):
         rslt = []
         for ns in lst_namespace:
-            root = os.path.join(root_dir, ns, dir)
+            root = os.path.join(temp, 'assets', ns, dir)
             for f in glob.iglob('**/*.'+ext, root_dir=root, recursive=True):
                 l = namespace(filename(f), ns=ns)
                 if ext == 'png':
@@ -1049,7 +1054,7 @@ def listing_various_data(temp):
                 rslt.append(l)
         return rslt
     
-    for dir in lst_dir:
+    for dir in lst_subdir:
         for ext in lst_ext:
             lines = get_lines_assets(dir, ext)
             if lines:
@@ -1057,7 +1062,7 @@ def listing_various_data(temp):
                 write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
     
     lines = {}
-    shaders_dir = os.path.join(root_dir, 'shaders')
+    shaders_dir = os.path.join(temp, 'assets', 'shaders')
     for f in glob.iglob('**/*', root_dir=shaders_dir, recursive=True):
         if os.path.isdir(os.path.join(shaders_dir, f)):
             continue
@@ -1072,10 +1077,10 @@ def listing_various_data(temp):
         lines = [k +'  ['+ ','.join(sorted(v))+']' for k,v in lines.items()]
         write_lines(os.path.join(temp, 'lists', 'shaders.txt'), sorted(lines))
     
-    if not lst_dir:
+    if not lst_subdir:
         # old /assets/
         for name, ext in [('textures','png'), ('texts','txt')]:
-            lines = [namespace(filename(f)) for f in glob.iglob('**/*.'+ext, root_dir=root_dir, recursive=True)]
+            lines = [namespace(filename(f)) for f in glob.iglob('**/*.'+ext, root_dir=os.path.join(temp, 'assets'), recursive=True)]
             if lines:
                 txt_path = name + '.'+ext +'.txt'
                 write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
