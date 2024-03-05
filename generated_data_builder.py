@@ -938,20 +938,18 @@ def listing_various_data(temp):
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
         
-        dir = os.path.join('data/minecraft', name)
-        if not os.path.exists(os.path.join(temp, dir)):
-            dir = dir + 's'
-        
-        tagdir = os.path.join('data/minecraft/tags', name)
-        if not os.path.exists(os.path.join(temp, tagdir)):
-            tagdir = tagdir + 's'
-        
         entries = set()
         tags = set()
-        for dp, p in data_paths:
-            entries.update([namespace(k) for k in v['entries'].keys()])
-            entries.update(enum_json(os.path.join(temp, p, dir)))
-            tags.update(   enum_json(os.path.join(temp, p, tagdir), is_tag=True))
+        entries.update([namespace(k) for k in v['entries'].keys()])
+        
+        for ns in lst_namespace:
+            for dp, p in data_paths:
+                entries.update(enum_json(os.path.join(temp, p, 'data', ns,         name), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, p, 'data', ns, 'tags', name), ns=ns, is_tag=True))
+                # legacy
+                entries.update(enum_json(os.path.join(temp, p, 'data', ns,         name+'s'), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, p, 'data', ns, 'tags', name+'s'), ns=ns, is_tag=True))
+        
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
     
     
