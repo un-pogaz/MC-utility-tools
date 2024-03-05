@@ -892,10 +892,7 @@ def listing_various_data(temp):
             rslt.append(base)
         
         if 'redirect' in entry:
-            if len(entry['redirect']) > 1:
-                raise TypeError("Over number 'redirect' in commands '{}'".format(name))
-            
-            rslt.append(base +' >>redirect{'+ entry['redirect'][0] +'}')
+            rslt.append(base +' >>redirect{'+ ', '.join(entry['redirect']) +'}')
         
         elif entry.get('type') == 'literal' and len(entry) == 1:
             rslt.append(base +' >>redirect{*}')
