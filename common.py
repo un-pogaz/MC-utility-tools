@@ -233,12 +233,12 @@ def update_version_manifest():
     global VERSION_MANIFEST
     
     version_manifest_path = os.path.join('version_manifest.json')
-    VERSION_MANIFEST = read_json(version_manifest_path, { 'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}})
+    VERSION_MANIFEST = read_json(version_manifest_path, {'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}, 'versions_history':[]})
     
     edited = not os.path.exists(version_manifest_path)
     _init_release = VERSION_MANIFEST['latest']['release']
     _init_snapshot = VERSION_MANIFEST['latest']['snapshot']
-    def update_version_manifest(read_manifest):
+    def read_version_manifest(read_manifest):
             edited = False
             if VERSION_MANIFEST['latest']['release'] != read_manifest['latest']['release']:
                 VERSION_MANIFEST['latest']['release'] = read_manifest['latest']['release']
@@ -249,14 +249,15 @@ def update_version_manifest():
             versions = { v['id']:v for v in VERSION_MANIFEST['versions'] }
             
             for k,v in { v['id']:v for v in read_manifest['versions'] }.items():
-                if 'sha1' in v: del v['sha1']
-                if 'complianceLevel' in v: del v['complianceLevel']
+                v.pop('sha1', None)
+                v.pop('complianceLevel', None)
                 
                 if k not in versions:
                     versions[k] = v
                     edited = True
             
             VERSION_MANIFEST['versions'] = versions.values()
+            VERSION_MANIFEST['versions_history'] = list(versions.keys())
             return edited
     
     try:
@@ -266,7 +267,7 @@ def update_version_manifest():
         github_manifest = None
     
     if github_manifest:
-        if update_version_manifest(github_manifest):
+        if read_version_manifest(github_manifest):
             edited = True
         
         def sub_tree(sub_name):
@@ -307,7 +308,7 @@ def update_version_manifest():
         sub_tree('pack_format')
     
     with urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
-        if update_version_manifest(json.load(fl)):
+        if read_version_manifest(json.load(fl)):
             edited = True
     
     if _init_release != VERSION_MANIFEST['latest']['release']:
