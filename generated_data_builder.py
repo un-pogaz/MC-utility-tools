@@ -1,4 +1,4 @@
-VERSION = (0, 15, 0)
+VERSION = (0, 15, 1)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -861,7 +861,7 @@ def listing_various_data(temp):
                 
                 for n,v in e.items():
                     if _test_value(v):
-                        write_json(os.path.join(temp, 'lists/items/components', f'{t}.value', flatering(n)+'.json'), v)
+                        write_json(os.path.join(temp, 'lists/items/components', t, flatering(n)+'.json'), v)
     
     
     # commands
