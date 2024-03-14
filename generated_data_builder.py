@@ -1,4 +1,4 @@
-VERSION = (0, 15, 1)
+VERSION = (0, 15, 2)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -837,7 +837,7 @@ def listing_various_data(temp):
                 return bool(value)
             
             if isinstance(value, list):
-                return True
+                return bool(value)
         return False
     
     def _text_value(value):
@@ -854,10 +854,22 @@ def listing_various_data(temp):
             return '  = ' + rslt
         return ''
     
+    default_components = [
+        'lore',
+        'enchantments',
+        'repair_cost',
+        'attribute_modifiers',
+    ]
+    
     for k,v in itemstates.items():
         if k == 'components':
             for t,e in v.items():
-                write_lines(os.path.join(temp, 'lists/items/components', t+'.txt'), sorted([n + _text_value(v) for n,v in e.items()]))
+                if t in default_components:
+                    lines = [n + _text_value(v) for n,v in e.items() if _test_value(v)]
+                else:
+                    lines = [n + _text_value(v) for n,v in e.items()]
+                if lines:
+                    write_lines(os.path.join(temp, 'lists/items/components', t+'.txt'), sorted(lines))
                 
                 for n,v in e.items():
                     if _test_value(v):
