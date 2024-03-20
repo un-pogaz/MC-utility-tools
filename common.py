@@ -318,6 +318,7 @@ def update_version_manifest():
     
     if edited:
         VERSION_MANIFEST['versions'] = sorted(VERSION_MANIFEST['versions'], key=lambda item: item['releaseTime'], reverse=True)
+        VERSION_MANIFEST['versions_history'] = [v['id'] for v in VERSION_MANIFEST['versions']]
         print('INFO: version_manifest.json has been updated')
         write_json(version_manifest_path, VERSION_MANIFEST)
 
