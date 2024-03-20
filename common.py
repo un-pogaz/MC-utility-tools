@@ -271,6 +271,7 @@ def update_version_manifest():
             edited = True
         
         def sub_tree(sub_name):
+            edited = False
             for v in github_manifest[sub_name]:
                 i = VERSION_MANIFEST[sub_name]
                 ni = github_manifest[sub_name]
@@ -303,9 +304,13 @@ def update_version_manifest():
                             if e not in ivt:
                                 ivt.insert(idx, e)
                                 edited = True
+            
+            return edited
         
-        sub_tree('versioning')
-        sub_tree('pack_format')
+        if sub_tree('versioning'):
+            edited = True
+        if sub_tree('pack_format'):
+            edited = True
     
     with urlopen('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json') as fl:
         if read_version_manifest(json.load(fl)):
