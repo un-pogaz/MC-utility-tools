@@ -1,4 +1,4 @@
-VERSION = (0, 15, 2)
+VERSION = (0, 15, 3)
 
 import sys, argparse, os.path, glob, json, re
 import pathlib
@@ -861,6 +861,11 @@ def listing_various_data(temp):
         'attribute_modifiers',
     ]
     
+    components_grouped_value = [
+        'max_stack_size',
+        'rarity',
+    ]
+    
     for k,v in itemstates.items():
         if k == 'components':
             for t,e in v.items():
@@ -871,9 +876,16 @@ def listing_various_data(temp):
                 if lines:
                     write_lines(os.path.join(temp, 'lists/items/components', t+'.txt'), sorted(lines))
                 
-                for n,v in e.items():
-                    if _test_value(v):
-                        write_json(os.path.join(temp, 'lists/items/components', t, flatering(n)+'.json'), v)
+                if t in components_grouped_value:
+                    dic = defaultdict(list)
+                    for n,v in e.items():
+                        dic[v].append(n)
+                    for v,n in dic.items():
+                        write_lines(os.path.join(temp, 'lists/items/components', t, str(v)+'.txt'), sorted(set(n)))
+                else:
+                    for n,v in e.items():
+                        if _test_value(v):
+                            write_json(os.path.join(temp, 'lists/items/components', t, flatering(n)+'.json'), v)
     
     
     # commands
