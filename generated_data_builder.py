@@ -810,12 +810,7 @@ def listing_various_data(temp):
                     if type not in itemstates[vk]:
                         itemstates[vk][type] = defaultdict(dict)
                     
-                    value = vs['value']
-                    if isinstance(value, dict):
-                        for m in value.get('modifiers', []):
-                            m.pop('uuid', None)
-                    
-                    itemstates[vk][type][namespace(k)] = value
+                    itemstates[vk][type][namespace(k)] = vs['value']
             else:
                 raise NotImplementedError(f'ItemStates "{vk}" not implemented.')
     
