@@ -1,6 +1,6 @@
-VERSION = (0, 15, 3)
+VERSION = (0, 16, 0)
 
-import sys, argparse, os.path, glob, json, re
+import sys, argparse, os.path, glob, json, re, random
 import pathlib
 from collections import OrderedDict, defaultdict
 
@@ -247,28 +247,30 @@ class TBLpool():
     
     def append(self, item):
         self.entries.append(item)
-    
-    def total_weight_entries(self):
-        rslt = 0
-        for e in self:
-            rslt += e.weight
-        return rslt
 
 class TBLentrie():
-    def __init__(self, pool: TBLpool):
+    def __init__(self, pool: TBLpool, weight_level: int = 0):
         self.pool = pool
         self.name = ''
         self.count = '1'
         self.weight = 1
+        self.weight_level = weight_level
         self.comment = ''
+    
+    def total_weight_entries(self):
+        rslt = 0
+        for e in self.pool:
+            if e.weight_level == self.weight_level:
+                rslt += e.weight
+        return rslt
     
     @property
     def chance(self) -> float:
-        return (self.weight/self.pool.total_weight_entries())*100
+        return (self.weight/self.total_weight_entries())*100
     
     @property
     def propabilty(self) -> str:
-        tw = self.pool.total_weight_entries()
+        tw = self.total_weight_entries()
         if self.weight == 1 and tw == 1:
             return '1'
         return str(self.weight) +'/'+ str(tw)
@@ -518,7 +520,12 @@ def listing_various_data(temp):
         if test_type(entry, 'tag'):
             return '#'+namespace(entry['name'])
         if test_type(entry, 'loot_table'):
-            return 'loot_table[]'+namespace(entry.get('value') or entry['name'])
+            v = entry.get('value') or entry['name']
+            if isinstance(v, str):
+                return 'loot_table[]'+namespace(v)
+            if isinstance(v, dict):
+                return 'loot_table[]'
+            raise TypeError("Unknow loot_table[] format in loot_tables '{}'".format(name))
         
         raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
     
@@ -633,6 +640,52 @@ def listing_various_data(temp):
         
         return ', '.join(comment)
     
+    
+    def get_rolls(pool):
+        value = mcrange(name, pool.get('rolls', 1))
+        if '..' in value:
+            return ' to '.join(value.split('..', 1))+' time'
+        else:
+            return value+' time'
+    
+    def get_poolcomment(pool):
+        bonus = pool.get('bonus_rolls', 0)
+        if bonus:
+            bonus = 'bonus rolls: '+ no_end_0(bonus)
+        comment = lootcomment(name, pool)
+        return ', '.join([e for e in [bonus, comment] if e])
+    
+    def add_entrie(tbl_pool, weight_level, e):
+        tbl_entrie = TBLentrie(tbl_pool, weight_level)
+        tbl_entrie.name = get_simple(name, e)
+        tbl_entrie.weight = e.get('weight', 1)
+        tbl_pool.append(tbl_entrie)
+        
+        if tbl_entrie.name == 'loot_table[]':
+            tbl_entrie.count = get_rolls(pool)
+            tbl_entrie.comment = get_poolcomment(pool)
+            weight_level = random.getrandbits(8)
+            sub_table = e.get('value') or e['name']
+            for sub_pool in sub_table.get('pools', {}):
+                iter_pool(sub_pool, weight_level, tbl_pool)
+            return
+        
+        if tbl_entrie.name == 'empty':
+            tbl_entrie.count = ''
+        else:
+            tbl_entrie.count = lootcount(name, e)
+        tbl_entrie.comment = lootcomment(name, e)
+    
+    def iter_pool(pool, weight_level, tbl_pool):
+        if 'items' in pool:
+            for e in pool['items']:
+                add_entrie(tbl_pool, weight_level, e)
+        elif 'entries' in pool:
+            for e in pool['entries']:
+                add_entrie(tbl_pool, weight_level, e)
+        else:
+            raise TypeError("Invalid input pool")
+    
     for dp, p in data_paths:
         for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, dir), recursive=True):
             if loot == 'empty.json':
@@ -645,50 +698,28 @@ def listing_various_data(temp):
             if name.startswith('blocks'):
                 continue
             else:
-                
                 for pool in table.get('pools', {}):
                     tbl_pool = TBLpool()
-                    tbl_pool.rolls = mcrange(name, pool.get('rolls', 1))
-                    
-                    bonus = pool.get('bonus_rolls', 0)
-                    if bonus:
-                        bonus = 'bonus rolls: '+ no_end_0(bonus)
-                    comment = lootcomment(name, pool)
-                    
-                    tbl_pool.comment = ', '.join([e for e in [bonus, comment] if e])
+                    tbl_pool.rolls = get_rolls(pool)
+                    tbl_pool.comment = get_poolcomment(pool)
                     
                     rslt_tbl.append(tbl_pool)
                     
-                    def addentrie(e):
-                        tbl_entrie = TBLentrie(tbl_pool)
-                        tbl_entrie.name = get_simple(name, e)
-                        tbl_entrie.weight = e.get('weight', 1)
-                        if tbl_entrie.name == 'empty':
-                            tbl_entrie.count = ''
-                        else:
-                            tbl_entrie.count = lootcount(name, e)
-                        tbl_entrie.comment = lootcomment(name, e)
-                        tbl_pool.append(tbl_entrie)
-                    
-                    if 'items' in pool:
-                        for e in pool['items']:
-                            addentrie(e)
-                    elif 'entries' in pool:
-                        for e in pool['entries']:
-                            addentrie(e)
-                    else:
-                        raise TypeError("Invalid input pool")
+                    iter_pool(pool, 0, tbl_pool)
             
             lines_txt = []
             lines_tbl = []
             
             head_tbl = ['Name', 'Count', 'Chance', 'Weight', 'Comment']
             for l in rslt_tbl:
-                if '..' in l.rolls:
-                    roll = ' to '.join(l.rolls.split('..', 1))+' time'
-                else:
-                    roll = l.rolls+' time'
-                lines_tbl.append([roll,'--','--','--',l.comment])
+                lines_tbl.append([l.rolls,'--','--','--',l.comment])
+                
+                tbl_weight_level = []
+                for e in l:
+                    if e.weight_level not in tbl_weight_level:
+                        tbl_weight_level.append(e.weight_level)
+                if len(tbl_weight_level) == 1:
+                    tbl_weight_level = None
                 
                 for e in l:
                     lines_txt.append(e.name)
@@ -697,7 +728,11 @@ def listing_various_data(temp):
                         c = str(round(c, 2))
                     else:
                         c = no_end_0(round(c, 1))
-                    lines_tbl.append([e.name, e.count, c+'%', e.propabilty, e.comment])
+                    if tbl_weight_level:
+                        groupe = ' ['+str(tbl_weight_level.index(e.weight_level)+1)+']'
+                    else:
+                        groupe = ''
+                    lines_tbl.append([e.name, e.count, c+'%' + groupe, e.propabilty + groupe, e.comment])
                 
                 lines_txt.append('')
                 lines_tbl.append(None)
