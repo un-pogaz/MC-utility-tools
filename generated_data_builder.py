@@ -836,6 +836,9 @@ def listing_various_data(temp):
         
         v.pop('protocol_id', None)
         if v:
+            vc = list(sorted(v.get('components', []), key=lambda x: x['type']))
+            if vc:
+                v['components'] = vc
             write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
         
         for vk in v:
