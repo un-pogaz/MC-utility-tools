@@ -1,16 +1,14 @@
-from os.path import isdir, join
-import shutil
-from sys import api_version, argv
 import os
+import shutil
 import zipfile
 from tempfile import gettempdir
 
-from common import safe_del, make_dirname, read_json, write_text
+from common import read_json, safe_del
 
 temp = os.path.join(gettempdir(), 'package_datapack_to_mod')
 
-import unicodedata
 import re
+import unicodedata
 
 def slugify(value, allow_unicode=False):
     """
@@ -27,7 +25,6 @@ def slugify(value, allow_unicode=False):
         value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '_', value).strip('_')
-
 
 
 forge = """modLoader = "javafml"
@@ -124,8 +121,10 @@ def package_datapack(path):
 
 
 if __name__ == "__main__":
+    import sys
+    
     print('{|[ Package Datapack to mod ]|}')
-    args = argv[1:]
+    args = sys.argv[1:]
     if args:
         for a in args:
             print('>> '+os.path.basename(a))

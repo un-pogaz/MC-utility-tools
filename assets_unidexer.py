@@ -1,11 +1,16 @@
 VERSION = (1, 0, 1)
 
-import sys, argparse, os.path, glob, time
-import pathlib, shutil
+import argparse
+import os.path
+import pathlib
+import shutil
 from collections import OrderedDict
 
-from common import urlretrieve
-
+from common import (
+    find_output, get_latest, hash_test, make_dirname, read_json,
+    read_manifest_json, run_animation, safe_del, urlretrieve,
+    valide_output, valide_version, work_done, write_json, write_lines,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -19,8 +24,6 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
-    from common import valide_version, find_output, valide_output, work_done
-    
     print(f'--==| Minecraft: Assets Unindexer |==--')
     print()
     
@@ -36,8 +39,6 @@ def main():
 
 
 def unindex_assets(args):
-    from common import run_animation, make_dirname, read_json, write_json, write_lines, safe_del, find_output, get_latest, read_manifest_json
-    
     from tempfile import gettempdir
     
     version = get_latest(args.version, args.manifest_json)
@@ -86,8 +87,6 @@ def unindex_assets(args):
     
     
     async def assets_dl():
-        from common import hash_test
-        
         for name,asset in assets_json['objects'].items():
             file = os.path.join(temp, name)
             

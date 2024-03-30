@@ -1,9 +1,7 @@
 #common
 
-import sys, argparse, os.path, json, io, glob, time
-import pathlib, shutil, zipfile
-from collections import OrderedDict
-
+import json
+import os.path
 
 from github import GitHub
 
@@ -13,7 +11,10 @@ GITHUB_BUILDER = GitHub('un-pogaz', 'MC-utility-tools')
 
 
 def run_animation(awaitable, text_wait, text_end=None):
-    import asyncio, time
+    import asyncio
+    import time
+    from threading import Thread
+    
     global animation_run, msg_last
     run_animation.extra = ''
     msg_last = ''
@@ -28,8 +29,6 @@ def run_animation(awaitable, text_wait, text_end=None):
             idx += 1
             if idx == len(run_animation.loop): idx == 0
             time.sleep(0.2)
-    
-    from threading import Thread
     
     animation_run = True
     t = Thread(target=start_animation)
@@ -55,8 +54,7 @@ def run_command(command_line, wait=True):
     :return:                The pointer the subprocess returned by the Popen call
     """
     
-    import os
-    from subprocess import Popen, DEVNULL, PIPE
+    from subprocess import DEVNULL, PIPE, Popen
     
     if not isinstance(command_line, str):
         for idx in range(len(command_line)):
@@ -111,6 +109,8 @@ def write_lines(path, lines):
 
 
 def safe_del(path):
+    import shutil
+    
     def remove(a):
         pass
     
@@ -132,6 +132,7 @@ def remove_empty(path):
     recursive remove empty folder
     """
     import os
+    
     for p, _, _ in list(os.walk(path))[::-1]:
         if len(os.listdir(p)) == 0:
             os.rmdir(p)
@@ -140,6 +141,7 @@ def remove_empty(path):
 def hash_file(file, buffer_size=65536):
     if os.path.exists(file):
         import hashlib
+        
         algo = hashlib.sha1()
         with open(file, 'rb') as f:
             while True:
@@ -159,14 +161,16 @@ def hash_test(hash, file):
 
 
 def urlretrieve(url, filename, reporthook=None, data=None):
-    import urllib.request
+    from urllib import request
+    
     url = url.replace('http://', 'https://')
-    return urllib.request.urlretrieve(url, filename, reporthook, data)
+    return request.urlretrieve(url, filename, reporthook, data)
 
 def urlopen(url) :
-    import urllib.request
+    from urllib import request
+    
     url = url.replace('http://', 'https://')
-    return urllib.request.urlopen(url, )
+    return request.urlopen(url, )
 
 
 VERSION_MANIFEST = None
@@ -289,6 +293,8 @@ def version_path(version):
     return version
 
 def find_output(version):
+    import glob
+    
     output = glob.glob(f'/{version}/', root_dir='.', recursive=False)
     if len(output):
         return output[0]
@@ -327,7 +333,7 @@ def valide_version(version, quiet = False, manifest_json_path = None):
         print(f'The version {version} has invalide.', '' if quiet else ' Press any key to exit.')
         if not quiet:
             input()
-        sys.exit()
+        exit()
 
 def valide_output(args):
     if args.output and os.path.exists(args.output):
@@ -335,10 +341,11 @@ def valide_output(args):
         if (args.quiet and args.overwrite) or input()[:1] == 'y':
             args.overwrite = True
         else:
-            sys.exit()
+            exit()
 
 
 def read_manifest_json(temp, version, manifest_json_path = None):
+    import zipfile
     
     manifest_url = None
     for v in VERSION_MANIFEST['versions']:

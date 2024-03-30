@@ -1,11 +1,12 @@
-import sys, os.path as path
+import os.path
+import sys
 
 print('--==| Minecraft: Update all Generated data |==--')
 print()
 print('It can be a lot of files, are you sure to do it?')
 if not input()[:1].lower() == 'y': sys.exit()
 
-from common import VERSION_MANIFEST, version_path, run_command
+from common import VERSION_MANIFEST, version_path
 from generated_data_builder import args, build_generated_data
 
 args.manifest_json = None
@@ -24,7 +25,7 @@ versions.reverse()
 version_path = {v:version_path(v) for v in versions}
 
 for version,dir in version_path.items():
-    if not path.exists(dir):
+    if not os.path.exists(dir):
         args.version = version
         build_generated_data(args)
 

@@ -1,5 +1,4 @@
 
-
 class GitHub:
     def __init__(self, user, repository):
         self.user = user
@@ -9,8 +8,9 @@ class GitHub:
         self.raw = 'https://raw.githubusercontent.com/' + self.user + '/' + self.repository
     
     def get_json(self, url):
-        import urllib, json
-        with urllib.request.urlopen(url) as fl:
+        import json
+        from urllib import request
+        with request.urlopen(url) as fl:
             return json.load(fl)
     
     def releases(self, tag=None):

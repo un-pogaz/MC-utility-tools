@@ -1,11 +1,16 @@
 VERSION = (0, 16, 1)
 
-import sys, argparse, os.path, glob, json, re
+import argparse
+import glob
+import os.path
 import pathlib
 from collections import OrderedDict, defaultdict
 
-from common import urlretrieve
-
+from common import (
+    find_output, get_latest, hash_test, make_dirname, read_json, read_lines,
+    read_manifest_json, run_animation, safe_del, urlretrieve, version_path,
+    write_json, write_lines,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -22,7 +27,7 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
-    from common import GITHUB_BUILDER, valide_version, valide_output, work_done
+    from common import GITHUB_BUILDER, valide_output, valide_version, work_done
     
     print(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     print()
@@ -52,12 +57,10 @@ def main():
 
 def build_generated_data(args):
     import shutil
-    from common import run_animation, read_json, write_json, write_lines, safe_del
-    from common import find_output, get_latest, read_manifest_json, version_path, make_dirname, hash_test
-    
-    import subprocess, zipfile
-    from tempfile import gettempdir
+    import subprocess
+    import zipfile
     from datetime import datetime
+    from tempfile import gettempdir
     
     version = get_latest(args.version, args.manifest_json)
     
@@ -284,7 +287,6 @@ class TBLentrie():
 
 def write_tbl_csv(path, head_tbl, lines_tbl):
     from copy import deepcopy
-    from common import write_lines
     
     rslt = deepcopy(lines_tbl)
     rslt.insert(0, head_tbl.copy())
@@ -305,7 +307,6 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
 
 def write_tbl_md(path, head_tbl, lines_tbl):
     from copy import deepcopy
-    from common import write_lines
     
     col_len = [len(i) for i in head_tbl]
     for i in range(len(lines_tbl)):
@@ -362,7 +363,6 @@ def write_serialize_nbt(temp):
             serialize_nbt(os.path.join(temp, dir, p, f))
 
 def listing_various_data(temp):
-    from common import read_json, write_json, read_lines, write_lines, safe_del
     
     def flatering(name):
         return name.split(':', maxsplit=2)[-1].replace('\\', '/')
@@ -384,6 +384,8 @@ def listing_various_data(temp):
         return test_n(entry,'condition', namespace(target_type))
     
     def unquoted_json(obj):
+        import json
+        import re
         # remove the quote around the name of the propety {name: "Value"}
         return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
     

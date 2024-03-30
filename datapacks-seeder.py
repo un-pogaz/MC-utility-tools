@@ -1,7 +1,8 @@
-import sys, argparse, os.path, json, time
-import pathlib, shutil, zipfile
-from collections import OrderedDict
-
+import argparse
+import json
+import os.path
+import pathlib
+import zipfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--seed', help='Seed to set', required=False)
@@ -44,6 +45,7 @@ def main():
     
     if args.seed == None:
         import random
+        
         args.seed = random.getrandbits(64)
         print('Random seed generated:', str(args.seed))
     
