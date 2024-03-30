@@ -5,64 +5,6 @@ import pathlib, shutil, zipfile
 from collections import OrderedDict
 
 
-def as_bytes(x, encoding='utf-8'):
-    if isinstance(x, str):
-        return x.encode(encoding)
-    if isinstance(x, bytes):
-        return x
-    if isinstance(x, bytearray):
-        return bytes(x)
-    if isinstance(x, memoryview):
-        return x.tobytes()
-    ans = str(x)
-    if isinstance(ans, str):
-        ans = ans.encode(encoding)
-    return ans
-
-def as_unicode(x, encoding='utf-8', errors='strict'):
-    if isinstance(x, bytes):
-        return x.decode(encoding, errors)
-    return str(x)
-
-def is_binary(stream):
-    mode = getattr(stream, "mode", None)
-    if mode:
-        return "b" in mode
-    return not isinstance(stream, io.TextIOBase)
-
-def prints(*a, **kw):
-    " Print either unicode or bytes to either binary or text mode streams "
-    import sys
-    stream = kw.get('file', sys.stdout)
-    if stream is None:
-        return
-    sep, end = kw.get('sep'), kw.get('end')
-    if sep is None:
-        sep = ' '
-    if end is None:
-        end = '\n'
-    if is_binary(stream):
-        encoding = getattr(stream, 'encoding', None) or 'utf-8'
-        a = (as_bytes(x, encoding=encoding) for x in a)
-        sep = as_bytes(sep)
-        end = as_bytes(end)
-    else:
-        a = (as_unicode(x, errors='replace') for x in a)
-        sep = as_unicode(sep)
-        end = as_unicode(end)
-    for i, x in enumerate(a):
-        if sep and i != 0:
-            stream.write(sep)
-        stream.write(x)
-    if end:
-        stream.write(end)
-    if kw.get('flush'):
-        try:
-            stream.flush()
-        except Exception:
-            pass
-
-
 from github import GitHub
 
 GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
@@ -371,9 +313,9 @@ def valide_version(version, quiet = False, manifest_json_path = None):
     else:
         if not version:
             if quiet:
-                prints('No version or "manifest_json.json" are declared. One of them are require in quiet mode.')
+                print('No version or "manifest_json.json" are declared. One of them are require in quiet mode.')
             else:
-                prints(f'Enter the version:\nid of the version / r or release for the latest release "{LATEST_RELEASE}" / s or snapshot for the latest snapshot "{LATEST_SNAPSHOT}"')
+                print(f'Enter the version:\nid of the version / r or release for the latest release "{LATEST_RELEASE}" / s or snapshot for the latest snapshot "{LATEST_SNAPSHOT}"')
                 version = input()
         
         version = get_latest(version)
@@ -383,14 +325,14 @@ def valide_version(version, quiet = False, manifest_json_path = None):
                 return version
         
         
-        prints(f'The version {version} has invalide.', '' if quiet else ' Press any key to exit.')
+        print(f'The version {version} has invalide.', '' if quiet else ' Press any key to exit.')
         if not quiet:
             input()
         sys.exit()
 
 def valide_output(args):
     if args.output and os.path.exists(args.output):
-        prints(f'The {args.version} already exit at "{args.output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
+        print(f'The {args.version} already exit at "{args.output}".', 'This output will be overwrited.' if args.overwrite else '' if args.quiet else 'Do you want overwrite them?')
         if (args.quiet and args.overwrite) or input()[:1] == 'y':
             args.overwrite = True
         else:
@@ -406,7 +348,7 @@ def read_manifest_json(temp, version, manifest_json_path = None):
             break
     
     if not manifest_json_path and not manifest_url:
-        prints(f'Imposible to build Generated data for {version}. The requested version is not in the "version_manifest.json".')
+        print(f'Imposible to build Generated data for {version}. The requested version is not in the "version_manifest.json".')
         return -1
     
     
@@ -428,10 +370,10 @@ def read_manifest_json(temp, version, manifest_json_path = None):
 
 
 def work_done(error, quiet = False):
-    prints()
+    print()
     
     if not error:
-        prints('Work done with success.','' if quiet else 'Press any key to exit.')
+        print('Work done with success.','' if quiet else 'Press any key to exit.')
     if not quiet:
         input()
 
@@ -455,8 +397,8 @@ def info_latest_version():
     for v in VERSION_MANIFEST['versions']:
         if v['id'] == LATEST_RELEASE:
             release = v
-    prints('latest:', LATEST_SNAPSHOT, '['+latest['releaseTime']+']')
-    prints('release:', LATEST_RELEASE, '['+release['releaseTime']+']')
+    print('latest:', LATEST_SNAPSHOT, '['+latest['releaseTime']+']')
+    print('release:', LATEST_RELEASE, '['+release['releaseTime']+']')
 
 if __name__ == "__main__":
     info_latest_version()

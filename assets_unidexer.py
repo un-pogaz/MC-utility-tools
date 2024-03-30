@@ -4,7 +4,7 @@ import sys, argparse, os.path, glob, time
 import pathlib, shutil
 from collections import OrderedDict
 
-from common import prints, urlretrieve
+from common import urlretrieve
 
 
 parser = argparse.ArgumentParser()
@@ -21,14 +21,14 @@ args = parser.parse_args()
 def main():
     from common import valide_version, find_output, valide_output, work_done
     
-    prints(f'--==| Minecraft: Assets Unindexer |==--')
-    prints()
+    print(f'--==| Minecraft: Assets Unindexer |==--')
+    print()
     
     args.version = valide_version(args.version, args.quiet, args.manifest_json)
     
     valide_output(args)
     
-    prints()
+    print()
     
     error = unindex_assets(args)
     work_done(error, args.quiet)
@@ -62,7 +62,7 @@ def unindex_assets(args):
     output = os.path.join(args.output, version) if args.output else find_output('assets/assets-'+version) or 'assets/assets-'+version
     
     if os.path.exists(output) and not args.overwrite:
-        prints(f'Imposible to unindex assets for {version}. The output "{output}" already exit and the overwrite is not enabled.')
+        print(f'Imposible to unindex assets for {version}. The output "{output}" already exit and the overwrite is not enabled.')
         return -1
     
     temp = os.path.join(gettempdir(), 'MC Assets data', version)
@@ -132,7 +132,7 @@ def unindex_assets(args):
             if args.overwrite:
                 safe_del(output)
             else:
-                prints(f'The output at "{output}" already exit and the overwrite is not enable')
+                print(f'The output at "{output}" already exit and the overwrite is not enable')
                 return -1
         
         shutil.copytree(temp, output)

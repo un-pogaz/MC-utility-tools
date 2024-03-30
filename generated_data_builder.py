@@ -4,7 +4,7 @@ import sys, argparse, os.path, glob, json, re
 import pathlib
 from collections import OrderedDict, defaultdict
 
-from common import prints, urlretrieve
+from common import urlretrieve
 
 
 parser = argparse.ArgumentParser()
@@ -24,13 +24,13 @@ args = parser.parse_args()
 def main():
     from common import GITHUB_BUILDER, valide_version, valide_output, work_done
     
-    prints(f'--==| Minecraft: Generated data builder {VERSION} |==--')
-    prints()
+    print(f'--==| Minecraft: Generated data builder {VERSION} |==--')
+    print()
     
     last, _, _ = GITHUB_BUILDER.check_releases()
     if last > VERSION:
-        prints('A new version is available!')
-        prints()
+        print('A new version is available!')
+        print()
     
     args.version = valide_version(args.version, args.quiet, args.manifest_json)
     
@@ -40,10 +40,10 @@ def main():
         if args.quiet:
             args.zip = False
         else:
-            prints('Do you want to empack the Generated data folder in a ZIP file?')
+            print('Do you want to empack the Generated data folder in a ZIP file?')
             args.zip = input()[:1] == 'y'
     
-    prints()
+    print()
     
     error = build_generated_data(args)
     work_done(error, args.quiet)
@@ -103,15 +103,15 @@ def build_generated_data(args):
     
     
     if os.path.exists(output) and not args.overwrite:
-        prints(f'Imposible to build Generated data for {version}. The output "{output}" already exit and the overwrite is not enabled.')
+        print(f'Imposible to build Generated data for {version}. The output "{output}" already exit and the overwrite is not enabled.')
         return -1
     
     
-    prints(f'Build Generated data for {version}')
+    print(f'Build Generated data for {version}')
     
     dt = datetime.fromisoformat(version_json['releaseTime'])
     
-    prints()
+    print()
     
     client = os.path.join(temp_root, 'client.jar')
     async def client_dl():
@@ -226,7 +226,7 @@ def build_generated_data(args):
             if args.overwrite:
                 safe_del(output)
             else:
-                prints(f'The output at "{output}" already exit and the overwrite is not enable')
+                print(f'The output at "{output}" already exit and the overwrite is not enable')
                 return -1
         
         os.makedirs(output, exist_ok=True)
