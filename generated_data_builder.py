@@ -1,4 +1,4 @@
-VERSION = (0, 16, 0)
+VERSION = (0, 16, 1)
 
 import sys, argparse, os.path, glob, json, re, random
 import pathlib
@@ -722,17 +722,18 @@ def listing_various_data(temp):
                     tbl_weight_level = None
                 
                 for e in l:
-                    lines_txt.append(e.name)
                     c = e.chance
                     if c < 1:
                         c = str(round(c, 2))
                     else:
                         c = no_end_0(round(c, 1))
                     if tbl_weight_level:
-                        groupe = ' ['+str(tbl_weight_level.index(e.weight_level)+1)+']'
+                        groupe = '['+str(tbl_weight_level.index(e.weight_level)+1)+']'
+                        prefix, suffix = groupe+' ',' '+groupe
                     else:
-                        groupe = ''
-                    lines_tbl.append([e.name, e.count, c+'%' + groupe, e.propabilty + groupe, e.comment])
+                        prefix, suffix = '',''
+                    lines_txt.append(prefix+e.name)
+                    lines_tbl.append([prefix+e.name, e.count, c+'%' + suffix, e.propabilty + suffix, e.comment])
                 
                 lines_txt.append('')
                 lines_tbl.append(None)
