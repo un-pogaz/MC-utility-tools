@@ -137,14 +137,13 @@ def remove_empty(path):
             os.rmdir(p)
 
 
-BUF_SIZE = 65536
-def hash_file(file):
+def hash_file(file, buffer_size=65536):
     if os.path.exists(file):
         import hashlib
         algo = hashlib.sha1()
         with open(file, 'rb') as f:
             while True:
-                data = f.read(BUF_SIZE)
+                data = f.read(buffer_size)
                 if not data:
                     break
                 algo.update(data)
