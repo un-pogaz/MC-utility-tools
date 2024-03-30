@@ -1,6 +1,6 @@
 VERSION = (0, 16, 1)
 
-import sys, argparse, os.path, glob, json, re, random
+import sys, argparse, os.path, glob, json, re
 import pathlib
 from collections import OrderedDict, defaultdict
 
@@ -247,6 +247,12 @@ class TBLpool():
     
     def append(self, item):
         self.entries.append(item)
+    
+    def all_weight_levels(self):
+        rslt = set()
+        for e in self:
+            rslt.add(e.weight_level)
+        return rslt
 
 class TBLentrie():
     def __init__(self, pool: TBLpool, weight_level: int = 0):
@@ -664,7 +670,7 @@ def listing_various_data(temp):
         if tbl_entrie.name == 'loot_table[]':
             tbl_entrie.count = get_rolls(pool)
             tbl_entrie.comment = get_poolcomment(pool)
-            weight_level = random.getrandbits(8)
+            weight_level = len(tbl_pool.all_weight_levels())
             sub_table = e.get('value') or e['name']
             for sub_pool in sub_table.get('pools', {}):
                 iter_pool(sub_pool, weight_level, tbl_pool)
@@ -705,7 +711,8 @@ def listing_various_data(temp):
                     
                     rslt_tbl.append(tbl_pool)
                     
-                    iter_pool(pool, 0, tbl_pool)
+                    weight_level = len(tbl_pool.all_weight_levels())
+                    iter_pool(pool, weight_level, tbl_pool)
             
             lines_txt = []
             lines_tbl = []
@@ -714,12 +721,7 @@ def listing_various_data(temp):
             for l in rslt_tbl:
                 lines_tbl.append([l.rolls,'--','--','--',l.comment])
                 
-                tbl_weight_level = []
-                for e in l:
-                    if e.weight_level not in tbl_weight_level:
-                        tbl_weight_level.append(e.weight_level)
-                if len(tbl_weight_level) == 1:
-                    tbl_weight_level = None
+                use_weight_level = len(l.all_weight_levels()) > 1
                 
                 for e in l:
                     c = e.chance
@@ -727,8 +729,8 @@ def listing_various_data(temp):
                         c = str(round(c, 2))
                     else:
                         c = no_end_0(round(c, 1))
-                    if tbl_weight_level:
-                        groupe = '['+str(tbl_weight_level.index(e.weight_level)+1)+']'
+                    if use_weight_level:
+                        groupe = '['+str(e.weight_level+1)+']'
                         prefix, suffix = groupe+' ',' '+groupe
                     else:
                         prefix, suffix = '',''
