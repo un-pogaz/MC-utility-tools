@@ -1,4 +1,4 @@
-VERSION = (0, 16, 1)
+VERSION = (0, 16, 2)
 
 import argparse
 import glob
@@ -1034,7 +1034,7 @@ def listing_various_data(temp):
     
     # sounds
     full_lines = set()
-    for sounds in ['minecraft/sounds.json', 'sounds.json']:
+    for sounds in ['sounds.json'] + glob.glob('*/sounds.json', root_dir=os.path.join(temp, 'assets'), recursive=False):
         sounds = os.path.join(temp, 'assets', sounds)
         if os.path.exists(sounds):
             for k,v in read_json(sounds).items():
@@ -1048,8 +1048,6 @@ def listing_various_data(temp):
                     lines[idx] = namespace(lines[idx])
                 full_lines.update(lines)
                 write_lines(os.path.join(temp, 'lists/sounds', name+'.txt'), lines)
-            
-            break
     
     if full_lines:
         write_lines(os.path.join(temp, 'lists', 'sounds.ogg.txt'), sorted(full_lines))
