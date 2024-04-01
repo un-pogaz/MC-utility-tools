@@ -202,16 +202,16 @@ def build_generated_data(args):
     write_json(os.path.join(temp, version+'.json') , version_json)
     write_json(os.path.join(temp, 'assets.json'), assets_json)
     
-    async def write_serialize():
-        write_serialize_nbt(temp)
-    run_animation(write_serialize, 'Generating NBT serialized')
-    
     async def listing_various():
         for f in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp_root, f))
         
         listing_various_data(temp)
     run_animation(listing_various, 'Generating /list/ folder')
+    
+    async def write_serialize():
+        write_serialize_nbt(temp)
+    run_animation(write_serialize, 'Generating NBT serialized')
     
     
     if args.zip:
