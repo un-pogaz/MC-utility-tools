@@ -1,4 +1,4 @@
-VERSION = (0, 16, 2)
+VERSION = (0, 17, 0)
 
 import argparse
 import glob

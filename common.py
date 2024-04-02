@@ -220,7 +220,7 @@ def update_version_manifest():
             for v in github_manifest[sub_name]:
                 i = VERSION_MANIFEST[sub_name]
                 ni = github_manifest[sub_name]
-                if v == 'special':
+                if v == 'specials':
                     if v not in i:
                         i[v] = []
                         edited = True
@@ -279,9 +279,9 @@ LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot', None)
 
 def version_path(version):
     for k,v in VERSION_MANIFEST['versioning'].items():
-        if k == 'special':
+        if k == 'specials':
             if version in v:
-                return os.path.join('special', version)
+                return os.path.join('specials', version)
         else:
             if version in v.get('releases', []):
                 return os.path.join('releases', version)
