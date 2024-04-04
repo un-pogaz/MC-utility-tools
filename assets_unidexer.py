@@ -137,8 +137,6 @@ def unindex_assets(args):
         shutil.copytree(temp, output)
         
     run_animation(copy_assets_data, f'Move generated data to "{output}"')
-    
-
 
 
 if __name__ == "__main__":
