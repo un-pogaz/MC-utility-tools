@@ -1,4 +1,4 @@
-VERSION = (0, 17, 0)
+VERSION = (0, 18, 0)
 
 import argparse
 import glob
@@ -340,14 +340,15 @@ def write_tbl_md(path, head_tbl, lines_tbl):
     
     write_lines(path, rslt)
 
+
 def get_datapack_paths(temp) -> list[tuple[str,str]]:
     sub_datapacks = 'data/minecraft/datapacks'
-    rslt = [('','')]
+    rslt = ['']
     for dp in glob.glob('*/', root_dir=os.path.join(temp, sub_datapacks), recursive=False):
-        rslt.append((dp.replace('\\', '/').strip('/'), os.path.join(sub_datapacks, dp)))
+        rslt.append(os.path.join(sub_datapacks, dp))
     return rslt
 
-def _structures_dir(temp) -> str:
+def get_structures_dir(temp) -> str:
     dir = 'data/minecraft/structures'
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'assets/minecraft/structures' # old
@@ -357,80 +358,112 @@ def write_serialize_nbt(temp):
     from common import serialize_nbt
     
     # structures.snbt
-    dir = _structures_dir(temp)
-    for dp, p in get_datapack_paths(temp):
-        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True):
-            serialize_nbt(os.path.join(temp, dir, p, f))
+    dir = get_structures_dir(temp)
+    for dp in get_datapack_paths(temp):
+        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, dp), recursive=True):
+            serialize_nbt(os.path.join(temp, dir, dp, f))
+
+
+def flatering(name) -> str:
+    return name.split(':', maxsplit=2)[-1].replace('\\', '/')
+def filename(name) -> str:
+    return flatering(os.path.splitext(name)[0])
+def namespace(name, ns=None) -> str:
+    ns = (ns or 'minecraft').lower()
+    if ':' in name:
+        ns = name.split(':', maxsplit=2)[0]
+    return ns+':'+flatering(name)
+
+def test_n(entry, n, target_type) -> bool:
+    return namespace(entry[n]) == namespace(target_type)
+def test_type(entry, target_type) -> bool:
+    return test_n(entry,'type', namespace(target_type))
+
+def unquoted_json(obj) -> str:
+    import json
+    import re
+    # remove the quote around the name of the propety {name: "Value"}
+    return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
+
+def enum_json(dir, is_tag=False, ns=None) -> list[str]:
+    return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
+
+
+def _get_sub_folder(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
+    if os.path.exists(os.path.join(temp, subdir, 'minecraft')):
+        rslt_namespaces = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir), recursive=False)]
+        rslt_dirs = set()
+        for ns in rslt_namespaces:
+            rslt_dirs.update([flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir, ns), recursive=False)])
+        
+        rslt_dirs = list(sorted(rslt_dirs.difference(exlude)))
+    else:
+        rslt_namespaces = []
+        rslt_dirs = []
+    
+    return rslt_namespaces, rslt_dirs
+
+def get_sub_folder_assets(temp) -> tuple[list[str], list[str]]:
+    lst_exlude = [
+        'advancements',
+        'lang',
+        'shaders',
+    ]
+    return _get_sub_folder(temp, 'assets', lst_exlude)
+
+def get_sub_folder_data(temp) -> tuple[list[str], list[str]]:
+    lst_exlude = [
+        'advancements',
+        'datapacks',
+        'loot_tables',
+        'tags',
+        'worldgen',
+    ]
+    return _get_sub_folder(temp, 'data', lst_exlude)
+
 
 def listing_various_data(temp):
-    
-    def flatering(name):
-        return name.split(':', maxsplit=2)[-1].replace('\\', '/')
-    def filename(name):
-        return flatering(os.path.splitext(name)[0])
-    def namespace(name, ns=None):
-        ns = (ns or 'minecraft').lower()
-        if ':' in name:
-            ns = name.split(':', maxsplit=2)[0]
-        return ns+':'+flatering(name)
-    
-    def test_n(entry, n, target_type):
-        return namespace(entry[n]) == namespace(target_type)
-    def test_type(entry, target_type):
-        return test_n(entry,'type', namespace(target_type))
-    def test_function(entry, target_type):
-        return test_n(entry,'function', namespace(target_type))
-    def test_condition(entry, target_type):
-        return test_n(entry,'condition', namespace(target_type))
-    
-    def unquoted_json(obj):
-        import json
-        import re
-        # remove the quote around the name of the propety {name: "Value"}
-        return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
-    
-    def enum_json(dir, is_tag=False, ns=None):
-        return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
-    
-    def lst_sub_folder(subdir, exlude=[]):
-        if os.path.exists(os.path.join(temp, subdir, 'minecraft')):
-            rslt_namespace = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir), recursive=False)]
-            rslt_dir = set()
-            for ns in rslt_namespace:
-                rslt_dir.update([flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir, ns), recursive=False)])
-            
-            rslt_dir = list(sorted(rslt_dir.difference(exlude)))
-        else:
-            rslt_namespace = []
-            rslt_dir = []
-        
-        return rslt_namespace, rslt_dir
-    
-    
-    data_paths = get_datapack_paths(temp)
-    lines = [namespace(dp) for dp, _ in data_paths[1:]]
+    listing_builtit_datapacks(temp)
+    listing_structures(temp)
+    listing_advancements(temp)
+    listing_subdir_reports(temp)
+    listing_special_subdir(temp)
+    listing_loot_tables(temp)
+    listing_worldgen(temp)
+    listing_blocks(temp)
+    listing_items(temp)
+    listing_commands(temp)
+    listing_registries(temp)
+    listing_tags(temp)
+    listing_sounds(temp)
+    listing_sounds(temp)
+    listing_languages(temp)
+    listing_languages(temp)
+    listing_assets_txt(temp)
+    listing_assets(temp)
+
+def listing_builtit_datapacks(temp):
+    lines = [namespace(os.path.basename(dp.strip('\\/'))) for dp in get_datapack_paths(temp)[1:]]
     if lines:
         write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
-    
-    
-    # structures.nbt
-    dir = _structures_dir(temp)
+
+def listing_structures(temp):
+    dir = get_structures_dir(temp)
     lines = set()
-    for dp, p in data_paths:
-        lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, p), recursive=True)])
+    for dp in get_datapack_paths(temp):
+        lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, dp), recursive=True)])
     if lines:
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
-    
-    
-    # advancements
+
+def listing_advancements(temp):
     dir = 'data/minecraft/advancements'
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'assets/minecraft/advancements' # old
     entries = set()
     recipes = set()
     tags = set()
-    for dp, p in data_paths:
-        for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, dir), recursive=True):
+    for dp in get_datapack_paths(temp):
+        for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
             j = filename(j)
             if j.startswith('recipes/'):
                 t = recipes
@@ -438,14 +471,15 @@ def listing_various_data(temp):
                 t = entries
             t.add(namespace(j))
         
-        tags.update(enum_json(os.path.join(temp, p, 'data/minecraft/tags/advancements'), is_tag=True))
+        tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancements'), is_tag=True))
     
     lines = sorted(entries) + sorted(tags)
     if lines:
         write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
     if recipes:
         write_lines(os.path.join(temp, 'lists', 'advancements.recipes.txt'), sorted(recipes))
-    
+
+def listing_subdir_reports(temp):
     # subdir /reports/
     lst_subdir = [
         'dimension',
@@ -466,30 +500,29 @@ def listing_various_data(temp):
         lines.update(enum_json(os.path.join(temp, dir)))
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), sorted(lines))
-    
+
+def listing_special_subdir(temp):
     # special subdir (not in registries)
-    lst_exlude = [
-        'advancements',
-        'datapacks',
-        'loot_tables',
-        'tags',
-        'worldgen',
-    ]
-    lst_namespace, lst_subdir = lst_sub_folder('data', lst_exlude)
+    lst_namespace, lst_subdir = get_sub_folder_data(temp)
     
     for subdir in lst_subdir:
         entries = set()
         tags = set()
         for ns in lst_namespace:
-            for dp, p in data_paths:
-                entries.update(enum_json(os.path.join(temp, p, 'data', ns,         subdir), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, p, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
+            for dp in get_datapack_paths(temp):
+                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         subdir), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
+
+def listing_loot_tables(temp):
     
+    def test_function(entry, target_type):
+        return test_n(entry,'function', namespace(target_type))
+    def test_condition(entry, target_type):
+        return test_n(entry,'condition', namespace(target_type))
     
-    # loot_tables
     dir = 'data/minecraft/loot_tables'
     if not os.path.exists(os.path.join(temp, 'data/minecraft/loot_tables')):
         dir = 'assets/minecraft/loot_tables' # old
@@ -694,11 +727,11 @@ def listing_various_data(temp):
         else:
             raise TypeError("Invalid input pool")
     
-    for dp, p in data_paths:
-        for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, p, dir), recursive=True):
+    for dp in get_datapack_paths(temp):
+        for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
             if loot == 'empty.json':
                 continue
-            table = read_json(os.path.join(temp, p, dir, loot))
+            table = read_json(os.path.join(temp, dp, dir, loot))
             name = filename(loot)
             
             rslt_tbl :list[TBLpool] = []
@@ -762,8 +795,8 @@ def listing_various_data(temp):
             
             write_tbl_csv(os.path.join(temp, 'lists/loot_tables', name+'.csv'), head_tbl, lines_tbl)
             write_tbl_md(os.path.join(temp, 'lists/loot_tables', name+'.md'), head_tbl, lines_tbl)
-    
-    # worldgen
+
+def listing_worldgen(temp):
     dir = 'data/minecraft/worldgen'
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'reports/minecraft/worldgen' # old
@@ -774,17 +807,16 @@ def listing_various_data(temp):
         subdir = subdir.strip('/\\')
         entries = set()
         tags = set()
-        for dp, p in data_paths:
-            entries.update(enum_json(os.path.join(temp, p, dir,                            subdir)))
-            tags.update(   enum_json(os.path.join(temp, p, 'data/minecraft/tags/worldgen', subdir), is_tag=True))
+        for dp in get_datapack_paths(temp):
+            entries.update(enum_json(os.path.join(temp, dp, dir,                            subdir)))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data/minecraft/tags/worldgen', subdir), is_tag=True))
         write_lines(os.path.join(temp, 'lists/worldgen', subdir +'.txt'), sorted(entries) + sorted(tags))
     
     dir = os.path.join(temp, 'reports/biomes') #legacy
     if os.path.exists(dir):
         write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted(enum_json(dir)))
-    
-    
-    # blocks
+
+def listing_blocks(temp):
     blockstates = defaultdict(dict)
     rj = read_json(os.path.join(temp, 'reports/blocks.json'))
     if rj:
@@ -829,9 +861,8 @@ def listing_various_data(temp):
                 if isinstance(vv, dict):
                     vv = {_k:vv[_k] for _k in sorted(vv.keys())}
                 write_json(os.path.join(temp, 'lists/blocks', k, kk+'.json'), vv)
-    
-    
-    # items
+
+def listing_items(temp):
     itemstates = defaultdict(dict)
     rj = read_json(os.path.join(temp, 'reports/items.json'))
     if rj:
@@ -924,10 +955,9 @@ def listing_various_data(temp):
                     for n,v in e.items():
                         if _test_value(v):
                             write_json(os.path.join(temp, 'lists/items/components', t, flatering(n)+'.json'), v)
-    
-    
-    # commands
-    lines = []
+
+def listing_commands(temp):
+    lines = set()
     
     def get_argument(value, entry):
         if test_type(entry, 'literal'):
@@ -940,8 +970,7 @@ def listing_various_data(temp):
             type = entry.get('parser', '')
             if type:
                 type = namespace(type)
-                if type not in lines:
-                    lines.append(type)
+                lines.add(type)
                 type = ' '+type
             
             properties = []
@@ -986,16 +1015,15 @@ def listing_various_data(temp):
         write_json(os.path.join(temp, 'lists/commands', name+'.json'), v)
         write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), get_syntaxes(name, v))
     
-    lines.sort()
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), lines)
-    
-    
-    # registries
+        write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), sorted(lines))
+
+def listing_registries(temp):
     lines = [namespace(k) for k in read_json(os.path.join(temp, 'reports/registries.json')).keys()]
-    lines.sort()
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'registries.txt'), lines)
+        write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
+    
+    lst_namespace, _ = get_sub_folder_data(temp)
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
@@ -1005,34 +1033,32 @@ def listing_various_data(temp):
         entries.update([namespace(k) for k in v['entries'].keys()])
         
         for ns in lst_namespace:
-            for dp, p in data_paths:
-                entries.update(enum_json(os.path.join(temp, p, 'data', ns,         name), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, p, 'data', ns, 'tags', name), ns=ns, is_tag=True))
+            for dp in get_datapack_paths(temp):
+                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name), ns=ns, is_tag=True))
                 # legacy
-                entries.update(enum_json(os.path.join(temp, p, 'data', ns,         name+'s'), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, p, 'data', ns, 'tags', name+'s'), ns=ns, is_tag=True))
+                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name+'s'), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name+'s'), ns=ns, is_tag=True))
         
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
-    
-    
-    # tags
+
+def listing_tags(temp):
     entries = set()
-    for dp, p in data_paths:
-        dir = os.path.join(temp, p, 'data/minecraft/tags')
+    for dp in get_datapack_paths(temp):
+        dir = os.path.join(temp, dp, 'data/minecraft/tags')
         entries.update(flatering(j) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True))
     
     for name in entries:
         lines = []
-        for dp, p in data_paths:
-            j = os.path.join(temp, p, 'data/minecraft/tags', name)
+        for dp in get_datapack_paths(temp):
+            j = os.path.join(temp, dp, 'data/minecraft/tags', name)
             for v in read_json(j).get('values', []):
                 if v not in lines:
                     lines.append(v)
         
         write_lines(os.path.join(temp, 'lists/tags', filename(name)+'.txt'), lines)
-    
-    
-    # sounds
+
+def listing_sounds(temp):
     full_lines = set()
     for sounds in ['sounds.json'] + glob.glob('*/sounds.json', root_dir=os.path.join(temp, 'assets'), recursive=False):
         sounds = os.path.join(temp, 'assets', sounds)
@@ -1051,8 +1077,8 @@ def listing_various_data(temp):
     
     if full_lines:
         write_lines(os.path.join(temp, 'lists', 'sounds.ogg.txt'), sorted(full_lines))
-    
-    # languages
+
+def listing_languages(temp):
     src_lang = {}
     search_term = ['code', 'name', 'region']
     for lang in glob.iglob('assets/lang/*.lang', root_dir=temp, recursive=False):
@@ -1091,20 +1117,14 @@ def listing_various_data(temp):
     else:
         safe_del(languages_json)
     safe_del(pack_mcmeta)
-    
-    # list assets.txt
+
+def listing_assets_txt(temp):
     lst_assets = read_json(os.path.join(temp, 'assets.json')).get('objects', {})
     if lst_assets:
         write_lines(os.path.join(temp, 'assets.txt'), sorted(lst_assets.keys()))
-    
-    
-    # list /assets/
-    lst_exlude = [
-        'advancements',
-        'lang',
-        'shaders',
-    ]
-    lst_namespace, lst_subdir = lst_sub_folder('assets', lst_exlude)
+
+def listing_assets(temp):
+    lst_namespace, lst_subdir = get_sub_folder_assets(temp)
     
     lst_ext = ['json', 'txt', 'png']
     
@@ -1150,6 +1170,7 @@ def listing_various_data(temp):
             if lines:
                 txt_path = name + '.'+ext +'.txt'
                 write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
+
 
 if __name__ == "__main__":
     main()
