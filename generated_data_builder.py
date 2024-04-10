@@ -1,4 +1,4 @@
-VERSION = (0, 18, 0)
+VERSION = (0, 18, 1)
 
 import argparse
 import glob
@@ -643,7 +643,11 @@ def listing_loot_tables(temp):
                     levels.append('treasure: true')
                 comment.append('enchantments: '+ '{'+ ', '.join(levels) +'}')
             if test_function(e, 'set_enchantments'):
-                TypeError("Unsupported function '{}' in loot_tables '{}'".format('set_enchantments', name))
+                enchantments = e.get('enchantments', None)
+                if not enchantments:
+                    pass
+                else:
+                    comment.append('enchantments: '+ ', '.join(flatering(k) for k,v in enchantments.items() if v))
             
             if test_function(e, 'exploration_map'):
                 comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
