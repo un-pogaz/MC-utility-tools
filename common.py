@@ -95,7 +95,7 @@ def write_text(path, text):
         f.write(text)
 
 def read_lines(path):
-    return [l.strip('\r\n') for l in read_text(path).splitlines()]
+    return [l for l in read_text(path).splitlines(False)]
 
 def write_lines(path, lines):
     make_dirname(path)
