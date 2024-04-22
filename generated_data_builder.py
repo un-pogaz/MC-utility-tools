@@ -5,6 +5,7 @@ import glob
 import os.path
 import pathlib
 from collections import OrderedDict, defaultdict
+from typing import Callable
 
 from common import (
     find_output, get_latest, hash_test, make_dirname, read_json, read_lines,
@@ -479,25 +480,6 @@ def uniform_reports(temp):
         j = os.path.join(temp, j)
         write_lines(j, read_lines(j))
 
-def listing_various_data(temp):
-    listing_builtit_datapacks(temp)
-    listing_structures(temp)
-    listing_advancements(temp)
-    listing_subdir_reports(temp)
-    listing_special_subdir(temp)
-    listing_loot_tables(temp)
-    listing_worldgen(temp)
-    listing_blocks(temp)
-    listing_items(temp)
-    listing_commands(temp)
-    listing_registries(temp)
-    listing_tags(temp)
-    listing_sounds(temp)
-    listing_sounds(temp)
-    listing_languages(temp)
-    listing_languages(temp)
-    listing_assets_txt(temp)
-    listing_assets(temp)
 
 def listing_builtit_datapacks(temp):
     lines = [namespace(os.path.basename(dp.strip('\\/'))) for dp in get_datapack_paths(temp)[1:]]
@@ -1375,6 +1357,47 @@ def listing_assets(temp):
             if lines:
                 txt_path = name + '.'+ext +'.txt'
                 write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
+
+listing_various_functions: list[Callable[[str], None]] = [
+    listing_builtit_datapacks,
+    listing_structures,
+    listing_advancements,
+    listing_subdir_reports,
+    listing_special_subdir,
+    listing_loot_tables,
+    listing_worldgen,
+    listing_blocks,
+    listing_items,
+    listing_commands,
+    listing_registries,
+    listing_tags,
+    listing_sounds,
+    listing_sounds,
+    listing_languages,
+    listing_languages,
+    listing_assets_txt,
+    listing_assets,
+]
+def listing_various_data(temp):
+    for func in listing_various_functions:
+        func(temp)
+
+def listing_various_data_alt(version, temp):
+    # internal function
+    # private use for Github update script
+    list_dir = os.path.join(temp, 'lists')
+    for path in glob.iglob('**/*.*', root_dir=list_dir, recursive=True):
+        path = os.path.join(list_dir, path)
+        write_lines(path, read_lines(path))
+    
+    exclude_funcs = {
+        '24w14potato': ['listing_loot_tables']
+    }
+    
+    for func in listing_various_functions:
+        if func.__name__ in exclude_funcs.get(version, []):
+            continue
+        func(temp)
 
 
 if __name__ == "__main__":
