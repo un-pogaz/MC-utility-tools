@@ -972,6 +972,50 @@ def listing_worldgen(temp):
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'reports/worldgen/minecraft/worldgen' # legacy
     
+    def biomes_list(dir):
+        for path in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+            j = read_json(os.path.join(dir, path))
+            path = filename(path)
+            
+            lines = []
+            dic = defaultdict(list)
+            for k,v in j.get('spawners', {}).items():
+                for e in v:
+                    lines.append(e['type'])
+                    dic[k].append(e)
+            
+            if not lines:
+                lines.append('[]')
+            
+            dic = {k:sorted(dic[k], key=lambda x: x['type']) for k in dic.keys()}
+            lines = sorted(set(lines))
+            write_json(os.path.join(temp, 'lists/worldgen/biome/mobs', path+'.json'), dic, sort_keys=True)
+            write_lines(os.path.join(temp, 'lists/worldgen/biome/mobs', path+'.txt'), lines)
+            
+            lines = []
+            for v in j.get('features', []):
+                if lines is None:
+                    break
+                if isinstance(v, str):
+                    lines.append(v)
+                elif isinstance(v, list):
+                    if not v:
+                        lines.append('[]')
+                    for e in v:
+                        if isinstance(e, dict):
+                            lines = None
+                            break
+                        lines.append(e)
+                
+                lines.append('')
+            
+            if lines is not None:
+                strip_list(lines)
+                if not lines:
+                    lines.append('[]')
+                
+                write_lines(os.path.join(temp, 'lists/worldgen/biome/features', path+'.txt'), lines)
+    
     for subdir in glob.iglob('*/', root_dir=os.path.join(temp, dir), recursive=False):
         subdir = subdir.strip('/\\')
         entries = set()
@@ -979,11 +1023,13 @@ def listing_worldgen(temp):
         for dp in get_datapack_paths(temp):
             entries.update(enum_json(os.path.join(temp, dp, dir,                            subdir)))
             tags.update(   enum_json(os.path.join(temp, dp, 'data/minecraft/tags/worldgen', subdir), is_tag=True))
+            biomes_list(os.path.join(temp, dp, dir, 'biome'))
         write_lines(os.path.join(temp, 'lists/worldgen', subdir +'.txt'), sorted(entries) + sorted(tags))
     
     dir = os.path.join(temp, 'reports/biomes') #legacy
     if os.path.exists(dir):
         write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted(enum_json(dir)))
+        biomes_list(dir)
 
 def listing_blocks(temp):
     blockstates = defaultdict(dict)
