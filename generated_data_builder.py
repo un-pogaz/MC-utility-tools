@@ -1,4 +1,4 @@
-VERSION = (0, 18, 2)
+VERSION = (0, 19, 0)
 
 import argparse
 import glob
@@ -389,6 +389,46 @@ def unquoted_json(obj) -> str:
 def enum_json(dir, is_tag=False, ns=None) -> list[str]:
     return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
 
+def get_languages_json(temp) -> dict[str, str]:
+    path = os.path.join(temp, 'assets/minecraft/lang/en_us.json')
+    if os.path.exists(path):
+        return read_json(path)
+    
+    path = os.path.join(temp, 'assets/minecraft/lang/en_us.lang')
+    if os.path.exists(path):
+        return parse_languages_lang(path)
+    
+    path = os.path.join(temp, 'assets/lang/en_us.lang')
+    if os.path.exists(path):
+        return parse_languages_lang(path)
+    
+    return None
+
+def parse_languages_lang(path) -> dict[str, str]:
+    rslt = {}
+    for l in read_lines(path):
+        if '=' not in l:
+            continue
+        split = l.split('=',1)
+        rslt[split[0]] = split[1]
+    return rslt
+
+def parse_json_text(json_text, languages_json=None) -> str:
+    if isinstance(json_text, str):
+        return json_text
+    
+    if isinstance(json_text, dict):
+        if 'translate' in json_text:
+            translate = json_text['translate']
+            return (languages_json or {}).get(translate, translate)
+        
+        if 'text' in json_text:
+            return json_text['text']
+    
+    if isinstance(json_text, list):
+        return ''.join([parse_json_text(e) for e in json_text])
+    
+    raise ValueError('Unknow json_text format')
 
 def strip_list(lst: list):
     while lst and not lst[-1]:
@@ -472,29 +512,139 @@ def listing_structures(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
 
+class Advancement():
+    def __init__(self, file: str, json: dict):
+        self.full_name = namespace(filename(file))
+        self.namespace = self.full_name.split(':')[0]
+        self.path = self.full_name.split(':')[1]
+        
+        self.json = json
+        
+        self.parent = json.get('parent')
+        if self.parent:
+            self.parent = namespace(self.parent)
+        else:
+            self.parent = None
+        
+        self.rewards = json.get('rewards')
+        if self.rewards:
+            lst = []
+            for k,v in self.rewards.items():
+                if k == 'experience':
+                    if v:
+                        lst.append(str(v)+' xp')
+                    continue
+                if k == 'recipes':
+                    lst.extend('recipe()'+namespace(l) for l in v)
+                    continue
+                if k == 'loot':
+                    lst.extend('loot_table[]'+namespace(l) for l in v)
+                    continue
+                raise ValueError(f'Unknow rewards keys "{k}"')
+            self.rewards = ', '.join(sorted(lst))
+        else:
+            self.rewards = None
+        
+        display = json.get('display', {})
+        self.icon = display.get('icon', {}).get('id') or display.get('icon', {}).get('item')
+        self.title = display.get('title')
+        
+        self.description = display.get('description')
+        self.frame = display.get('frame', 'task')
+        self.background = display.get('background')
+        if self.background:
+            self.background = namespace(filename(self.background)).replace('minecraft:textures/', 'minecraft:')
+        else:
+            self.background = None
+        
+        self.show_toast = display.get('show_toast', True)
+        self.announce_to_chat = display.get('announce_to_chat', True)
+        self.hidden = display.get('hidden', False)
+
 def listing_advancements(temp):
     dir = 'data/minecraft/advancements'
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'assets/minecraft/advancements' # old
-    entries = set()
+    entries: dict[str, Advancement] = {}
+    tree_child = defaultdict(list)
     recipes = set()
     tags = set()
     for dp in get_datapack_paths(temp):
-        for j in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
-            j = filename(j)
-            if j.startswith('recipes/'):
-                t = recipes
-            else:
-                t = entries
-            t.add(namespace(j))
+        root_dir = os.path.join(temp, dp, dir)
+        for j in glob.iglob('**/*.json', root_dir=root_dir, recursive=True):
+            advc = Advancement(j, read_json(os.path.join(root_dir, j)))
+            if advc.path.startswith('recipes/'):
+                recipes.add(advc.full_name)
+                continue
+            
+            entries[advc.full_name] = advc
+            tree_child[advc.parent].append(advc.full_name)
         
         tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancements'), is_tag=True))
     
-    lines = sorted(entries) + sorted(tags)
+    lines = sorted(entries.keys()) + sorted(tags)
     if lines:
         write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
     if recipes:
         write_lines(os.path.join(temp, 'lists', 'advancements.recipes.txt'), sorted(recipes))
+    
+    # advancement.tree
+    lines = []
+    tree = {}
+    
+    indent_line  = '│ '
+    indent_child = '└>'
+    indent_space = '  '
+    
+    languages_json = get_languages_json(temp)
+    
+    for k in tree_child.keys():
+        tree_child[k].sort()
+    
+    def read_tree(full_name: str, parent_tree: dict):
+        advc = entries[full_name]
+        parent_tree[full_name] = entry = {}
+        entry['title'] = parse_json_text(advc.title, languages_json)
+        entry['description'] = parse_json_text(advc.description, languages_json)
+        if advc.background:
+            entry['background'] = advc.background
+        entry['frame'] = advc.frame
+        if advc.rewards:
+            entry['rewards'] = advc.rewards
+        if advc.hidden:
+            entry['hidden'] = advc.hidden
+        
+        child_count = len(tree_child[full_name])
+        if child_count:
+            entry['childs'] = child_tree = {}
+        for child in tree_child[full_name]:
+            read_tree(child, child_tree)
+    
+    def tree_text(pre: str, full_name: str, last_child: bool):
+        lines.append(pre+(indent_child if last_child is not None else '')+filename(full_name))
+        
+        if last_child is None:
+            pre = ''
+        if last_child is True:
+            pre += indent_line
+        if last_child is False:
+            pre += indent_space
+        
+        child_count = len(tree_child[full_name])
+        for idx,child in enumerate(tree_child[full_name], 1):
+            tree_text(pre, child, (idx != child_count))
+    
+    for r in tree_child[None]:
+        read_tree(r, tree)
+        tree_text('', r, None)
+        lines.append('')
+    
+    strip_list(lines)
+    
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'advancements.tree.txt'), lines)
+    if tree:
+        write_json(os.path.join(temp, 'lists', 'advancements.tree.json'), tree)
 
 def listing_subdir_reports(temp):
     # subdir /reports/
