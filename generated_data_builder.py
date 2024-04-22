@@ -1247,20 +1247,13 @@ def listing_sounds(temp):
 
 def listing_languages(temp):
     src_lang = {}
-    search_term = ['code', 'name', 'region']
+    search_term = ['language.code', 'language.name', 'language.region']
     for lang in glob.iglob('assets/lang/*.lang', root_dir=temp, recursive=False):
         # old format
-        new_lang = {}
-        for l in read_lines(os.path.join(temp, lang)):
-            for st in search_term:
-                if l.startswith('language.'+st+'='):
-                    new_lang[st] = l.split('=',1)[1]
-            
-            if len(search_term) == len(new_lang):
-                break
-        
+        lang = parse_languages_lang(os.path.join(temp, lang))
+        new_lang = {st:lang[st] for st in search_term if st in lang}
         if len(search_term) == len(new_lang):
-            src_lang[new_lang['code']] = {'region':new_lang['region'], 'name':new_lang['name']}
+            src_lang[new_lang['language.code']] = {'region':new_lang['language.region'],'name':new_lang['language.name']}
     
     pack_mcmeta = os.path.join(temp, 'assets', 'pack.mcmeta')
     if not src_lang:
@@ -1275,8 +1268,7 @@ def listing_languages(temp):
         languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
         write_json(os.path.join(temp, 'lists', 'languages.json'), languages)
     
-    ## need this to update the last edit attribut of the file
-    ## to the last parsing
+    ## need this to update the last edit attribut of the file to the last parsing
     languages_json = os.path.join(temp, 'lists', 'languages.json')
     languages = read_json(languages_json)
     if languages:
