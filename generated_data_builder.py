@@ -877,9 +877,7 @@ def listing_blocks(temp):
                     write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(set(zv)))
                 write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'.txt'), sorted(set(lines)))
             else:
-                if isinstance(vv, dict):
-                    vv = {_k:vv[_k] for _k in sorted(vv.keys())}
-                write_json(os.path.join(temp, 'lists/blocks', k, kk+'.json'), vv)
+                write_json(os.path.join(temp, 'lists/blocks', k, kk+'.json'), vv, sort_keys=True)
 
 def listing_items(temp):
     itemstates = defaultdict(dict)

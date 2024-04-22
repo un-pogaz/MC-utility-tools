@@ -81,10 +81,10 @@ def read_json(path, default=None):
     except:
         return default or {}
 
-def write_json(path, obj):
+def write_json(path, obj, sort_keys: bool=False):
     make_dirname(path)
     with open(path, 'wt', newline='\n', encoding='utf-8') as f:
-        f.write(json.dumps(obj, indent=2, ensure_ascii=False))
+        f.write(json.dumps(obj, indent=2, ensure_ascii=False, sort_keys=sort_keys))
 
 def read_text(path):
     with open(path, 'rt', encoding='utf-8') as f:
