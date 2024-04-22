@@ -12,7 +12,5 @@ __pycache__
 
 version_manifest.json
 releases/
-release/
 snapshots/
-snapshot/
 specials/
