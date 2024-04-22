@@ -1,4 +1,4 @@
-VERSION = (0, 18, 1)
+VERSION = (0, 18, 2)
 
 import argparse
 import glob
@@ -206,6 +206,7 @@ def build_generated_data(args):
         for f in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
             safe_del(os.path.join(temp_root, f))
         
+        uniform_reports(temp)
         listing_various_data(temp)
     run_animation(listing_various, 'Generating /list/ folder')
     
@@ -425,6 +426,18 @@ def get_sub_folder_data(temp) -> tuple[list[str], list[str]]:
     ]
     return _get_sub_folder(temp, 'data', lst_exlude)
 
+def uniform_reports(temp):
+    items_json = os.path.join(temp, 'reports/items.json')
+    j = read_json(items_json)
+    for k in j.keys():
+        if 'components' in j[k]:
+            j[k]['components'] = list(sorted(j[k]['components'], key=lambda x: x['type']))
+    if j:
+        write_json(items_json, j)
+    
+    for j in glob.iglob('reports/*.json', root_dir=temp, recursive=False):
+        j = os.path.join(temp, j)
+        write_lines(j, read_lines(j))
 
 def listing_various_data(temp):
     listing_builtit_datapacks(temp)
