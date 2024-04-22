@@ -389,6 +389,10 @@ def enum_json(dir, is_tag=False, ns=None) -> list[str]:
     return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
 
 
+def strip_list(lst: list):
+    while lst and not lst[-1]:
+        lst.pop(-1)
+
 def _get_sub_folder(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
     if os.path.exists(os.path.join(temp, subdir, 'minecraft')):
         rslt_namespaces = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir), recursive=False)]
@@ -779,15 +783,13 @@ def listing_loot_tables(temp):
                 lines_txt.append('')
                 lines_tbl.append(None)
             
-            while lines_txt and not lines_txt[-1]:
-                lines_txt.pop(-1)
+            strip_list(lines_txt)
             if not lines_txt:
                 lines_txt.append('empty')
             write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines_txt)
             
             
-            while lines_tbl and not lines_tbl[-1]:
-                lines_tbl.pop(-1)
+            strip_list(lines_tbl)
             if not lines_tbl:
                 lines_tbl.append(['empty','','100%','1',''])
             
