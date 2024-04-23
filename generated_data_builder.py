@@ -528,7 +528,13 @@ class Advancement():
             self.rewards = None
         
         display = json.get('display', {})
-        self.icon = display.get('icon', {}).get('id') or display.get('icon', {}).get('item')
+        icon = display.get('icon', {})
+        if isinstance(icon, str):
+            self.icon = icon
+        else:
+            self.icon = icon.get('id') or icon.get('item')
+        if self.icon:
+            self.icon = namespace(self.icon)
         self.title = display.get('title')
         
         self.description = display.get('description')
@@ -587,7 +593,8 @@ def listing_advancements(temp):
         advc = entries[full_name]
         parent_tree[full_name] = entry = {}
         entry['title'] = parse_json_text(advc.title, languages_json)
-        entry['description'] = parse_json_text(advc.description, languages_json)
+        if advc.description:
+            entry['description'] = parse_json_text(advc.description, languages_json)
         if advc.background:
             entry['background'] = advc.background
         entry['frame'] = advc.frame
