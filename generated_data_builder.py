@@ -592,6 +592,7 @@ def listing_advancements(temp):
     def read_tree(full_name: str, parent_tree: dict):
         advc = entries[full_name]
         parent_tree[full_name] = entry = {}
+        entry['icon'] = advc.icon
         entry['title'] = parse_json_text(advc.title, languages_json)
         if advc.description:
             entry['description'] = parse_json_text(advc.description, languages_json)
