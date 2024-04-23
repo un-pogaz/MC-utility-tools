@@ -536,9 +536,9 @@ class Advancement():
         if self.icon:
             self.icon = namespace(self.icon)
         self.title = display.get('title')
+        self.frame = display.get('frame', 'task')
         
         self.description = display.get('description')
-        self.frame = display.get('frame', 'task')
         self.background = display.get('background')
         if self.background:
             self.background = namespace(filename(self.background)).replace('minecraft:textures/', 'minecraft:')
