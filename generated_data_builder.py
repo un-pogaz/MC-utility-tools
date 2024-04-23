@@ -1296,13 +1296,6 @@ def listing_languages(temp):
         languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
         write_json(os.path.join(temp, 'lists', 'languages.json'), languages)
     
-    ## need this to update the last edit attribut of the file to the last parsing
-    languages_json = os.path.join(temp, 'lists', 'languages.json')
-    languages = read_json(languages_json)
-    if languages:
-        write_json(languages_json, languages)
-    else:
-        safe_del(languages_json)
     safe_del(pack_mcmeta)
 
 def listing_assets_txt(temp):
@@ -1385,15 +1378,24 @@ def listing_various_data(temp):
 def listing_various_data_alt(version, temp):
     # internal function
     # private use for Github update script
-    list_dir = os.path.join(temp, 'lists')
-    for path in glob.iglob('**/*.*', root_dir=list_dir, recursive=True):
-        path = os.path.join(list_dir, path)
-        write_lines(path, read_lines(path))
     
     exclude_funcs = {
         '24w14potato': [listing_loot_tables],
     }
     exclude_funcs = exclude_funcs.get(version, [])
+    
+    ## update the 'last edit' attribut of the files to the last parsing
+    list_dir = os.path.join(temp, 'lists')
+    rewrite_files = [
+        os.path.join(list_dir, 'languages.json')
+    ]
+    if exclude_funcs:
+        for path in glob.iglob('**/*.*', root_dir=list_dir, recursive=True):
+            rewrite_files.append(os.path.join(list_dir, path))
+    
+    for path in rewrite_files:
+        if os.path.exists(path):
+            write_lines(path, read_lines(path))
     
     for func in listing_various_functions:
         if func in exclude_funcs:
