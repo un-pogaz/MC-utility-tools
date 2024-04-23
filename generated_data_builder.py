@@ -963,6 +963,7 @@ def listing_worldgen(temp):
             dir = 'reports/worldgen/minecraft/worldgen' # legacy
     
     def biomes_list(dir):
+        no_features = False
         for path in glob.iglob('**/*.json', root_dir=dir, recursive=True):
             j = read_json(os.path.join(dir, path))
             path = filename(path)
@@ -984,7 +985,7 @@ def listing_worldgen(temp):
             
             lines = []
             for v in j.get('features', []):
-                if lines is None:
+                if lines is None or no_features:
                     break
                 if isinstance(v, str):
                     lines.append(v)
@@ -997,9 +998,17 @@ def listing_worldgen(temp):
                             break
                         lines.append(e)
                 
+                if lines is None:
+                    break
                 lines.append('')
             
-            if lines is not None:
+            if lines is None or no_features:
+                no_features = True
+                path = os.path.join(temp, 'lists/worldgen/biome/features')
+                if os.path.exists(path):
+                    import shutil
+                    shutil.rmtree(path)
+            else:
                 strip_list(lines)
                 if not lines:
                     lines.append('[]')
