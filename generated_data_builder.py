@@ -1391,11 +1391,12 @@ def listing_various_data_alt(version, temp):
         write_lines(path, read_lines(path))
     
     exclude_funcs = {
-        '24w14potato': ['listing_loot_tables']
+        '24w14potato': [listing_loot_tables],
     }
+    exclude_funcs = exclude_funcs.get(version, [])
     
     for func in listing_various_functions:
-        if func.__name__ in exclude_funcs.get(version, []):
+        if func in exclude_funcs:
             continue
         func(temp)
 
