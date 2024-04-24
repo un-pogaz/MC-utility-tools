@@ -1402,16 +1402,15 @@ def listing_various_data_alt(version, temp):
     exclude_funcs = exclude_funcs.get(version, [])
     
     ## update the 'last edit' attribut of the files to the last parsing
-    list_dir = os.path.join(temp, 'lists')
     rewrite_files = [
-        os.path.join(list_dir, 'languages.json')
+        os.path.join(temp, 'lists', 'languages.json')
     ]
     if exclude_funcs:
-        for path in glob.iglob('**/*.*', root_dir=list_dir, recursive=True):
-            rewrite_files.append(os.path.join(list_dir, path))
+        for path in glob.iglob('lists/**/*.*', root_dir=temp, recursive=True):
+            rewrite_files.append(os.path.join(temp, path))
     
     for path in rewrite_files:
-        if os.path.exists(path):
+        if os.path.exists(path) and os.path.isfile(path):
             write_lines(path, read_lines(path))
     
     for func in listing_various_functions:
