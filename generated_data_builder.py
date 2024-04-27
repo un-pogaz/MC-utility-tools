@@ -1,4 +1,4 @@
-VERSION = (0, 19, 0)
+VERSION = (0, 20, 0)
 
 import argparse
 import glob
@@ -960,6 +960,15 @@ def listing_worldgen(temp):
         dir = 'reports/minecraft/worldgen' # old
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'reports/worldgen/minecraft/worldgen' # legacy
+    
+    lines = set()
+    for dp in get_datapack_paths(temp):
+        world_preset_dir = os.path.join(temp, dir, dp, 'world_preset')
+        for j in glob.iglob('**/*.json', root_dir=world_preset_dir, recursive=True):
+            lines.update([namespace(e) for e in read_json(os.path.join(world_preset_dir, j)).get('dimensions', {}).keys()])
+    
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'dimension.txt'), sorted(lines))
     
     def biomes_list(dir):
         no_features = False
