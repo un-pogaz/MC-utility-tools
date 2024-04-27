@@ -188,7 +188,6 @@ def build_generated_data(args):
                     if entry.filename.endswith('.png') or entry.filename.endswith('.txt') or entry.filename.endswith('.lang'):
                         safe_del(os.path.join(temp, 'assets', entry.filename))
                         zip.extract(entry.filename, os.path.join(temp, 'assets'))
-                pass
             
             for a in ['minecraft/sounds.json', 'sounds.json', 'pack.mcmeta']:
                 write_asset(a)
