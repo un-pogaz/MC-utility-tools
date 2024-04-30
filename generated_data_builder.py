@@ -1039,44 +1039,6 @@ def listing_worldgen(temp):
         biomes_list(dir)
 
 def listing_blocks(temp):
-    blockstates = defaultdict(lambda:defaultdict(set))
-    definitions = defaultdict(dict)
-    
-    rj = read_json(os.path.join(temp, 'reports/blocks.json'))
-    if rj:
-        write_lines(os.path.join(temp, 'lists', 'block.txt'), sorted(rj.keys()))
-    for k,v in rj.items():
-        name = flatering(k)
-        
-        lines = []
-        for bs in v.pop('states', {}):
-            default = bs.get('default', False)
-            properties = bs.get('properties', {})
-            if properties:
-                lines.append(','.join(['='.join(s) for s in properties.items()]) + ('  [default]' if default else ''))
-        
-        write_json(os.path.join(temp, 'lists/blocks', name+'.json'), v)
-        
-        if lines:
-            write_lines(os.path.join(temp, 'lists/blocks/states', name+'.txt'), lines)
-        
-        for vk in v:
-            if vk == 'properties':
-                for vs in v[vk]:
-                    for vv in v[vk][vs]:
-                        blockstates[vs][vv].add(namespace(k))
-            elif vk == 'definition':
-                definitions[name] = v[vk]
-            else:
-                raise NotImplementedError(f'Block element "{vk}" not implemented.')
-    
-    for kk,vv in blockstates.items():
-        lines = set()
-        for zk,zv in vv.items():
-            lines.update(zv)
-            write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(zv))
-        write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'.txt'), sorted(lines))
-    
     def no_end_0(num):
         return str(num).removesuffix('.0')
     def mcrange(name, entry):
@@ -1112,14 +1074,44 @@ def listing_blocks(temp):
                 return
         raise not_implemented
     
-    definitions_values = defaultdict(dict)
-    for name,content in definitions.items():
-        write_json(os.path.join(temp, 'lists/blocks/definition', name+'.json'), content, sort_keys=True)
+    blockstates = defaultdict(lambda:defaultdict(set))
+    definitions = defaultdict(dict)
+    
+    rj = read_json(os.path.join(temp, 'reports/blocks.json'))
+    if rj:
+        write_lines(os.path.join(temp, 'lists', 'block.txt'), sorted(rj.keys()))
+    for name,content in rj.items():
+        name = flatering(name)
+        lines = []
+        for bs in content.pop('states', []):
+            properties = bs.get('properties', {})
+            if properties:
+                lines.append(','.join(['='.join(s) for s in properties.items()]) + ('  [default]' if bs.get('default', False) else ''))
+        if lines:
+            write_lines(os.path.join(temp, 'lists/blocks/states', name+'.txt'), lines)
+        
+        write_json(os.path.join(temp, 'lists/blocks', name+'.json'), content)
+        
         for k,v in content.items():
-            value = parse_value(name, k, v)
-            if value is None:
-                continue
-            definitions_values[k][namespace(name)] = value
+            if k == 'properties':
+                for vs in v:
+                    for vv in v[vs]:
+                        blockstates[vs][vv].add(namespace(name))
+            elif k == 'definition':
+                write_json(os.path.join(temp, 'lists/blocks/definition', name+'.json'), v, sort_keys=True)
+                for kk,vv in v.items():
+                    value = parse_value(name, kk, vv)
+                    if value is not None:
+                        definitions[k][namespace(name)] = value
+            else:
+                raise NotImplementedError(f'Block element "{k}" not implemented.')
+    
+    for k,v in blockstates.items():
+        lines = set()
+        for kk,vv in v.items():
+            lines.update(vv)
+            write_lines(os.path.join(temp, 'lists/blocks/properties', k+'='+kk+'.txt'), sorted(vv))
+        write_lines(os.path.join(temp, 'lists/blocks/properties', k+'.txt'), sorted(lines))
     
     grouped = [
         'aabb_offset',
@@ -1139,7 +1131,7 @@ def listing_blocks(temp):
     all_blocks = [
         'type',
     ]
-    for k,v in definitions_values.items():
+    for k,v in definitions.items():
         if k in grouped or k in all_blocks:
             if k in grouped:
                 write_lines(os.path.join(temp, 'lists/blocks/definition/groups', k+'.txt'), sorted(v.keys()))
