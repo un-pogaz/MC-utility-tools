@@ -1,4 +1,4 @@
-VERSION = (0, 20, 0)
+VERSION = (0, 21, 0)
 
 import argparse
 import glob
@@ -1039,7 +1039,9 @@ def listing_worldgen(temp):
         biomes_list(dir)
 
 def listing_blocks(temp):
-    blockstates = defaultdict(dict)
+    blockstates = defaultdict(lambda:defaultdict(set))
+    definitions = defaultdict(dict)
+    
     rj = read_json(os.path.join(temp, 'reports/blocks.json'))
     if rj:
         write_lines(os.path.join(temp, 'lists', 'block.txt'), sorted(rj.keys()))
@@ -1062,25 +1064,96 @@ def listing_blocks(temp):
             if vk == 'properties':
                 for vs in v[vk]:
                     for vv in v[vk][vs]:
-                        if vs not in blockstates[vk]:
-                            blockstates[vk][vs] = defaultdict(list)
-                        
-                        blockstates[vk][vs][vv].append(namespace(k))
-            elif vk in ['definition']:
-                blockstates[vk][name] = v[vk]
+                        blockstates[vs][vv].add(namespace(k))
+            elif vk == 'definition':
+                definitions[name] = v[vk]
             else:
-                raise NotImplementedError(f'BlockStates "{vk}" not implemented.')
+                raise NotImplementedError(f'Block element "{vk}" not implemented.')
     
-    for k,v in blockstates.items():
-        for kk,vv in v.items():
-            if k == 'properties':
-                lines = []
-                for zk,zv in vv.items():
-                    lines.extend(zv)
-                    write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(set(zv)))
-                write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'.txt'), sorted(set(lines)))
+    for kk,vv in blockstates.items():
+        lines = set()
+        for zk,zv in vv.items():
+            lines.update(zv)
+            write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'='+zk+'.txt'), sorted(zv))
+        write_lines(os.path.join(temp, 'lists/blocks/properties', kk+'.txt'), sorted(lines))
+    
+    def no_end_0(num):
+        return str(num).removesuffix('.0')
+    def mcrange(name, entry):
+        if test_type(entry, 'constant'):
+            return no_end_0(entry['value'])
+        if test_type(entry, 'uniform'):
+            min = entry.get('min_inclusive')
+            if min is None:
+                min = entry['value']['min_inclusive']
+            max = entry.get('max_inclusive')
+            if max is None:
+                max = entry['value']['max_inclusive']
+            return no_end_0(min)+'..'+no_end_0(max)
+        raise NotImplementedError(f'Block definition of "{name}" has not implemented "{entry['type']}" type value.')
+    def parse_value(block_name, name, value):
+        not_implemented = NotImplementedError(f'Block definition of "{block_name}" has not implemented "{name}" properties.')
+        if isinstance(value, bool):
+            return str(value).lower()
+        if isinstance(value, (str, int, float)):
+            return no_end_0(value)
+        if name in ['experience']:
+            return mcrange(name, value)
+        if name == 'base_state':
+            if len(value) != 1:
+                raise not_implemented
+            return value['Name']
+        if name == 'suspicious_stew_effects':
+            return ', '.join("{} ({} ticks)".format(e['id'], e.get('duration', 160)) for e in value)
+        if name == 'properties':
+            if value:
+                raise not_implemented
             else:
-                write_json(os.path.join(temp, 'lists/blocks', k, kk+'.json'), vv, sort_keys=True)
+                return
+        raise not_implemented
+    
+    definitions_values = defaultdict(dict)
+    for name,content in definitions.items():
+        write_json(os.path.join(temp, 'lists/blocks/definition', name+'.json'), content, sort_keys=True)
+        for k,v in content.items():
+            value = parse_value(name, k, v)
+            if value is None:
+                continue
+            definitions_values[k][namespace(name)] = value
+    
+    grouped = [
+        'aabb_offset',
+        'block_set_type',
+        'color',
+        'fire_damage',
+        'height',
+        'interactions',
+        'kind',
+        'max_weight',
+        'precipitation',
+        'ticks_to_stay_pressed',
+        'weathering_state',
+        'wood_type',
+        'spawn_particles',
+    ]
+    all_blocks = [
+        'type',
+    ]
+    for k,v in definitions_values.items():
+        if k in grouped or k in all_blocks:
+            if k in grouped:
+                write_lines(os.path.join(temp, 'lists/blocks/definition/groups', k+'.txt'), sorted(v.keys()))
+            dic = defaultdict(set)
+            for kk,vv in v.items():
+                dic[vv].add(kk)
+            for kk,vv in dic.items():
+                if k in all_blocks:
+                    write_lines(os.path.join(temp, 'lists/blocks/definition', k, flatering(kk)+'.txt'), sorted(vv))
+                else:
+                    write_lines(os.path.join(temp, 'lists/blocks/definition/groups', k+'='+kk+'.txt'), sorted(vv))
+        else:
+            lines = [f'{kk}  = {vv}' for kk,vv in v.items()]
+            write_lines(os.path.join(temp, 'lists/blocks/definition/values', k+'.txt'), sorted(lines))
 
 def listing_items(temp):
     itemstates = defaultdict(dict)
