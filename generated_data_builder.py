@@ -1,4 +1,4 @@
-VERSION = (0, 21, 0)
+VERSION = (0, 21, 1)
 
 import argparse
 import glob
@@ -553,7 +553,7 @@ def listing_advancements(temp):
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'assets/minecraft/advancements' # old
     entries: dict[str, Advancement] = {}
-    tree_child = defaultdict(list)
+    tree_child = defaultdict(set)
     recipes = set()
     tags = set()
     for dp in get_datapack_paths(temp):
@@ -565,7 +565,7 @@ def listing_advancements(temp):
                 continue
             
             entries[advc.full_name] = advc
-            tree_child[advc.parent].append(advc.full_name)
+            tree_child[advc.parent].add(advc.full_name)
         
         tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancements'), is_tag=True))
     
@@ -586,7 +586,7 @@ def listing_advancements(temp):
     languages_json = get_languages_json(temp)
     
     for k in tree_child.keys():
-        tree_child[k].sort()
+        tree_child[k] = list(sorted(tree_child[k]))
     
     def read_tree(full_name: str, parent_tree: dict):
         advc = entries[full_name]
