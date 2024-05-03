@@ -366,13 +366,15 @@ def write_serialize_nbt(temp):
 
 
 def flatering(name) -> str:
-    return name.split(':', maxsplit=2)[-1].replace('\\', '/')
+    return ('#' if name.startswith('#') else '')+name.split(':', maxsplit=1)[-1].replace('\\', '/')
 def filename(name) -> str:
     return flatering(os.path.splitext(name)[0])
 def namespace(name, ns=None) -> str:
     ns = (ns or 'minecraft').lower()
     if ':' in name:
-        ns = name.split(':', maxsplit=2)[0]
+        split = name.split(':', maxsplit=1)
+        ns = split[0]
+        name = split[1]
     return ns+':'+flatering(name)
 
 def test_n(entry, n, target_type) -> bool:
