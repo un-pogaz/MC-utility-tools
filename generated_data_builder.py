@@ -1126,7 +1126,7 @@ def listing_blocks(temp):
                 for kk,vv in v.items():
                     value = parse_value(name, kk, vv)
                     if value is not None:
-                        definitions[k][namespace(name)] = value
+                        definitions[kk][namespace(name)] = value
             else:
                 raise NotImplementedError(f'Block element "{k}" not implemented.')
     
