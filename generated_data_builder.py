@@ -1455,8 +1455,6 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_registries,
     listing_tags,
     listing_sounds,
-    listing_sounds,
-    listing_languages,
     listing_languages,
     listing_assets_txt,
     listing_assets,
