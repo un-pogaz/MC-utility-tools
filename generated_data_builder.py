@@ -1,4 +1,4 @@
-VERSION = (0, 21, 1)
+VERSION = (0, 22, 0)
 
 import argparse
 import glob
@@ -782,13 +782,14 @@ def listing_loot_tables(temp):
                 comment.append('explosion decay')
             
             if test_function(e, 'enchant_randomly'):
-                enchantments = e.get('enchantments', None)
-                if enchantments is None:
-                    enchantments = '*'
-                elif len(enchantments) == 1:
-                    enchantments = flatering(enchantments[0])
+                enchantments = e.get('options') or e.get('enchantments', '*')
+                if isinstance(enchantments, str):
+                    enchantments = [enchantments]
+                enchantments = [flatering(x) for x in enchantments]
+                if len(enchantments) == 1:
+                    enchantments = enchantments[0]
                 else:
-                    enchantments = '['+', '.join(flatering(echt) for echt in enchantments)+']'
+                    enchantments = '['+', '.join(enchantments)+']'
                 comment.append('enchantments: '+ enchantments)
             if test_function(e, 'enchant_with_levels'):
                 levels = []
@@ -799,6 +800,15 @@ def listing_loot_tables(temp):
                     levels.append('levels: '+str(range))
                 if e.get('treasure', False):
                     levels.append('treasure: true')
+                enchantments = e.get('options')
+                if enchantments is not None:
+                    if isinstance(enchantments, str):
+                        enchantments = [enchantments]
+                    enchantments = [flatering(x) for x in enchantments]
+                    if len(enchantments) == 1:
+                        levels.append(enchantments[0])
+                    else:
+                        levels.append('['+', '.join(enchantments)+']')
                 comment.append('enchantments: '+ '{'+ ', '.join(levels) +'}')
             if test_function(e, 'set_enchantments'):
                 enchantments = e.get('enchantments', None)
@@ -806,6 +816,9 @@ def listing_loot_tables(temp):
                     pass
                 else:
                     comment.append('enchantments: '+ ', '.join(flatering(k) for k,v in enchantments.items() if v))
+            
+            if test_function(e, 'looting_enchant') or test_function(e, 'enchanted_count_increase'):
+                comment.append('add drop: '+ mcrange(name, e['count'])+' * level {enchantment: '+flatering(e.get('enchantment', 'looting'))+'}')
             
             if test_function(e, 'exploration_map'):
                 comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
@@ -837,9 +850,18 @@ def listing_loot_tables(temp):
         for e in entry.get('conditions', []):
             if test_condition(e, 'killed_by_player'):
                 comment.append('killed by player')
-            if test_condition(e, 'random_chance') or test_condition(e, 'random_chance_with_looting'):
+            if test_condition(e, 'random_chance'):
                 comment.append('random chance: '+no_end_0(e['chance'])+'%')
-        
+            if test_condition(e, 'random_chance_with_looting'):
+                chance = no_end_0(e['chance'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
+                comment.append('random chance {enchantment: looting}: '+chance)
+            if test_condition(e, 'random_chance_with_enchanted_bonus'):
+                chance = e['chance']
+                if test_type(chance, 'linear'):
+                    chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
+                else:
+                    raise TypeError("Unknow level-based value type '{}' in loot_tables '{}'".format(chance['type'], name))
+                comment.append('random chance {enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
         
         return ', '.join(comment)
     
