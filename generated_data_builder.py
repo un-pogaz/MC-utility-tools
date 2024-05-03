@@ -1351,6 +1351,33 @@ def listing_registries(temp):
         
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
 
+def listing_paintings(temp):
+    languages_json = get_languages_json(temp)
+    lst_namespace, _ = get_sub_folder_data(temp)
+    paintings = defaultdict(lambda:defaultdict(set))
+    for ns in lst_namespace:
+        for dp in get_datapack_paths(temp):
+            dir = os.path.join(temp, dp, 'data', ns, 'painting_variant')
+            for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+                name = filename(file)
+                ns_name = namespace(name)
+                lng_id = '.'.join(['painting', ns, name])
+                j = read_json(os.path.join(dir, file))
+                author = languages_json.get(lng_id+'.author', lng_id+'.author')
+                size = f'{j['width']}x{j['height']}'
+                paintings['authors'][author].add(ns_name)
+                paintings['sizes'][size].add(ns_name)
+                lines = []
+                lines.append('texture: '+ namespace(j['asset_id']))
+                lines.append('name: '+ languages_json.get(lng_id+'.title', lng_id+'.title'))
+                lines.append('author: '+ author)
+                lines.append('size: '+ size)
+                write_lines(os.path.join(temp, 'lists/paintings', name)+'.txt', lines)
+    
+    for k,v in paintings.items():
+        for kk,vv in v.items():
+            write_lines(os.path.join(temp, 'lists/paintings', k, kk)+'.txt', sorted(vv))
+
 def listing_tags(temp):
     entries = set()
     for dp in get_datapack_paths(temp):
@@ -1475,6 +1502,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_worldgen,
     listing_blocks,
     listing_items,
+    listing_paintings,
     listing_commands,
     listing_registries,
     listing_tags,
