@@ -851,7 +851,7 @@ def listing_loot_tables(temp):
             if test_condition(e, 'killed_by_player'):
                 comment.append('killed by player')
             if test_condition(e, 'random_chance'):
-                comment.append('random chance: '+no_end_0(e['chance'])+'%')
+                comment.append('random chance: '+mcrange(name, e['chance'])+'%')
             if test_condition(e, 'random_chance_with_looting'):
                 chance = no_end_0(e['chance'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
                 comment.append('random chance {enchantment: looting}: '+chance)
