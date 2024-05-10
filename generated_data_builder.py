@@ -1,4 +1,4 @@
-VERSION = (0, 22, 0)
+VERSION = (0, 22, 1)
 
 import argparse
 import glob
@@ -472,7 +472,7 @@ def uniform_reports(temp):
     items_json = os.path.join(temp, 'reports/items.json')
     j = read_json(items_json)
     for k in j.keys():
-        if 'components' in j[k]:
+        if 'components' in j[k] and isinstance(j[k]['components'], list):
             j[k]['components'] = list(sorted(j[k]['components'], key=lambda x: x['type']))
     if j:
         write_json(items_json, j)
@@ -1172,7 +1172,7 @@ def listing_blocks(temp):
             write_lines(os.path.join(temp, 'lists/blocks/definition/values', k+'.txt'), sorted(lines))
 
 def listing_items(temp):
-    itemstates = defaultdict(dict)
+    itemstates = defaultdict(lambda:defaultdict(dict))
     rj = read_json(os.path.join(temp, 'reports/items.json'))
     if rj:
         write_lines(os.path.join(temp, 'lists', 'item.txt'), sorted(rj.keys()))
@@ -1181,19 +1181,21 @@ def listing_items(temp):
         
         v.pop('protocol_id', None)
         if v:
-            vc = list(sorted(v.get('components', []), key=lambda x: x['type']))
-            if vc:
-                v['components'] = vc
+            vc = v.get('components', None)
+            if isinstance(vc, list):
+                v['components'] = list(sorted(vc, key=lambda x: x['type']))
             write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
         
         for vk in v:
             if vk == 'components':
-                for vs in v[vk]:
-                    type = flatering(vs['type'])
-                    if type not in itemstates[vk]:
-                        itemstates[vk][type] = defaultdict(dict)
-                    
-                    itemstates[vk][type][namespace(k)] = vs['value']
+                if isinstance(v[vk], list):
+                    for vs in v[vk]:
+                        type = flatering(vs['type'])
+                        itemstates[vk][type][namespace(k)] = vs['value']
+                else:
+                    for type,value in v[vk].items():
+                        type = flatering(type)
+                        itemstates[vk][type][namespace(k)] = value
             else:
                 raise NotImplementedError(f'ItemStates "{vk}" not implemented.')
     
