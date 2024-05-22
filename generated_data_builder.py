@@ -350,9 +350,11 @@ def get_datapack_paths(temp) -> list[tuple[str,str]]:
     return rslt
 
 def get_structures_dir(temp) -> str:
-    dir = 'data/minecraft/structures'
+    dir = 'data/minecraft/structure'
     if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'assets/minecraft/structures' # old
+        dir = 'data/minecraft/structures' # old
+        if not os.path.exists(os.path.join(temp, dir)):
+            dir = 'assets/minecraft/structures' # legacy
     return dir
 
 def write_serialize_nbt(temp):
@@ -461,8 +463,11 @@ def get_sub_folder_assets(temp) -> tuple[list[str], list[str]]:
 def get_sub_folder_data(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
         'advancements',
+        'advancement',
         'datapacks',
+        'datapack',
         'loot_tables',
+        'loot_table',
         'tags',
         'worldgen',
     ]
@@ -493,7 +498,7 @@ def listing_structures(temp):
     for dp in get_datapack_paths(temp):
         lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, dp), recursive=True)])
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'structures.nbt.txt'), sorted(lines))
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.nbt.txt'), sorted(lines))
 
 class Advancement():
     def __init__(self, file: str, json: dict):
@@ -551,9 +556,11 @@ class Advancement():
         self.hidden = display.get('hidden', False)
 
 def listing_advancements(temp):
-    dir = 'data/minecraft/advancements'
+    dir = 'data/minecraft/advancement'
     if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'assets/minecraft/advancements' # old
+        dir = 'data/minecraft/advancements' # old
+        if not os.path.exists(os.path.join(temp, dir)):
+            dir = 'assets/minecraft/advancements' # legacy
     entries: dict[str, Advancement] = {}
     tree_child = defaultdict(set)
     recipes = set()
@@ -681,9 +688,11 @@ def listing_loot_tables(temp):
     def test_condition(entry, target_type):
         return test_n(entry,'condition', namespace(target_type))
     
-    dir = 'data/minecraft/loot_tables'
-    if not os.path.exists(os.path.join(temp, 'data/minecraft/loot_tables')):
-        dir = 'assets/minecraft/loot_tables' # old
+    dir = 'data/minecraft/loot_table'
+    if not os.path.exists(os.path.join(temp, dir)):
+        dir = 'data/minecraft/loot_tables' # old
+        if not os.path.exists(os.path.join(temp, dir)):
+            dir = 'assets/minecraft/loot_tables' # legacy
     
     def get_simple(name, entry):
         def convert(item):
