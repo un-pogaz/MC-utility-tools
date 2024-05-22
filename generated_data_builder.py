@@ -1371,7 +1371,7 @@ def listing_paintings(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'painting_variant')
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
-                ns_name = namespace(name)
+                ns_name = namespace(name, ns=ns)
                 lng_id = '.'.join(['painting', ns, name])
                 j = read_json(os.path.join(dir, file))
                 author = languages_json.get(lng_id+'.author', lng_id+'.author')
