@@ -1,4 +1,4 @@
-VERSION = (0, 22, 1)
+VERSION = (0, 23, 0)
 
 import argparse
 import glob
@@ -1389,6 +1389,51 @@ def listing_paintings(temp):
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/paintings', k, kk)+'.txt', sorted(vv))
 
+def listing_jukebox_songs(temp):
+    languages_json = get_languages_json(temp)
+    lst_namespace, _ = get_sub_folder_data(temp)
+    jukebox_songs = defaultdict(lambda:defaultdict(set))
+    
+    def seconds_to_length(seconds):
+        hour = int(seconds // 3600)
+        if hour:
+            seconds = seconds - (3600 * hour)
+        minute = int(seconds // 60)
+        if minute:
+            seconds = seconds - (60 * minute)
+        seconds = int(round(seconds))
+        
+        return ''.join([
+            f'{hour}h ' if hour else '',
+            f'{minute}m ' if minute else '',
+            f'{seconds}s' if seconds or minute or hour else '>1s',
+        ])
+    
+    for ns in lst_namespace:
+        for dp in get_datapack_paths(temp):
+            dir = os.path.join(temp, dp, 'data', ns, 'jukebox_song')
+            for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+                name = filename(file)
+                ns_name = namespace(name, ns=ns)
+                lng_id = '.'.join(['jukebox_song', ns, name])
+                j = read_json(os.path.join(dir, file))
+                desc = languages_json.get(lng_id, lng_id)
+                if ' - ' in desc:
+                    author, title = desc.split(' - ', maxsplit=1)
+                else:
+                    raise ValueError(f"The jukebox_song '{name}' don't have 'author - title' pairs")
+                jukebox_songs['authors'][author].add(ns_name)
+                jukebox_songs['comparator_output'][str(j['comparator_output'])].add(ns_name)
+                lines = []
+                lines.append('title: '+ title)
+                lines.append('author: '+ author)
+                lines.append('length: '+ seconds_to_length(j['length_in_seconds']))
+                write_lines(os.path.join(temp, 'lists/jukebox_songs', name)+'.txt', lines)
+    
+    for k,v in jukebox_songs.items():
+        for kk,vv in v.items():
+            write_lines(os.path.join(temp, 'lists/jukebox_songs', k, kk)+'.txt', sorted(vv))
+
 def listing_tags(temp):
     entries = set()
     for dp in get_datapack_paths(temp):
@@ -1514,6 +1559,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_blocks,
     listing_items,
     listing_paintings,
+    listing_jukebox_songs,
     listing_commands,
     listing_registries,
     listing_tags,
