@@ -1,4 +1,4 @@
-VERSION = (0, 23, 0)
+VERSION = (0, 23, 1)
 
 import argparse
 import glob
@@ -1415,9 +1415,11 @@ def listing_jukebox_songs(temp):
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
                 ns_name = namespace(name, ns=ns)
-                lng_id = '.'.join(['jukebox_song', ns, name])
                 j = read_json(os.path.join(dir, file))
-                desc = languages_json.get(lng_id, lng_id)
+                desc = j['description']
+                if isinstance(desc, dict):
+                    desc = desc['translate']
+                    desc = languages_json.get(desc, desc)
                 if ' - ' in desc:
                     author, title = desc.split(' - ', maxsplit=1)
                 else:
