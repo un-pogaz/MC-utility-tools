@@ -1,4 +1,4 @@
-VERSION = (0, 23, 1)
+VERSION = (0, 23, 2)
 
 import argparse
 import glob
@@ -865,12 +865,17 @@ def listing_loot_tables(temp):
                 chance = no_end_0(e['chance'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
                 comment.append('random chance {enchantment: looting}: '+chance)
             if test_condition(e, 'random_chance_with_enchanted_bonus'):
-                chance = e['chance']
+                chance = e.get('enchanted_chance') or e['chance']
                 if test_type(chance, 'linear'):
                     chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
                 else:
                     raise TypeError("Unknow level-based value type '{}' in loot_tables '{}'".format(chance['type'], name))
-                comment.append('random chance {enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
+                unenchanted_chance = e.get('unenchanted_chance')
+                if unenchanted_chance is not None:
+                    unenchanted_chance = no_end_0(unenchanted_chance)+'%|'
+                else:
+                    unenchanted_chance = ''
+                comment.append('random chance '+unenchanted_chance+'{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
         
         return ', '.join(comment)
     
