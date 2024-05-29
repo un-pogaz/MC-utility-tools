@@ -1,4 +1,4 @@
-VERSION = (0, 23, 2)
+VERSION = (0, 24, 0)
 
 import argparse
 import glob
@@ -1281,6 +1281,11 @@ def listing_items(temp):
                         if _test_value(v):
                             write_json(os.path.join(temp, 'lists/items/components', t, flatering(n)+'.json'), v)
 
+def listing_packets(temp):
+    for k,tv in read_json(os.path.join(temp, 'reports/packets.json')).items():
+        for t,v in tv.items():
+            write_lines(os.path.join(temp, 'lists/packets', k, t+'.txt'), sorted([namespace(e) for e in v.keys()]))
+
 def listing_commands(temp):
     lines = set()
     
@@ -1565,6 +1570,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_worldgen,
     listing_blocks,
     listing_items,
+    listing_packets,
     listing_paintings,
     listing_jukebox_songs,
     listing_commands,
