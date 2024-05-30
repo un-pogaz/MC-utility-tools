@@ -1,4 +1,4 @@
-VERSION = (0, 24, 0)
+VERSION = (0, 24, 1)
 
 import argparse
 import glob
@@ -8,9 +8,9 @@ from collections import OrderedDict, defaultdict
 from typing import Callable
 
 from common import (
-    find_output, get_latest, hash_test, make_dirname, read_json, read_lines,
+    find_output, get_latest, hash_test, make_dirname,
     read_manifest_json, run_animation, safe_del, urlretrieve, version_path,
-    write_json, write_lines,
+    read_json, read_lines, read_text, write_json, write_lines,
 )
 
 parser = argparse.ArgumentParser()
@@ -475,11 +475,11 @@ def get_sub_folder_data(temp) -> tuple[list[str], list[str]]:
 
 def uniform_reports(temp):
     items_json = os.path.join(temp, 'reports/items.json')
-    j = read_json(items_json)
-    for k in j.keys():
-        if 'components' in j[k] and isinstance(j[k]['components'], list):
-            j[k]['components'] = list(sorted(j[k]['components'], key=lambda x: x['type']))
-    if j:
+    if os.path.exists(items_json) and '"components": [' in read_text(items_json):
+        j = read_json(items_json)
+        for k in j.keys():
+            if 'components' in j[k] and isinstance(j[k]['components'], list):
+                j[k]['components'] = list(sorted(j[k]['components'], key=lambda x: x['type']))
         write_json(items_json, j)
     
     for j in glob.iglob('reports/*.json', root_dir=temp, recursive=False):
