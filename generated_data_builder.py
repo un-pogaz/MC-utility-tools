@@ -1,4 +1,4 @@
-VERSION = (0, 24, 1)
+VERSION = (0, 24, 2)
 
 import argparse
 import glob
@@ -577,12 +577,13 @@ def listing_advancements(temp):
             tree_child[advc.parent].add(advc.full_name)
         
         tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancements'), is_tag=True))
+        tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancement'), is_tag=True))
     
     lines = sorted(entries.keys()) + sorted(tags)
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'advancements.txt'), sorted(lines))
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
     if recipes:
-        write_lines(os.path.join(temp, 'lists', 'advancements.recipes.txt'), sorted(recipes))
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.recipes.txt'), sorted(recipes))
     
     # advancement.tree
     lines = []
@@ -640,9 +641,9 @@ def listing_advancements(temp):
     strip_list(lines)
     
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'advancements.tree.txt'), lines)
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.tree.txt'), lines)
     if tree:
-        write_json(os.path.join(temp, 'lists', 'advancements.tree.json'), tree)
+        write_json(os.path.join(temp, 'lists', os.path.basename(dir)+'.tree.json'), tree)
 
 def listing_subdir_reports(temp):
     # subdir /reports/
