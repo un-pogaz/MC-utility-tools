@@ -1,4 +1,4 @@
-VERSION = (0, 24, 2)
+VERSION = (0, 25, 0)
 
 import argparse
 import glob
@@ -863,20 +863,17 @@ def listing_loot_tables(temp):
             if test_condition(e, 'random_chance'):
                 comment.append('random chance: '+mcrange(name, e['chance'])+'%')
             if test_condition(e, 'random_chance_with_looting'):
-                chance = no_end_0(e['chance'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
-                comment.append('random chance {enchantment: looting}: '+chance)
+                unenchanted_chance = no_end_0(e['chance'])+'%'
+                chance = no_end_0(e['chance']+e['looting_multiplier'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
+                comment.append('random chance: '+unenchanted_chance+'|{enchantment: looting}: '+ chance)
             if test_condition(e, 'random_chance_with_enchanted_bonus'):
                 chance = e.get('enchanted_chance') or e['chance']
                 if test_type(chance, 'linear'):
                     chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
                 else:
                     raise TypeError("Unknow level-based value type '{}' in loot_tables '{}'".format(chance['type'], name))
-                unenchanted_chance = e.get('unenchanted_chance')
-                if unenchanted_chance is not None:
-                    unenchanted_chance = no_end_0(unenchanted_chance)+'%|'
-                else:
-                    unenchanted_chance = ''
-                comment.append('random chance '+unenchanted_chance+'{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
+                unenchanted_chance = no_end_0(e.get('unenchanted_chance') or e.get('chance', {}).get('base', 0))+'%'
+                comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
         
         return ', '.join(comment)
     
