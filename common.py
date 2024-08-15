@@ -103,9 +103,7 @@ def write_lines(path, lines):
         if len(lines) == 0:
             f.write('')
         else:
-            for l in lines[:-1]:
-                f.write(l+'\n')
-            f.write(lines[-1])
+            f.write('\n'.join(lines))
 
 
 def safe_del(path):
