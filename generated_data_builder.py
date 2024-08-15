@@ -1433,6 +1433,7 @@ def listing_jukebox_songs(temp):
                 jukebox_songs['authors'][author].add(ns_name)
                 jukebox_songs['comparator_output'][str(j['comparator_output'])].add(ns_name)
                 lines = []
+                lines.append('sound_event: '+ namespace(j['sound_event']))
                 lines.append('title: '+ title)
                 lines.append('author: '+ author)
                 lines.append('length: '+ seconds_to_length(j['length_in_seconds']))
