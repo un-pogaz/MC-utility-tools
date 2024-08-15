@@ -1305,6 +1305,27 @@ def listing_packets(temp):
         for t,v in tv.items():
             write_lines(os.path.join(temp, 'lists/packets', k, t+'.txt'), sorted([namespace(e) for e in v.keys()]))
 
+def listing_datapacks(temp):
+    values = defaultdict(set)
+    
+    for k,tv in read_json(os.path.join(temp, 'reports/datapack.json')).items():
+        for t,v in tv.items():
+            t = namespace(t)
+            values['all'].add(t)
+            values[k].add(t)
+            name = filename(t)
+            for kk,vv in v.items():
+                key = '/'.join([
+                    'value',
+                    str(vv).lower()+'/' if not isinstance(vv, str) else '',
+                    kk,
+                ])
+                values[key].add(t + (f'  = {vv}' if isinstance(vv, str) else ''))
+            write_json(os.path.join(temp, 'lists/datapacks', k, name)+'.json', v)
+    
+    for k,v in values.items():
+        write_lines(os.path.join(temp, 'lists/datapacks', k)+'.txt', sorted(v))
+
 def listing_commands(temp):
     lines = set()
     
@@ -1594,6 +1615,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_blocks,
     listing_items,
     listing_packets,
+    listing_datapacks,
     listing_paintings,
     listing_jukebox_songs,
     listing_instruments,
