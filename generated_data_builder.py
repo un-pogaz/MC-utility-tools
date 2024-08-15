@@ -417,14 +417,14 @@ def parse_languages_lang(path) -> dict[str, str]:
         rslt[split[0]] = split[1]
     return rslt
 
-def parse_json_text(json_text, languages_json=None) -> str:
-    if isinstance(json_text, str):
+def parse_json_text(json_text, languages_json=None) -> str|None:
+    if json_text is None or isinstance(json_text, str):
         return json_text
     
     if isinstance(json_text, dict):
         if 'translate' in json_text:
             translate = json_text['translate']
-            return (languages_json or {}).get(translate, translate)
+            return (languages_json or {}).get(translate) or json_text.get('fallback') or translate
         
         if 'text' in json_text:
             return json_text['text']
@@ -1381,13 +1381,14 @@ def listing_paintings(temp):
                 ns_name = namespace(name, ns=ns)
                 lng_id = '.'.join(['painting', ns, name])
                 j = read_json(os.path.join(dir, file))
-                author = languages_json.get(lng_id+'.author', lng_id+'.author')
+                title = parse_json_text(j.get('title'), languages_json) or languages_json.get(lng_id+'.title') or lng_id+'.title'
+                author = parse_json_text(j.get('author'), languages_json) or languages_json.get(lng_id+'.author') or lng_id+'.author'
                 size = f'{j['width']}x{j['height']}'
                 paintings['authors'][author].add(ns_name)
                 paintings['sizes'][size].add(ns_name)
                 lines = []
                 lines.append('texture: '+ namespace(j['asset_id']))
-                lines.append('name: '+ languages_json.get(lng_id+'.title', lng_id+'.title'))
+                lines.append('name: '+ title)
                 lines.append('author: '+ author)
                 lines.append('size: '+ size)
                 write_lines(os.path.join(temp, 'lists/paintings', name)+'.txt', lines)
@@ -1422,11 +1423,9 @@ def listing_jukebox_songs(temp):
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
                 ns_name = namespace(name, ns=ns)
+                lng_id = '.'.join(['jukebox_song', ns, name])
                 j = read_json(os.path.join(dir, file))
-                desc = j['description']
-                if isinstance(desc, dict):
-                    desc = desc['translate']
-                    desc = languages_json.get(desc, desc)
+                desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
                 if ' - ' in desc:
                     author, title = desc.split(' - ', maxsplit=1)
                 else:
