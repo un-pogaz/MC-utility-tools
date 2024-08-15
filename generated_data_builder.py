@@ -434,6 +434,9 @@ def parse_json_text(json_text, languages_json=None) -> str:
     
     raise ValueError('Unknow json_text format')
 
+def no_end_0(num):
+    return str(num).removesuffix('.0')
+
 def strip_list(lst: list):
     while lst and not lst[-1]:
         lst.pop(-1)
@@ -738,8 +741,6 @@ def listing_loot_tables(temp):
         
         raise TypeError("Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
     
-    def no_end_0(num):
-        return str(num).removesuffix('.0')
     def mcrange(name, entry, limit=None):
         if isinstance(entry, dict):
             
@@ -1075,8 +1076,6 @@ def listing_worldgen(temp):
         biomes_list(dir)
 
 def listing_blocks(temp):
-    def no_end_0(num):
-        return str(num).removesuffix('.0')
     def mcrange(name, entry):
         if test_type(entry, 'constant'):
             return no_end_0(entry['value'])
