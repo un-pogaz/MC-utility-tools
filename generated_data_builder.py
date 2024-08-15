@@ -856,6 +856,9 @@ def listing_loot_tables(temp):
             if test_function(e, 'exploration_map'):
                 comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
             
+            if test_function(e, 'set_instrument'):
+                comment.append('instrument: '+ e['options'])
+            
             if test_function(e, 'set_potion'):
                 if not test_n(e, 'id', 'empty'):
                     id = flatering(e['id'])
