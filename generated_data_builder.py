@@ -1,4 +1,4 @@
-VERSION = (0, 25, 0)
+VERSION = (0, 26, 0)
 
 import argparse
 import glob
@@ -436,6 +436,28 @@ def parse_json_text(json_text, languages_json=None) -> str|None:
 
 def no_end_0(num):
     return str(num).removesuffix('.0')
+
+def seconds_to_human_duration(seconds):
+    seconds = round(seconds)
+    if seconds < 1:
+        return '>1s'
+    
+    hour = int(seconds // 3600)
+    if hour:
+        seconds = seconds - (3600 * hour)
+    minute = int(seconds // 60)
+    if minute:
+        seconds = seconds - (60 * minute)
+    seconds = int(seconds)
+    
+    tbl = []
+    if hour:
+        tbl.append(f'{hour}h')
+    if minute:
+        tbl.append(f'{minute}m')
+    if seconds:
+        tbl.append(f'{seconds}s')
+    return ' '.join(tbl)
 
 def strip_list(lst: list):
     while lst and not lst[-1]:
@@ -1402,21 +1424,6 @@ def listing_jukebox_songs(temp):
     lst_namespace, _ = get_sub_folder_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
     
-    def seconds_to_length(seconds):
-        hour = int(seconds // 3600)
-        if hour:
-            seconds = seconds - (3600 * hour)
-        minute = int(seconds // 60)
-        if minute:
-            seconds = seconds - (60 * minute)
-        seconds = int(round(seconds))
-        
-        return ''.join([
-            f'{hour}h ' if hour else '',
-            f'{minute}m ' if minute else '',
-            f'{seconds}s' if seconds or minute or hour else '>1s',
-        ])
-    
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'jukebox_song')
@@ -1436,12 +1443,31 @@ def listing_jukebox_songs(temp):
                 lines.append('sound_event: '+ namespace(j['sound_event']))
                 lines.append('title: '+ title)
                 lines.append('author: '+ author)
-                lines.append('length: '+ seconds_to_length(j['length_in_seconds']))
+                lines.append('length: '+ seconds_to_human_duration(j['length_in_seconds']))
                 write_lines(os.path.join(temp, 'lists/jukebox_songs', name)+'.txt', lines)
     
     for k,v in jukebox_songs.items():
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/jukebox_songs', k, kk)+'.txt', sorted(vv))
+
+def listing_instruments(temp):
+    languages_json = get_languages_json(temp)
+    lst_namespace, _ = get_sub_folder_data(temp)
+    
+    for ns in lst_namespace:
+        for dp in get_datapack_paths(temp):
+            dir = os.path.join(temp, dp, 'data', ns, 'instrument')
+            for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+                name = filename(file)
+                lng_id = '.'.join(['instrument', ns, name])
+                j = read_json(os.path.join(dir, file))
+                desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
+                lines = []
+                lines.append('sound_event: '+ namespace(j['sound_event']))
+                lines.append('description: '+ desc)
+                lines.append('range: '+ no_end_0(j['range'])+ ' block')
+                lines.append('length: '+ seconds_to_human_duration(j['use_duration']))
+                write_lines(os.path.join(temp, 'lists/instruments', name)+'.txt', lines)
 
 def listing_tags(temp):
     entries = set()
@@ -1570,6 +1596,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_packets,
     listing_paintings,
     listing_jukebox_songs,
+    listing_instruments,
     listing_commands,
     listing_registries,
     listing_tags,
