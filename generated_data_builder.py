@@ -1,4 +1,4 @@
-VERSION = (0, 26, 0)
+VERSION = (0, 27, 0)
 
 import argparse
 import glob
@@ -900,6 +900,68 @@ def listing_loot_tables(temp):
                     raise TypeError("Unknow level-based value type '{}' in loot_tables '{}'".format(chance['type'], name))
                 unenchanted_chance = no_end_0(e.get('unenchanted_chance') or e.get('chance', {}).get('base', 0))+'%'
                 comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
+            
+            if test_condition(e, 'entity_properties'):
+                predicate = e['predicate']
+                if e['entity'] == 'attacker':
+                    if 'type' in predicate:
+                        comment.append('killed by '+predicate['type'])
+                    else:
+                        raise TypeError("entity_properties contain unsuported data '{}".format(name))
+                
+                elif e['entity'] == 'this':
+                    if 'type_specific' in predicate:
+                        type_specific = predicate['type_specific']
+                        if False:
+                            pass
+                        
+                        elif test_type(type_specific, 'raider'):
+                            if type_specific['is_captain'] == True:
+                                comment.append('is captain raider')
+                        
+                        elif test_type(type_specific, 'slime'):
+                            v = type_specific['size']
+                            if isinstance(v, int):
+                                comment.append(f'size is {v}')
+                            if isinstance(v, dict):
+                                min = v.get('min')
+                                max = v.get('max')
+                                if min == max:
+                                    comment.append(f'size is {min}')
+                                else:
+                                    if min is not None and max is not None:
+                                        msg = f'size is between {min} and {max}'
+                                    if max is None:
+                                        msg = f'size is inferior {min}'
+                                    if min is None:
+                                        msg = 'size is superior {max}'
+                                comment.append(f'{msg} (inclusive)')
+                        
+                        elif test_type(type_specific, 'fishing_hook'):
+                            if type_specific['in_open_water'] == True:
+                                comment.append('is on open water')
+                        
+                        elif test_type(type_specific, 'sheep'):
+                            msg = []
+                            if 'color' in type_specific:
+                                msg.append('is '+type_specific['color']+' color')
+                            if type_specific.get('sheared') == True:
+                                msg.append('is sheared')
+                            if type_specific.get('sheared') == False:
+                                msg.append('is not sheared')
+                            comment.append(' and '.join(msg))
+                        
+                        elif test_type(type_specific, 'mooshroom'):
+                            comment.append('is '+type_specific['variant']+' variant')
+                        
+                        else:
+                            raise TypeError("Unknow type_specific '{}' in loot_tables '{}'".format(type_specific['type'], name))
+                    
+                    else:
+                        raise TypeError("entity_properties contain unsuported data '{}".format(name))
+                
+                else:
+                    raise Exception("Unknow entity origine '{}' in loot_tables '{}'".format(e['entity'], name))
         
         return ', '.join(comment)
     
