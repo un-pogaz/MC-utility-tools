@@ -748,8 +748,9 @@ def listing_loot_tables(temp):
             lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
             lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
     
+    lines.discard('minecraft:empty')
     blocks = set(e for e in lines if ':blocks/' in e)
-    lines = lines.difference(blocks)
+    lines.difference_update(blocks)
     
     if lines:
         write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
