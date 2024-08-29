@@ -946,62 +946,77 @@ def listing_loot_tables(temp):
             
             if test_condition(e, 'entity_properties'):
                 predicate = e['predicate']
-                if e['entity'] == 'attacker':
+                if e['entity'] in ['attacker','killer']:
                     if 'type' in predicate:
                         comment.append('killed by '+predicate['type'])
                     else:
                         raise TypeError("entity_properties contain unsuported data '{}".format(name))
                 
                 elif e['entity'] == 'this':
-                    if 'type_specific' in predicate:
-                        type_specific = predicate['type_specific']
-                        if False:
-                            pass
-                        
-                        elif test_type(type_specific, 'raider'):
-                            if type_specific['is_captain'] == True:
-                                comment.append('is captain raider')
-                        
-                        elif test_type(type_specific, 'slime'):
-                            v = type_specific['size']
-                            if isinstance(v, int):
-                                comment.append(f'size is {v}')
-                            if isinstance(v, dict):
-                                min = v.get('min')
-                                max = v.get('max')
-                                if min == max:
-                                    comment.append(f'size is {min}')
-                                else:
-                                    if min is not None and max is not None:
-                                        msg = f'size is between {min} and {max}'
-                                    if max is None:
-                                        msg = f'size is inferior {min}'
-                                    if min is None:
-                                        msg = 'size is superior {max}'
-                                comment.append(f'{msg} (inclusive)')
-                        
-                        elif test_type(type_specific, 'fishing_hook'):
-                            if type_specific['in_open_water'] == True:
-                                comment.append('is on open water')
-                        
-                        elif test_type(type_specific, 'sheep'):
-                            msg = []
-                            if 'color' in type_specific:
-                                msg.append('is '+type_specific['color']+' color')
-                            if type_specific.get('sheared') == True:
-                                msg.append('is sheared')
-                            if type_specific.get('sheared') == False:
-                                msg.append('is not sheared')
-                            comment.append(' and '.join(msg))
-                        
-                        elif test_type(type_specific, 'mooshroom'):
-                            comment.append('is '+type_specific['variant']+' variant')
-                        
-                        else:
-                            raise TypeError("Unknow type_specific '{}' in loot_tables '{}'".format(type_specific['type'], name))
+                    def _raider(predicate):
+                        if predicate['is_captain'] == True:
+                            comment.append('is captain raider')
                     
+                    def _slime(predicate):
+                        v = predicate['size']
+                        if isinstance(v, int):
+                            comment.append(f'size is {v}')
+                        if isinstance(v, dict):
+                            min = v.get('min')
+                            max = v.get('max')
+                            if min == max:
+                                comment.append(f'size is {min}')
+                            else:
+                                if min is not None and max is not None:
+                                    msg = f'size is between {min} and {max}'
+                                if max is None:
+                                    msg = f'size is inferior {min}'
+                                if min is None:
+                                    msg = 'size is superior {max}'
+                            comment.append(f'{msg} (inclusive)')
+                    
+                    def _fishing_hook(predicate):
+                        if predicate['in_open_water'] == True:
+                            comment.append('is on open water')
+                    
+                    def _sheep(predicate):
+                        msg = []
+                        if 'color' in predicate:
+                            msg.append('is '+predicate['color']+' color')
+                        if predicate.get('sheared') == True:
+                            msg.append('is sheared')
+                        if predicate.get('sheared') == False:
+                            msg.append('is not sheared')
+                        comment.append(' and '.join(msg))
+                    
+                    def _mooshroom(predicate):
+                        comment.append('is '+predicate['variant']+' variant')
+                    
+                    type_map = {
+                        'raider': _raider,
+                        'slime': _slime,
+                        'fishing_hook': _fishing_hook,
+                        'sheep': _sheep,
+                        'mooshroom': _mooshroom,
+                    }
+                    
+                    if 'type_specific' in predicate:
+                        type_name = flatering(predicate['type_specific']['type'])
+                        if type_name in type_map:
+                            type_map[type_name](predicate['type_specific'])
+                        else:
+                            raise TypeError("Unknow type_specific '{}' in loot_tables '{}'".format(predicate['type_specific']['type'], name))
+                        
                     else:
-                        raise TypeError("entity_properties contain unsuported data '{}".format(name))
+                        type_name = None
+                        for k in type_map.keys():
+                            if k in predicate:
+                                type_name = k
+                                break
+                        if type_name:
+                            type_map[type_name](predicate[type_name])
+                        else:
+                            raise TypeError("entity_properties contain unsuported data '{}".format(name))
                 
                 else:
                     raise Exception("Unknow entity origine '{}' in loot_tables '{}'".format(e['entity'], name))
