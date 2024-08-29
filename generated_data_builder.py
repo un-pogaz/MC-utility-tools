@@ -730,6 +730,25 @@ def listing_loot_tables(temp):
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'assets/minecraft/loot_tables' # legacy
     
+    lst_namespace, _ = get_sub_folder_data(temp)
+    lines = set()
+    lines.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
+    
+    for ns in lst_namespace:
+        for dp in get_datapack_paths(temp):
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_tables'), ns=ns))
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
+    
+    blocks = set(e for e in lines if ':blocks/' in e)
+    lines = lines.difference(blocks)
+    
+    if lines:
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
+    if blocks:
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.blocks.txt'), sorted(blocks))
+    
     def get_simple(name, entry):
         def convert(item):
             item = namespace(item)
