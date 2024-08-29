@@ -596,29 +596,35 @@ def listing_advancements(temp):
         dir = 'data/minecraft/advancements' # old
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'assets/minecraft/advancements' # legacy
+    
+    lst_namespace, _ = get_sub_folder_data(temp)
+    lines = set()
+    lines.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
+    for ns in lst_namespace:
+        for dp in get_datapack_paths(temp):
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'), ns=ns))
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancements'), ns=ns))
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
+            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancements'), ns=ns, is_tag=True))
+    
+    recipes = set(e for e in lines if ':recipes/' in e)
+    lines = lines.difference(recipes)
+    
+    if lines:
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
+    if recipes:
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.recipes.txt'), sorted(recipes))
+    
     entries: dict[str, Advancement] = {}
     tree_child = defaultdict(set)
-    recipes = set()
-    tags = set()
     for dp in get_datapack_paths(temp):
         root_dir = os.path.join(temp, dp, dir)
         for j in glob.iglob('**/*.json', root_dir=root_dir, recursive=True):
             advc = Advancement(j, read_json(os.path.join(root_dir, j)))
             if advc.path.startswith('recipes/'):
-                recipes.add(advc.full_name)
                 continue
-            
             entries[advc.full_name] = advc
             tree_child[advc.parent].add(advc.full_name)
-        
-        tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancements'), is_tag=True))
-        tags.update(enum_json(os.path.join(temp, dp, 'data/minecraft/tags/advancement'), is_tag=True))
-    
-    lines = sorted(entries.keys()) + sorted(tags)
-    if lines:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
-    if recipes:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.recipes.txt'), sorted(recipes))
     
     # advancement.tree
     lines = []
