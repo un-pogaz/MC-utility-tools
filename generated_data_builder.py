@@ -984,7 +984,7 @@ def listing_loot_tables(temp):
                     def _sheep(predicate):
                         msg = []
                         if 'color' in predicate:
-                            msg.append('is '+predicate['color']+' color')
+                            msg.append('is '+predicate['color'])
                         if predicate.get('sheared') == True:
                             msg.append('is sheared')
                         if predicate.get('sheared') == False:
