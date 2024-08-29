@@ -901,6 +901,10 @@ def listing_loot_tables(temp):
                 unenchanted_chance = no_end_0(e.get('unenchanted_chance') or e.get('chance', {}).get('base', 0))+'%'
                 comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
             
+            if test_condition(e, 'killer_main_hand_tool'):
+                value = e['value'].get('items') or e['value']['id']
+                comment.append('killed with main_hand tool: '+ value)
+            
             if test_condition(e, 'entity_properties'):
                 predicate = e['predicate']
                 if e['entity'] == 'attacker':
