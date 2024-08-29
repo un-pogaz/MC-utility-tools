@@ -491,6 +491,7 @@ def get_sub_folder_assets(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
         'advancements',
         'lang',
+        'loot_tables',
         'shaders',
     ]
     return _get_sub_folder(temp, 'assets', lst_exlude)
