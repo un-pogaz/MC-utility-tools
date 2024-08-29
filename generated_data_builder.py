@@ -782,6 +782,8 @@ def listing_loot_tables(temp):
                     else:
                         max = limit
                 
+                if min < 0:
+                    min = 0
                 if min != max:
                     return no_end_0(min) +'..'+ no_end_0(max)
                 else:
