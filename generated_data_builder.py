@@ -599,22 +599,26 @@ def listing_advancements(temp):
             dir = 'assets/minecraft/advancements' # legacy
     
     lst_namespace, _ = get_sub_folder_data(temp)
-    lines = set()
-    lines.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
+    entries = set()
+    tags = set()
+    entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'), ns=ns))
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancements'), ns=ns))
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancements'), ns=ns, is_tag=True))
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'), ns=ns))
+            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
+            # legacy
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancements'), ns=ns))
+            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancements'), ns=ns, is_tag=True))
     
-    recipes = set(e for e in lines if ':recipes/' in e)
-    lines = lines.difference(recipes)
+    recipes = set(e for e in entries if ':recipes/' in e)
+    entries.difference_update(recipes)
+    tags_recipes = set(e for e in tags if ':recipes/' in e)
+    tags.difference_update(tags_recipes)
     
-    if lines:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
+    if entries:
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(entries) + sorted(tags))
     if recipes:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.recipes.txt'), sorted(recipes))
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.recipes.txt'), sorted(recipes) + sorted(tags_recipes))
     
     entries: dict[str, Advancement] = {}
     tree_child = defaultdict(set)
@@ -738,24 +742,27 @@ def listing_loot_tables(temp):
             dir = 'assets/minecraft/loot_tables' # legacy
     
     lst_namespace, _ = get_sub_folder_data(temp)
-    lines = set()
-    lines.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
-    
+    entries = set()
+    tags = set()
+    entries.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_tables'), ns=ns))
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
-            lines.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
+            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
+            # legacy
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
+            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
     
-    lines.discard('minecraft:empty')
-    blocks = set(e for e in lines if ':blocks/' in e)
-    lines.difference_update(blocks)
+    entries.discard('minecraft:empty')
+    blocks = set(e for e in entries if ':blocks/' in e)
+    entries.difference_update(blocks)
+    tags_blocks = set(e for e in tags if ':blocks/' in e)
+    tags.difference_update(tags_blocks)
     
-    if lines:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
+    if entries:
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(entries) + sorted(tags))
     if blocks:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.blocks.txt'), sorted(blocks))
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.blocks.txt'), sorted(blocks) + sorted(tags_blocks))
     
     def get_simple(name, entry):
         def convert(item):
