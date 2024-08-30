@@ -1,4 +1,4 @@
-VERSION = (0, 27, 0)
+VERSION = (0, 28, 0)
 
 import argparse
 import glob
@@ -1471,12 +1471,12 @@ def listing_datapacks(temp):
             values[k].add(t)
             name = filename(t)
             for kk,vv in v.items():
-                key = '/'.join([
-                    'value',
-                    str(vv).lower()+'/' if not isinstance(vv, str) else '',
-                    kk,
-                ])
-                values[key].add(t + (f'  = {vv}' if isinstance(vv, str) else ''))
+                if isinstance(vv, bool):
+                    values['value/'+kk+'='+str(vv).lower()].add(t)
+                elif isinstance(vv, str):
+                    values['value/'+kk].add(f'{t}  = {vv}')
+                else:
+                    raise TypeError("The value '{}' of '{}' is a unknow type")
             write_json(os.path.join(temp, 'lists/datapacks', k, name)+'.json', v)
     
     for k,v in values.items():
