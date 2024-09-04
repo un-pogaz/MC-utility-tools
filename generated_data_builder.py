@@ -428,20 +428,20 @@ def parse_languages_lang(path) -> dict[str, str]:
         rslt[split[0]] = split[1]
     return rslt
 
-def parse_json_text(json_text, languages_json=None) -> str|None:
+def parse_json_text(json_text, languages_json) -> str|None:
     if json_text is None or isinstance(json_text, str):
         return json_text
     
     if isinstance(json_text, dict):
         if 'translate' in json_text:
             translate = json_text['translate']
-            return (languages_json or {}).get(translate) or json_text.get('fallback') or translate
+            return languages_json.get(translate) or json_text.get('fallback') or translate
         
         if 'text' in json_text:
             return json_text['text']
     
     if isinstance(json_text, list):
-        return ''.join([parse_json_text(e) for e in json_text])
+        return ''.join([parse_json_text(e, languages_json) for e in json_text])
     
     raise ValueError('parse_json_text(): Unknow json_text format')
 
