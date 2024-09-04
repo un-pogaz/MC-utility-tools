@@ -25,7 +25,8 @@ parser.add_argument('--no-zip', dest='zip', help='Don\'t ask for empack the fold
 parser.add_argument('-o', '--output', help='Output folder', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='Local JSON manifest file of the target version.', type=pathlib.Path)
 
-args = parser.parse_args()
+def parse_args():
+    return parser.parse_args()
 
 def main():
     from common import GITHUB_BUILDER, valide_output, valide_version, work_done
@@ -1815,4 +1816,5 @@ def listing_various_data_alt(version, temp):
 
 
 if __name__ == "__main__":
+    args = parse_args()
     main()
