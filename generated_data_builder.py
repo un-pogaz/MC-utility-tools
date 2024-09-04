@@ -1,4 +1,4 @@
-VERSION = (0, 28, 0)
+VERSION = (0, 29, 0)
 
 import argparse
 import glob
@@ -400,6 +400,10 @@ def unquoted_json(obj) -> str:
     import re
     # remove the quote around the name of the propety {name: "Value"}
     return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
+
+def str_to_json(text) -> dict|list:
+    import json
+    return json.loads(text)
 
 def enum_json(dir, is_tag=False, ns=None) -> list[str]:
     return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
@@ -1362,6 +1366,7 @@ def listing_blocks(temp):
             write_lines(os.path.join(temp, 'lists/blocks/definition/values', k+'.txt'), sorted(lines))
 
 def listing_items(temp):
+    languages_json = get_languages_json(temp)
     itemstates = defaultdict(lambda:defaultdict(dict))
     rj = read_json(os.path.join(temp, 'reports/items.json'))
     if rj:
@@ -1408,6 +1413,8 @@ def listing_items(temp):
             
             if isinstance(value, list):
                 return bool(value)
+            if isinstance(value, str):
+                return bool(value)
         return False
     
     def _text_value(value):
@@ -1424,38 +1431,58 @@ def listing_items(temp):
             return '  = ' + rslt
         return ''
     
+    def _quote_str(value):
+        return '"'+value.replace('"', '\\"')+'"'
+    
     default_components = [
         'lore',
         'enchantments',
         'repair_cost',
         'attribute_modifiers',
+        'item_model',
     ]
-    
     components_grouped_value = [
         'max_stack_size',
         'rarity',
     ]
+    components_always_json_value = [
+        'consumable',
+        'equippable',
+    ]
+    json_text_components = [
+        'item_name',
+    ]
     
-    for k,v in itemstates.items():
+    for k,kv in itemstates.items():
         if k == 'components':
-            for t,e in v.items():
-                if t in default_components:
+            for c,e in kv.items():
+                if c in json_text_components:
+                    for n,v in e.items():
+                        if isinstance(v, str):
+                            v = str_to_json(v)
+                        e[n] = _quote_str(parse_json_text(v, languages_json))
+                
+                if c in default_components:
                     lines = [n + _text_value(v) for n,v in e.items() if _test_value(v)]
+                elif c in components_always_json_value:
+                    lines = list(e.keys())
                 else:
                     lines = [n + _text_value(v) for n,v in e.items()]
                 if lines:
-                    write_lines(os.path.join(temp, 'lists/items/components', t+'.txt'), sorted(lines))
+                    write_lines(os.path.join(temp, 'lists/items/components', c+'.txt'), sorted(lines))
                 
-                if t in components_grouped_value:
+                if c in components_grouped_value:
                     dic = defaultdict(list)
                     for n,v in e.items():
                         dic[v].append(n)
                     for v,n in dic.items():
-                        write_lines(os.path.join(temp, 'lists/items/components', t, str(v)+'.txt'), sorted(set(n)))
+                        write_lines(os.path.join(temp, 'lists/items/components', c, str(v)+'.txt'), sorted(set(n)))
                 else:
                     for n,v in e.items():
-                        if _test_value(v):
-                            write_json(os.path.join(temp, 'lists/items/components', t, flatering(n)+'.json'), v)
+                        if not isinstance(v, (dict, list)):
+                            continue
+                        if _test_value(v) or (c in components_always_json_value and v):
+                            write_json(os.path.join(temp, 'lists/items/components', c, flatering(n)+'.json'), v)
 
 def listing_packets(temp):
     for k,tv in read_json(os.path.join(temp, 'reports/packets.json')).items():
