@@ -1466,13 +1466,14 @@ def listing_items(temp):
         'enchantments',
         'repair_cost',
         'attribute_modifiers',
-        'item_model',
     ]
     components_grouped_value = [
         'max_stack_size',
         'rarity',
     ]
     components_always_json_value = [
+        'tool',
+        'food',
         'consumable',
         'equippable',
     ]
