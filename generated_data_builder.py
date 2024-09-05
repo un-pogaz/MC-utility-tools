@@ -28,7 +28,7 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 def parse_args():
     return parser.parse_args()
 
-def main():
+def main(args):
     from common import GITHUB_BUILDER, valide_output, valide_version, work_done
     
     print(f'--==| Minecraft: Generated data builder {VERSION} |==--')
@@ -1843,5 +1843,4 @@ def listing_various_data_alt(version, temp):
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    main()
+    main(parse_args())
