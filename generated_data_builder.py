@@ -1,4 +1,4 @@
-VERSION = (0, 30, 0)
+VERSION = (0, 31, 0)
 
 import argparse
 import glob
@@ -1444,19 +1444,54 @@ def listing_items(temp):
                 return bool(value)
         return False
     
-    def _text_value(value):
+    def component_text_value(value):
         rslt = None
-        if not isinstance(value, (dict, list)):
-            if isinstance(value, bool) or value:
-                rslt = str(value)
+        if isinstance(value, (int, float, bool)):
+            rslt = str(value)
+        if isinstance(value, str):
+            if value:
+                rslt = value
+            else:
+                rslt = '""'
+        if isinstance(value, list):
+            if value:
+                rslt = '[[value]]'
+            else:
+                rslt = '[]'
         if isinstance(value, dict):
             sub_key = _one_key_dict(value)
-            if sub_key and not isinstance(value[sub_key], (dict, list)):
-                rslt = unquoted_json(value)
+            if sub_key:
+                if isinstance(value[sub_key], (dict, list)):
+                    if not value[sub_key]:
+                        rslt = unquoted_json(value)
+                else:
+                    rslt = unquoted_json(value)
+            if not rslt:
+                if value:
+                    rslt = '{{value}}'
+                else:
+                    rslt = '{}'
         
-        if rslt:
-            return '  = ' + rslt
-        return ''
+        if not rslt:
+            raise ValueError('listing_items(): component with a unknow type to retrive value "{}"'.format(type(value)))
+        return '  = ' + rslt
+    
+    def component_text_value_always(value):
+        rslt = None
+        if isinstance(value, list):
+            if value:
+                rslt = '[[value]]'
+            else:
+                rslt = '[]'
+        if isinstance(value, dict):
+            if value:
+                rslt = '{{value}}'
+            else:
+                rslt = '{}'
+        
+        if not rslt:
+            return component_text_value(value)
+        return '  = ' + rslt
     
     def _quote_str(value):
         return '"'+value.replace('"', '\\"')+'"'
@@ -1491,11 +1526,11 @@ def listing_items(temp):
                         e[n] = _quote_str(parse_json_text(v, languages_json))
                 
                 if c in default_components:
-                    lines = [n + _text_value(v) for n,v in e.items() if _test_value(v)]
+                    lines = [n + component_text_value(v) for n,v in e.items() if _test_value(v)]
                 elif c in components_always_json_value:
-                    lines = list(e.keys())
+                    lines = [n + component_text_value_always(v) for n,v in e.items()]
                 else:
-                    lines = [n + _text_value(v) for n,v in e.items()]
+                    lines = [n + component_text_value(v) for n,v in e.items()]
                 if lines:
                     write_lines(os.path.join(temp, 'lists/items/components', c+'.txt'), sorted(lines))
                 
