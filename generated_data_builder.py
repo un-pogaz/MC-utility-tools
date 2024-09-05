@@ -1,4 +1,4 @@
-VERSION = (0, 29, 0)
+VERSION = (0, 30, 0)
 
 import argparse
 import glob
@@ -8,8 +8,8 @@ from collections import OrderedDict, defaultdict
 from typing import Callable
 
 from common import (
-    find_output, get_latest, hash_test, make_dirname,
-    read_manifest_json, run_animation, safe_del, urlretrieve, version_path,
+    find_output, get_latest, version_path, hash_test, make_dirname,
+    read_manifest_json, run_animation, safe_del, urlretrieve, urlopen,
     read_json, read_lines, read_text, write_json, write_lines,
 )
 
@@ -125,43 +125,6 @@ def build_generated_data(args):
             urlretrieve(version_json['client'], client)
     run_animation(client_dl, 'Downloading client.jar')
     
-    global assets, assets_json
-    assets = assets_json = {}
-    
-    def write_asset(file):
-        if file in assets:
-            asset = assets[file]
-            file = os.path.join(temp,'assets',file)
-            if not hash_test(asset['hash'], file):
-                safe_del(file)
-                make_dirname(file)
-                urlretrieve(asset['url'], file)
-    
-    async def assets_dl():
-        global assets, assets_json
-        assets_json['assets'] = version_json['assets']
-        assets_json['asset_index'] = version_json['asset_index']
-        
-        assets_file = os.path.join(temp_root, 'assets.json')
-        if not hash_test(asset_sha1, assets_file):
-            safe_del(assets_file)
-            urlretrieve(version_json['asset_index'], assets_file)
-        
-        for k,v in read_json(assets_file).items():
-            if k == 'objects':
-                assets = v
-            else:
-                assets_json[k] = v
-        
-        assets = {k:assets[k] for k in sorted(assets.keys())}
-        for a in assets:
-            hash = assets[a]['hash']
-            assets[a]['url'] = 'https://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
-        
-        assets_json['objects'] = assets
-        
-    run_animation(assets_dl, 'Downloading assets.json')
-    
     
     if dt.year >= 2018:
         server = os.path.join(temp_root, 'server.jar')
@@ -190,21 +153,34 @@ def build_generated_data(args):
                         safe_del(os.path.join(temp, 'assets', entry.filename))
                         zip.extract(entry.filename, os.path.join(temp, 'assets'))
             
-            for a in ['minecraft/sounds.json', 'sounds.json', 'pack.mcmeta']:
-                write_asset(a)
-            
-            for a in assets:
-                if a.startswith('minecraft/textures'):
-                    write_asset(a)
-            
     run_animation(data_client, 'Extracting data client')
     
+    async def assets_dl():
+        assets_json = {}
+        assets_json['assets'] = version_json['assets']
+        assets_json['asset_index'] = version_json['asset_index']
+        write_json(os.path.join(temp, 'assets.json'), assets_json)
+        downloading_assets_json(temp)
+    run_animation(assets_dl, 'Downloading assets.json')
+    
+    async def assets_files_dl():
+        downloading_assets_files(temp)
+    run_animation(assets_files_dl, 'Downloading assets files')
     
     write_json(os.path.join(temp, version+'.json') , version_json)
-    write_json(os.path.join(temp, 'assets.json'), assets_json)
     
     async def listing_various():
-        for f in ['libraries', 'logs', 'tmp', 'versions', 'generated/.cache', 'generated/tmp', 'generated/assets/.mcassetsroot', 'generated/data/.mcassetsroot']:
+        tbl = [
+            'libraries',
+            'logs',
+            'tmp',
+            'versions',
+            'generated/.cache',
+            'generated/tmp',
+            'generated/assets/.mcassetsroot',
+            'generated/data/.mcassetsroot',
+        ]
+        for f in tbl:
             safe_del(os.path.join(temp_root, f))
         
         uniform_reports(temp)
@@ -239,6 +215,57 @@ def build_generated_data(args):
             shutil.move(os.path.join(temp, dir), os.path.join(output, dir))
         
     run_animation(move_generated_data, f'Move generated data to "{output}"')
+
+def downloading_assets_json(temp):
+    import json
+    
+    assets_json = read_json(os.path.join(temp, 'assets.json'))
+    custom_data = [
+        'assets',
+        'asset_index',
+    ]
+    assets_json = {k:assets_json[k] for k in custom_data}
+    with urlopen(assets_json['asset_index']) as f:
+        assets_file = json.load(f)
+    
+    for k,v in assets_file.items():
+        assets_json[k] = v
+    
+    assets_json['objects'] = {k:assets_json['objects'][k] for k in sorted(assets_json['objects'].keys())}
+    for a in assets_json['objects']:
+        hash = assets_json['objects'][a]['hash']
+        assets_json['objects'][a]['url'] = 'https://resources.download.minecraft.net/'+hash[0:2]+'/'+hash
+    
+    write_json(os.path.join(temp, 'assets.json'), assets_json)
+    write_lines(os.path.join(temp, 'assets.txt'), sorted(assets_json['objects'].keys()))
+
+def downloading_assets_files(temp):
+    assets = read_json(os.path.join(temp, 'assets.json'))['objects']
+    
+    def write_asset(file):
+        if file in assets:
+            asset = assets[file]
+            file = os.path.join(temp, 'assets', file)
+            if not hash_test(asset['hash'], file):
+                safe_del(file)
+                make_dirname(file)
+                urlretrieve(asset['url'], file)
+    
+    tbl = [
+        'minecraft/sounds.json',
+        'sounds.json',
+        'pack.mcmeta',
+    ]
+    for a in tbl:
+        write_asset(a)
+    
+    tbl = [
+        'minecraft/textures',
+    ]
+    for p in tbl:
+        for a in assets:
+            if a.startswith(p):
+                write_asset(a)
 
 
 class TBLpool():
@@ -1735,11 +1762,6 @@ def listing_languages(temp):
     
     safe_del(pack_mcmeta)
 
-def listing_assets_txt(temp):
-    lst_assets = read_json(os.path.join(temp, 'assets.json')).get('objects', {})
-    if lst_assets:
-        write_lines(os.path.join(temp, 'assets.txt'), sorted(lst_assets.keys()))
-
 def listing_assets(temp):
     lst_namespace, lst_subdir = get_sub_folder_assets(temp)
     
@@ -1808,7 +1830,6 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_tags,
     listing_sounds,
     listing_languages,
-    listing_assets_txt,
     listing_assets,
 ]
 def listing_various_data(temp):
