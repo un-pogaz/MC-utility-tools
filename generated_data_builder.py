@@ -505,7 +505,7 @@ def strip_list(lst: list):
     while lst and not lst[-1]:
         lst.pop(-1)
 
-def _get_sub_folder(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
+def _get_sub_folders(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
     if os.path.exists(os.path.join(temp, subdir, 'minecraft')):
         rslt_namespaces = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir), recursive=False)]
         rslt_dirs = set()
@@ -519,16 +519,16 @@ def _get_sub_folder(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
     
     return rslt_namespaces, rslt_dirs
 
-def get_sub_folder_assets(temp) -> tuple[list[str], list[str]]:
+def get_sub_folders_assets(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
         'advancements',
         'lang',
         'loot_tables',
         'shaders',
     ]
-    return _get_sub_folder(temp, 'assets', lst_exlude)
+    return _get_sub_folders(temp, 'assets', lst_exlude)
 
-def get_sub_folder_data(temp) -> tuple[list[str], list[str]]:
+def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
         'advancements',
         'advancement',
@@ -539,7 +539,7 @@ def get_sub_folder_data(temp) -> tuple[list[str], list[str]]:
         'tags',
         'worldgen',
     ]
-    return _get_sub_folder(temp, 'data', lst_exlude)
+    return _get_sub_folders(temp, 'data', lst_exlude)
 
 def uniform_reports(temp):
     items_json = os.path.join(temp, 'reports/items.json')
@@ -630,7 +630,7 @@ def listing_advancements(temp):
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'assets/minecraft/advancements' # legacy
     
-    lst_namespace, _ = get_sub_folder_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
@@ -745,9 +745,9 @@ def listing_subdir_reports(temp):
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), sorted(lines))
 
-def listing_special_subdir(temp):
+def listing_special_subdirs(temp):
     # special subdir (not in registries)
-    lst_namespace, lst_subdir = get_sub_folder_data(temp)
+    lst_namespace, lst_subdir = get_sub_folders_data(temp)
     
     for subdir in lst_subdir:
         entries = set()
@@ -773,7 +773,7 @@ def listing_loot_tables(temp):
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'assets/minecraft/loot_tables' # legacy
     
-    lst_namespace, _ = get_sub_folder_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
@@ -1201,7 +1201,7 @@ def listing_loot_tables(temp):
             write_tbl_csv(os.path.join(temp, 'lists/loot_tables', name+'.csv'), head_tbl, lines_tbl)
             write_tbl_md(os.path.join(temp, 'lists/loot_tables', name+'.md'), head_tbl, lines_tbl)
 
-def listing_worldgen(temp):
+def listing_worldgens(temp):
     dir = 'data/minecraft/worldgen'
     if not os.path.exists(os.path.join(temp, dir)):
         dir = 'reports/minecraft/worldgen' # old
@@ -1626,7 +1626,7 @@ def listing_registries(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
     
-    lst_namespace, _ = get_sub_folder_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
@@ -1647,7 +1647,7 @@ def listing_registries(temp):
 
 def listing_paintings(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folder_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     paintings = defaultdict(lambda:defaultdict(set))
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
@@ -1675,7 +1675,7 @@ def listing_paintings(temp):
 
 def listing_jukebox_songs(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folder_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
     
     for ns in lst_namespace:
@@ -1706,7 +1706,7 @@ def listing_jukebox_songs(temp):
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folder_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
@@ -1785,7 +1785,7 @@ def listing_languages(temp):
     safe_del(pack_mcmeta)
 
 def listing_assets(temp):
-    lst_namespace, lst_subdir = get_sub_folder_assets(temp)
+    lst_namespace, lst_subdir = get_sub_folders_assets(temp)
     
     lst_ext = ['json', 'txt', 'png']
     
@@ -1837,9 +1837,9 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_structures,
     listing_advancements,
     listing_subdir_reports,
-    listing_special_subdir,
+    listing_special_subdirs,
     listing_loot_tables,
-    listing_worldgen,
+    listing_worldgens,
     listing_blocks,
     listing_items,
     listing_packets,
