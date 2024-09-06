@@ -1426,7 +1426,7 @@ def listing_items(temp):
             return list(value.keys())[0]
         return None
     
-    def _test_value(value):
+    def component_test_value(value, is_file: bool):
         if value:
             if isinstance(value, dict):
                 sub_key = _one_key_dict(value)
@@ -1439,6 +1439,8 @@ def listing_items(temp):
                 return bool(value)
             
             if isinstance(value, list):
+                if is_file and len(value) == 1 and isinstance(value[0], (int, float, bool, str)):
+                    return False
                 return bool(value)
             if isinstance(value, str):
                 return bool(value)
@@ -1458,6 +1460,8 @@ def listing_items(temp):
                 rslt = '[[value]]'
             else:
                 rslt = '[]'
+            if allow_inline and len(value) == 1 and isinstance(value[0], (int, float, bool, str)):
+                rslt = unquoted_json(value)
         if isinstance(value, dict):
             if value:
                 rslt = '{{value}}'
@@ -1508,7 +1512,7 @@ def listing_items(temp):
                         e[n] = _quote_str(parse_json_text(v, languages_json))
                 
                 if c in default_components:
-                    lines = [n + component_text_value(v, allow_inline=True) for n,v in e.items() if _test_value(v)]
+                    lines = [n + component_text_value(v, allow_inline=True) for n,v in e.items() if component_test_value(v, is_file=False)]
                 elif c in components_always_json_value:
                     lines = [n + component_text_value(v, allow_inline=False) for n,v in e.items()]
                 else:
@@ -1526,7 +1530,7 @@ def listing_items(temp):
                     for n,v in e.items():
                         if not isinstance(v, (dict, list)):
                             continue
-                        if _test_value(v) or (c in components_always_json_value and v):
+                        if component_test_value(v, is_file=True) or (c in components_always_json_value and v):
                             write_json(os.path.join(temp, 'lists/items/components', c, flatering(n)+'.json'), v)
 
 def listing_packets(temp):
