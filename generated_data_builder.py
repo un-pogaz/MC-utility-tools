@@ -1,4 +1,4 @@
-VERSION = (0, 31, 0)
+VERSION = (0, 31, 1)
 
 import argparse
 import glob
@@ -1444,7 +1444,7 @@ def listing_items(temp):
                 return bool(value)
         return False
     
-    def component_text_value(value):
+    def component_text_value(value, allow_inline: bool):
         rslt = None
         if isinstance(value, (int, float, bool)):
             rslt = str(value)
@@ -1459,38 +1459,20 @@ def listing_items(temp):
             else:
                 rslt = '[]'
         if isinstance(value, dict):
+            if value:
+                rslt = '{{value}}'
+            else:
+                rslt = '{}'
             sub_key = _one_key_dict(value)
-            if sub_key:
+            if allow_inline and sub_key:
                 if isinstance(value[sub_key], (dict, list)):
                     if not value[sub_key]:
                         rslt = unquoted_json(value)
                 else:
                     rslt = unquoted_json(value)
-            if not rslt:
-                if value:
-                    rslt = '{{value}}'
-                else:
-                    rslt = '{}'
         
         if not rslt:
             raise ValueError('listing_items(): component with a unknow type to retrive value "{}"'.format(type(value)))
-        return '  = ' + rslt
-    
-    def component_text_value_always(value):
-        rslt = None
-        if isinstance(value, list):
-            if value:
-                rslt = '[[value]]'
-            else:
-                rslt = '[]'
-        if isinstance(value, dict):
-            if value:
-                rslt = '{{value}}'
-            else:
-                rslt = '{}'
-        
-        if not rslt:
-            return component_text_value(value)
         return '  = ' + rslt
     
     def _quote_str(value):
@@ -1526,11 +1508,11 @@ def listing_items(temp):
                         e[n] = _quote_str(parse_json_text(v, languages_json))
                 
                 if c in default_components:
-                    lines = [n + component_text_value(v) for n,v in e.items() if _test_value(v)]
+                    lines = [n + component_text_value(v, allow_inline=True) for n,v in e.items() if _test_value(v)]
                 elif c in components_always_json_value:
-                    lines = [n + component_text_value_always(v) for n,v in e.items()]
+                    lines = [n + component_text_value(v, allow_inline=False) for n,v in e.items()]
                 else:
-                    lines = [n + component_text_value(v) for n,v in e.items()]
+                    lines = [n + component_text_value(v, allow_inline=True) for n,v in e.items()]
                 if lines:
                     write_lines(os.path.join(temp, 'lists/items/components', c+'.txt'), sorted(lines))
                 
