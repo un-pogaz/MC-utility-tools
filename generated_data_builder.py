@@ -433,7 +433,8 @@ def str_to_json(text) -> dict|list:
     return json.loads(text)
 
 def enum_json(dir, is_tag=False, ns=None) -> list[str]:
-    return [('#' if is_tag else '')+ namespace(filename(j), ns=ns) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True)]
+    lst = glob.iglob('**/*.json', root_dir=dir, recursive=True)
+    return [('#' if is_tag else '')+namespace(filename(j), ns=ns) for j in lst]
 
 def get_languages_json(temp) -> dict[str, str]:
     path = os.path.join(temp, 'assets/minecraft/lang/en_us.json')
