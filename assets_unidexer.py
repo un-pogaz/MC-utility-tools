@@ -1,4 +1,4 @@
-VERSION = (1, 0, 1)
+VERSION = (1, 1, 0)
 
 import argparse
 import os.path
@@ -96,35 +96,6 @@ def unindex_assets(args):
                 urlretrieve(asset['url'], file)
         
     run_animation(assets_dl, 'Downloading assets')
-    
-    
-    async def list_assets():
-        for sounds in ['minecraft/sounds.json', 'sounds.json']:
-            sounds = os.path.join(temp, sounds)
-            if os.path.exists(sounds):
-                for k,v in read_json(sounds).items():
-                    write_json(os.path.join(temp,'lists/sounds', k+'.json'), v)
-                    
-                    lines = v['sounds']
-                    for idx,v in enumerate(lines):
-                        if isinstance(v, dict):
-                            lines[idx] = v['name']
-                    write_lines(os.path.join(temp,'lists/sounds', k+'.txt'), lines)
-                
-                break
-        
-        src_lang = read_json(os.path.join(temp,'pack.mcmeta')).get('language', None)
-        if src_lang:
-            languages = {}
-            for en in ['en_us', 'en_US']:
-                if en in src_lang:
-                    languages['en_us'] = src_lang.pop(en)
-            languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
-            write_json(os.path.join(temp,'lists', 'languages.json'), languages)
-        
-        
-    run_animation(list_assets, 'List assets')
-    
     
     async def copy_assets_data():
         if os.path.exists(output):
