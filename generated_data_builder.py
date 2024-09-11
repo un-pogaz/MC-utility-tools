@@ -1498,6 +1498,7 @@ def listing_items(temp):
         'food',
         'consumable',
         'equippable',
+        'death_protection',
     ]
     json_text_components = [
         'item_name',
