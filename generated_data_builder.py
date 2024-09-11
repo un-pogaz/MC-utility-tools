@@ -251,18 +251,18 @@ def downloading_assets_files(temp):
                 make_dirname(file)
                 urlretrieve(asset['url'], file)
     
-    tbl = [
+    assets_dl = [
         'minecraft/sounds.json',
         'sounds.json',
         'pack.mcmeta',
     ]
-    for a in tbl:
+    for a in assets_dl:
         write_asset(a)
     
-    tbl = [
+    prefix_dl = [
         'minecraft/textures',
     ]
-    for p in tbl:
+    for p in prefix_dl:
         for a in assets:
             if a.startswith(p):
                 write_asset(a)
