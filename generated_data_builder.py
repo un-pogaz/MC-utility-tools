@@ -1,4 +1,4 @@
-VERSION = (0, 31, 1)
+VERSION = (0, 32, 0)
 
 import argparse
 import glob
@@ -10,7 +10,7 @@ from typing import Callable
 from common import (
     find_output, get_latest, version_path, hash_test, make_dirname,
     read_manifest_json, run_animation, safe_del, urlretrieve, urlopen,
-    read_json, read_lines, read_text, write_json, write_lines,
+    read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
 parser = argparse.ArgumentParser()
@@ -553,7 +553,7 @@ def uniform_reports(temp):
     
     for j in glob.iglob('reports/*.json', root_dir=temp, recursive=False):
         j = os.path.join(temp, j)
-        write_lines(j, read_lines(j))
+        write_text(j, read_text(j))
 
 
 def listing_builtit_datapacks(temp):
@@ -1879,7 +1879,7 @@ def listing_various_data_alt(version, temp):
     
     for path in rewrite_files:
         if os.path.exists(path) and os.path.isfile(path):
-            write_lines(path, read_lines(path))
+            write_text(path, read_text(path))
     
     for func in listing_various_functions:
         if func in exclude_funcs:

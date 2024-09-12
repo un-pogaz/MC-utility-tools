@@ -97,13 +97,17 @@ def write_text(path, text):
 def read_lines(path):
     return [l for l in read_text(path).splitlines(False)]
 
-def write_lines(path, lines):
+def write_lines(path, lines, newline_end=True):
     make_dirname(path)
     with open(path, 'wt', newline='\n', encoding='utf-8') as f:
         if len(lines) == 0:
             f.write('')
         else:
-            f.write('\n'.join(lines))
+            n = '\n'
+            s = n.join(lines)
+            f.write(s)
+            if newline_end and s and s[-1] != n:
+                f.write(n)
 
 
 def safe_del(path):
