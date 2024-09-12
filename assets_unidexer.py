@@ -9,7 +9,7 @@ from collections import OrderedDict
 from common import (
     find_output, get_latest, hash_test, make_dirname, read_json,
     read_manifest_json, run_animation, safe_del, urlretrieve,
-    valide_output, valide_version, work_done, write_json, write_lines,
+    valide_output, valide_version, work_done, write_json,
 )
 
 parser = argparse.ArgumentParser()
