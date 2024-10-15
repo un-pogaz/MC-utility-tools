@@ -543,6 +543,8 @@ def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     return _get_sub_folders(temp, 'data', lst_exlude)
 
 def uniform_reports(temp):
+    do_uniform = False
+    
     items_json = os.path.join(temp, 'reports/items.json')
     if os.path.exists(items_json) and '"components": [' in read_text(items_json):
         j = read_json(items_json)
@@ -550,10 +552,12 @@ def uniform_reports(temp):
             if 'components' in j[k] and isinstance(j[k]['components'], list):
                 j[k]['components'] = list(sorted(j[k]['components'], key=lambda x: x['type']))
         write_json(items_json, j)
+        do_uniform = True
     
-    for j in glob.iglob('reports/*.json', root_dir=temp, recursive=False):
-        j = os.path.join(temp, j)
-        write_text(j, read_text(j))
+    if do_uniform:
+        for j in glob.iglob('reports/*.json', root_dir=temp, recursive=False):
+            j = os.path.join(temp, j)
+            write_text(j, read_text(j))
 
 
 def listing_builtit_datapacks(temp):
