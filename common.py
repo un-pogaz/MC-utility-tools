@@ -91,6 +91,7 @@ def read_text(path):
         return ''.join(f.readlines())
 
 def write_text(path, text):
+    make_dirname(path)
     with open(path, 'wt', newline='\n', encoding='utf-8') as f:
         f.write(text)
 
