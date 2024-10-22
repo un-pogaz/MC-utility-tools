@@ -387,16 +387,17 @@ def work_done(error, quiet = False):
         input()
 
 
-def serialize_nbt(file):
+def serialize_nbt(file, output_file=None):
     from nbtlib import nbt
     from nbtlib.literal.serializer import serialize_tag
+    
     snbt = serialize_tag(nbt.load(file), indent=2, compact=False, quote='"').replace('\r\n', '\n').replace('\r', '\n')
     while ' \n' in snbt:
         snbt = snbt.replace(' \n', '\n')
     
-    file = os.path.splitext(file)[0]+'.snbt'
-    with open(file, mode='wt', newline='\n') as f:
-        f.write(snbt)
+    if not output_file:
+        output_file = os.path.splitext(file)[0]+'.snbt'
+    write_text(output_file, snbt)
 
 
 def info_latest_version():
