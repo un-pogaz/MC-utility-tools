@@ -1,4 +1,4 @@
-VERSION = (0, 33, 0)
+VERSION = (0, 33, 1)
 
 import argparse
 import glob
@@ -1335,6 +1335,8 @@ def listing_blocks(temp):
                 raise not_implemented
             else:
                 return
+        if name == 'particle':
+            return unquoted_json(value)
         raise not_implemented
     
     blockstates = defaultdict(lambda:defaultdict(set))
