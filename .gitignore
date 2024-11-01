@@ -14,3 +14,8 @@ version_manifest.json
 releases/
 snapshots/
 specials/
+beta/
+alpha/
+infdev/
+classic/
+pre-classic/
