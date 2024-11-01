@@ -1,4 +1,4 @@
-VERSION = (1, 1, 0)
+VERSION = (1, 2, 0)
 
 import argparse
 import os.path
@@ -24,6 +24,10 @@ parser.add_argument('--manifest-json', help='Local JSON manifest file of the tar
 args = parser.parse_args()
 
 def main():
+    from common import update_version_manifest
+    
+    update_version_manifest()
+    
     print(f'--==| Minecraft: Assets Unindexer |==--')
     print()
     

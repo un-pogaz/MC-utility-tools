@@ -176,14 +176,16 @@ def urlopen(url) :
     return request.urlopen(url, )
 
 
-VERSION_MANIFEST = None
+_VERSION_MANIFEST_PATH = os.path.join('version_manifest.json')
+VERSION_MANIFEST = read_json(_VERSION_MANIFEST_PATH, {'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}, 'versions_history':[]})
+
+LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release')
+LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot')
+
 def update_version_manifest():
-    global VERSION_MANIFEST
+    global VERSION_MANIFEST, LATEST_RELEASE, LATEST_SNAPSHOT
     
-    version_manifest_path = os.path.join('version_manifest.json')
-    VERSION_MANIFEST = read_json(version_manifest_path, {'latest':{'release': None, 'snapshot': None}, 'versions':[], 'pack_format':{}, 'versioning':{}, 'versions_history':[]})
-    
-    edited = not os.path.exists(version_manifest_path)
+    edited = not os.path.exists(_VERSION_MANIFEST_PATH)
     _init_release = VERSION_MANIFEST['latest']['release']
     _init_snapshot = VERSION_MANIFEST['latest']['snapshot']
     def read_version_manifest(read_manifest):
@@ -273,12 +275,11 @@ def update_version_manifest():
         VERSION_MANIFEST['versions'] = sorted(VERSION_MANIFEST['versions'], key=lambda item: item['releaseTime'], reverse=True)
         VERSION_MANIFEST['versions_history'] = [v['id'] for v in VERSION_MANIFEST['versions']]
         print('INFO: version_manifest.json has been updated')
-        write_json(version_manifest_path, VERSION_MANIFEST)
+        write_json(_VERSION_MANIFEST_PATH, VERSION_MANIFEST)
+    
+    LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release')
+    LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot')
 
-update_version_manifest()
-
-LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release', None)
-LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot', None)
 
 def version_path(version):
     for k,v in VERSION_MANIFEST['versioning'].items():

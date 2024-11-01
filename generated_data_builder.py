@@ -1,4 +1,4 @@
-VERSION = (0, 33, 1)
+VERSION = (0, 34, 0)
 
 import argparse
 import glob
@@ -29,7 +29,9 @@ def parse_args():
     return parser.parse_args()
 
 def main(args):
-    from common import GITHUB_BUILDER, valide_output, valide_version, work_done
+    from common import GITHUB_BUILDER, update_version_manifest, valide_output, valide_version, work_done
+    
+    update_version_manifest()
     
     print(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     print()
