@@ -225,7 +225,7 @@ def update_version_manifest():
             for v in github_manifest[sub_name]:
                 i = VERSION_MANIFEST[sub_name]
                 ni = github_manifest[sub_name]
-                if v == 'specials':
+                if isinstance(i[v], list):
                     if v not in i:
                         i[v] = []
                         edited = True
@@ -283,9 +283,9 @@ def update_version_manifest():
 
 def version_path(version):
     for k,v in VERSION_MANIFEST['versioning'].items():
-        if k == 'specials':
+        if isinstance(v, list):
             if version in v:
-                return os.path.join('specials', version)
+                return os.path.join(k, version)
         else:
             if version in v.get('releases', []):
                 return os.path.join('releases', version)
