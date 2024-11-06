@@ -277,6 +277,7 @@ def update_version_manifest():
         print('INFO: version_manifest.json has been updated')
         write_json(_VERSION_MANIFEST_PATH, VERSION_MANIFEST)
     
+    VERSION_MANIFEST = read_json(_VERSION_MANIFEST_PATH)
     LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release')
     LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot')
 
