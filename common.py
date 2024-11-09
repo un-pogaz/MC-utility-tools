@@ -297,6 +297,22 @@ def version_path(version):
     
     return version
 
+def version_developement(version):
+    # get the version cycle of a snapshot
+    for k,v in VERSION_MANIFEST['versioning'].items():
+        if isinstance(v, list):
+            if version in v:
+                return version, k
+        else:
+            if version in v.get('releases', []):
+                return version, None
+            
+            for kk,vv in v.items():
+                if version in vv:
+                    return k, version
+    
+    return version, None
+
 def find_output(version):
     import glob
     
