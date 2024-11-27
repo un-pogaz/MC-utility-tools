@@ -347,7 +347,7 @@ def valide_version(version, quiet = False, manifest_json_path = None):
         version = get_latest(version)
         
         for v in VERSION_MANIFEST['versions']:
-            if v['id'] == version:
+            if v['id'] == version and v['url']:
                 return version
         
         
@@ -370,7 +370,7 @@ def read_manifest_json(temp, version, manifest_json_path = None):
     
     manifest_url = None
     for v in VERSION_MANIFEST['versions']:
-        if v['id'] == version:
+        if v['id'] == version and v['url']:
             manifest_url = v['url']
             break
     
