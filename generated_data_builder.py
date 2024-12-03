@@ -1,4 +1,4 @@
-VERSION = (0, 34, 0)
+VERSION = (0, 34, 1)
 
 import argparse
 import glob
@@ -1620,7 +1620,7 @@ def listing_commands(temp):
             rslt.append(base)
         
         if 'redirect' in entry:
-            rslt.append(base +' >>redirect{'+ ', '.join(entry['redirect']) +'}')
+            rslt.append(base +' >>redirect{'+ '|'.join(entry['redirect']) +'}')
         
         elif entry.get('type') == 'literal' and len(entry) == 1:
             rslt.append(base +' >>redirect{*}')
