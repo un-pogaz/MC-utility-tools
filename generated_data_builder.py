@@ -349,13 +349,11 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
 def write_tbl_md(path, head_tbl, lines_tbl):
     from copy import deepcopy
     
-    col_len = [len(i) for i in head_tbl]
-    for i in range(len(lines_tbl)):
-        if lines_tbl[i]:
-            for y in range(len(lines_tbl[i])):
-                l = len(lines_tbl[i][y])
-                if l > col_len[y]:
-                    col_len[y] = l
+    col_len = [[len(h)] for h in head_tbl]
+    for line in lines_tbl:
+        for y,data in enumerate(line or []):
+            col_len[y].append(len(data))
+    col_len = [max(c) for c in col_len]
     
     def concatline(line):
         return '| '+ ' | '.join(line) +' |'
