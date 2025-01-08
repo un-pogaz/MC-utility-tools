@@ -1,4 +1,4 @@
-VERSION = (0, 34, 1)
+VERSION = (0, 34, 2)
 
 import argparse
 import glob
@@ -1335,7 +1335,7 @@ def listing_blocks(temp):
                 raise not_implemented
             else:
                 return
-        if name == 'particle':
+        if name in ['particle', 'leaf_particle']:
             return unquoted_json(value)
         raise not_implemented
     
@@ -1518,6 +1518,7 @@ def listing_items(temp):
         'consumable',
         'equippable',
         'death_protection',
+        'weapon',
     ]
     json_text_components = [
         'item_name',
