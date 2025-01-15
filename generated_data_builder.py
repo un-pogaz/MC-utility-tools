@@ -820,21 +820,22 @@ def listing_loot_tables(temp):
     def get_simple(name, entry):
         def convert(item):
             item = namespace(item)
-            if item == 'minecraft:book':
-                for f in entry.get('functions', []):
-                    for ef in ['enchant_randomly', 'enchant_with_levels', 'set_enchantments']:
-                        if test_function(f, ef):
-                            return namespace('enchanted_book')
-            
-            if item == 'minecraft:golden_apple':
-                for f in entry.get('functions', []):
-                    if test_function(f, 'set_data') and f['data'] == 1:
-                        return namespace('enchanted_golden_apple')
-            
-            if item == 'minecraft:map':
-                for f in entry.get('functions', []):
-                    if test_function(f, 'exploration_map'):
-                        return namespace('explorer_map')
+            match flatering(item):
+                case 'book':
+                    for f in entry.get('functions', []):
+                        for ef in ['enchant_randomly', 'enchant_with_levels', 'set_enchantments']:
+                            if test_function(f, ef):
+                                return namespace('enchanted_book')
+                
+                case 'golden_apple':
+                    for f in entry.get('functions', []):
+                        if test_function(f, 'set_data') and f['data'] == 1:
+                            return namespace('enchanted_golden_apple')
+                
+                case 'map':
+                    for f in entry.get('functions', []):
+                        if test_function(f, 'exploration_map'):
+                            return namespace('explorer_map')
             
             return item
         
