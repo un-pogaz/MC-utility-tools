@@ -1,6 +1,7 @@
 VERSION = (0, 35, 0)
 
 import argparse
+from functools import cache
 import glob
 import os.path
 import pathlib
@@ -434,6 +435,10 @@ def test_n(entry, n, target_type) -> bool:
     return namespace(entry[n]) == namespace(target_type)
 def test_type(entry, target_type) -> bool:
     return test_n(entry,'type', namespace(target_type))
+def flat_n(entry, name) -> str:
+    return flatering(entry[name])
+def flat_type(entry) -> str:
+    return flat_n(entry, 'type')
 
 def unquoted_json(obj) -> str:
     import json
@@ -782,8 +787,6 @@ def listing_loot_tables(temp):
     
     def test_function(entry, target_type):
         return test_n(entry,'function', namespace(target_type))
-    def test_condition(entry, target_type):
-        return test_n(entry,'condition', namespace(target_type))
     
     dir = 'data/minecraft/loot_table'
     if not os.path.exists(os.path.join(temp, dir)):
@@ -982,94 +985,100 @@ def listing_loot_tables(temp):
                     comment.append(flatering(j['Potion']))
         
         for e in entry.get('conditions', []):
-            if test_condition(e, 'killed_by_player'):
-                comment.append('killed by player')
-            if test_condition(e, 'random_chance'):
-                comment.append('random chance: '+mcrange(name, e['chance'])+'%')
-            if test_condition(e, 'random_chance_with_looting'):
-                unenchanted_chance = no_end_0(e['chance'])+'%'
-                chance = no_end_0(e['chance']+e['looting_multiplier'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
-                comment.append('random chance: '+unenchanted_chance+'|{enchantment: looting}: '+ chance)
-            if test_condition(e, 'random_chance_with_enchanted_bonus'):
-                chance = e.get('enchanted_chance') or e['chance']
-                if test_type(chance, 'linear'):
-                    chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
-                else:
-                    raise ValueError("listing_loot_tables().lootcomment(): Unknow level-based value type '{}' in loot_tables '{}'".format(chance['type'], name))
-                unenchanted_chance = no_end_0(e.get('unenchanted_chance') or e.get('chance', {}).get('base', 0))+'%'
-                comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
-            
-            if test_condition(e, 'killer_main_hand_tool'):
-                value = e['value'].get('items') or e['value']['id']
-                comment.append('killed with main_hand tool: '+ value)
-            
-            if test_condition(e, 'entity_properties'):
-                predicate = e['predicate']
-                if e['entity'] in ['attacker','killer']:
-                    if 'type' in predicate:
-                        comment.append('killed by '+predicate['type'])
-                    else:
-                        raise ValueError("listing_loot_tables().lootcomment(): entity_properties contain unsuported data '{}".format(name))
+            condition_type = flatering(e['condition'])
+            match condition_type:
+                case 'killed_by_player':
+                    comment.append('killed by player')
+                case 'random_chance':
+                    comment.append('random chance: '+mcrange(name, e['chance'])+'%')
+                case 'random_chance_with_looting':
+                    unenchanted_chance = no_end_0(e['chance'])+'%'
+                    chance = no_end_0(e['chance']+e['looting_multiplier'])+'% + '+no_end_0(e['looting_multiplier'])+'%*(level-1)'
+                    comment.append('random chance: '+unenchanted_chance+'|{enchantment: looting}: '+ chance)
+                case 'random_chance_with_enchanted_bonus':
+                    chance = e.get('enchanted_chance') or e['chance']
+                    chance_type = flat_type(chance)
+                    match chance_type:
+                        case 'linear':
+                            chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
+                        case _:
+                            raise ValueError(f'listing_loot_tables().lootcomment(): Unknow level-based value type {chance_type!r} in loot_tables {name!r}')
+                    unenchanted_chance = no_end_0(e.get('unenchanted_chance') or e.get('chance', {}).get('base', 0))+'%'
+                    comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
+                case 'killer_main_hand_tool':
+                    value = e['value'].get('items') or e['value']['id']
+                    comment.append('killed with main_hand tool: '+ value)
                 
-                elif e['entity'] == 'this':
-                    components = predicate.pop('components', {})
-                    for type_name,value in components.items():
-                        type_name = flatering(type_name)
-                        match type_name:
-                            case 'sheep/color':
-                                comment.append(f'is {value}')
-                            case 'mooshroom/variant':
-                                comment.append(f'is {value} variant')
-                            case _:
-                                raise ValueError("listing_loot_tables().lootcomment(): Unknow entity components '{}' in loot_tables '{}'".format(type_name, name))
-                    
-                    def type_specific(type_name, predicate):
-                        match type_name:
-                            case 'raider':
-                                if predicate['is_captain'] == True:
-                                    comment.append('is captain raider')
-                            case 'slime':
-                                v = predicate['size']
-                                if isinstance(v, int):
-                                    comment.append(f'size is {v}')
-                                if isinstance(v, dict):
-                                    min = v.get('min')
-                                    max = v.get('max')
-                                    if min == max:
-                                        comment.append(f'size is {min}')
-                                    else:
-                                        if min is not None and max is not None:
-                                            msg = f'size is between {min} and {max}'
-                                        if max is None:
-                                            msg = f'size is inferior {min}'
-                                        if min is None:
-                                            msg = 'size is superior {max}'
-                                    comment.append(f'{msg} (inclusive)')
-                            case 'fishing_hook':
-                                if predicate['in_open_water'] == True:
-                                    comment.append('is on open water')
-                            case 'sheep':
-                                msg = []
-                                if 'color' in predicate:
-                                    msg.append('is '+predicate['color'])
-                                if predicate.get('sheared') == True:
-                                    msg.append('is sheared')
-                                if predicate.get('sheared') == False:
-                                    msg.append('is not sheared')
-                                comment.append(' and '.join(msg))
-                            case 'mooshroom':
-                                comment.append('is '+predicate['variant']+' variant')
-                            case _:
-                                raise ValueError("listing_loot_tables().lootcomment(): Unknow type_specific '{}' in loot_tables '{}'".format(type_name, name))
-                    
-                    if 'type_specific' in predicate:
-                        type_specific(flatering(predicate['type_specific']['type']), predicate['type_specific'])
-                    elif predicate:
-                        for type_name,value in predicate.items():
-                            type_specific(type_name, value)
-                
-                else:
-                    raise ValueError("listing_loot_tables().lootcomment(): Unknow entity origin '{}' in loot_tables '{}'".format(e['entity'], name))
+                case 'entity_properties':
+                    predicate = e['predicate']
+                    entity_origin = e['entity']
+                    match entity_origin:
+                        case 'attacker' | 'killer':
+                            if 'type' in predicate:
+                                comment.append('killed by '+predicate['type'])
+                            else:
+                                raise ValueError(f'listing_loot_tables().lootcomment(): entity_properties contain unsuported data {name!r}')
+                        
+                        case 'this':
+                            components = predicate.pop('components', {})
+                            for type_name,value in components.items():
+                                type_name = flatering(type_name)
+                                match type_name:
+                                    case 'sheep/color':
+                                        comment.append(f'is {value}')
+                                    case 'mooshroom/variant':
+                                        comment.append(f'is {value} variant')
+                                    case _:
+                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity components {type_name!r} in loot_tables {name!r}')
+                            
+                            def type_specific(type_name, predicate):
+                                match type_name:
+                                    case 'raider':
+                                        if predicate['is_captain'] == True:
+                                            comment.append('is captain raider')
+                                    case 'slime':
+                                        v = predicate['size']
+                                        if isinstance(v, int):
+                                            comment.append(f'size is {v}')
+                                        if isinstance(v, dict):
+                                            min = v.get('min')
+                                            max = v.get('max')
+                                            if min == max:
+                                                comment.append(f'size is {min}')
+                                            else:
+                                                if min is not None and max is not None:
+                                                    msg = f'size is between {min} and {max}'
+                                                if max is None:
+                                                    msg = f'size is inferior {min}'
+                                                if min is None:
+                                                    msg = 'size is superior {max}'
+                                            comment.append(f'{msg} (inclusive)')
+                                    case 'fishing_hook':
+                                        if predicate['in_open_water'] == True:
+                                            comment.append('is on open water')
+                                    case 'sheep':
+                                        msg = []
+                                        if 'color' in predicate:
+                                            msg.append('is '+predicate['color'])
+                                        if predicate.get('sheared') == True:
+                                            msg.append('is sheared')
+                                        if predicate.get('sheared') == False:
+                                            msg.append('is not sheared')
+                                        comment.append(' and '.join(msg))
+                                    case 'mooshroom':
+                                        comment.append('is '+predicate['variant']+' variant')
+                                    case _:
+                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow type_specific {type_name!r} in loot_tables {name!r}')
+                            
+                            if 'type_specific' in predicate:
+                                value = predicate['type_specific']
+                                type_specific(flat_type(value), value)
+                            elif predicate:
+                                for type_name,value in predicate.items():
+                                    type_specific(type_name, value)
+                        
+                        case _:
+                            raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity origin {entity_origin!r} in loot_tables {name!r}')
         
         return ', '.join(comment)
     
