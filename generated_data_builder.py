@@ -36,7 +36,7 @@ def main(args):
     print(f'--==| Minecraft: Generated data builder {VERSION} |==--')
     print()
     
-    last, _, _ = GITHUB_BUILDER.check_releases()
+    last, _versions, _versions_info = GITHUB_BUILDER.check_releases()
     if last > VERSION:
         print('A new version is available!')
         print()
@@ -648,7 +648,7 @@ def listing_advancements(temp):
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'assets/minecraft/advancements' # legacy
     
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace, _dirs = get_sub_folders_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
@@ -791,7 +791,7 @@ def listing_loot_tables(temp):
         if not os.path.exists(os.path.join(temp, dir)):
             dir = 'assets/minecraft/loot_tables' # legacy
     
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace, _dirs = get_sub_folders_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
@@ -1659,7 +1659,7 @@ def listing_registries(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
     
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace, _dirs = get_sub_folders_data(temp)
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
@@ -1680,7 +1680,7 @@ def listing_registries(temp):
 
 def listing_paintings(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace, _dirs = get_sub_folders_data(temp)
     paintings = defaultdict(lambda:defaultdict(set))
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
@@ -1708,7 +1708,7 @@ def listing_paintings(temp):
 
 def listing_jukebox_songs(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace, _dirs = get_sub_folders_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
     
     for ns in lst_namespace:
@@ -1739,7 +1739,7 @@ def listing_jukebox_songs(temp):
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace, _dirs = get_sub_folders_data(temp)
     
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
