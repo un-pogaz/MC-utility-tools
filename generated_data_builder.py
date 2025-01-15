@@ -1,4 +1,4 @@
-VERSION = (0, 34, 2)
+VERSION = (0, 34, 3)
 
 import argparse
 import glob
@@ -1059,14 +1059,25 @@ def listing_loot_tables(temp):
                         'mooshroom': _mooshroom,
                     }
                     
+                    components = predicate.pop('components', {})
+                    for type_name,value in components.items():
+                        type_name = flatering(type_name)
+                        match type_name:
+                            case 'sheep/color':
+                                comment.append(f'is {value}')
+                            case 'mooshroom/variant':
+                                comment.append(f'is {value} variant')
+                            case _:
+                                raise ValueError("listing_loot_tables().lootcomment(): Unknow entity components '{}' in loot_tables '{}'".format(type_name, name))
+                    
                     if 'type_specific' in predicate:
                         type_name = flatering(predicate['type_specific']['type'])
                         if type_name in type_map:
                             type_map[type_name](predicate['type_specific'])
                         else:
                             raise ValueError("listing_loot_tables().lootcomment(): Unknow type_specific '{}' in loot_tables '{}'".format(predicate['type_specific']['type'], name))
-                        
-                    else:
+                    
+                    elif predicate:
                         type_name = None
                         for k in type_map.keys():
                             if k in predicate:
