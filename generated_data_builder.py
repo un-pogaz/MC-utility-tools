@@ -1022,15 +1022,48 @@ def listing_loot_tables(temp):
                         
                         case 'this':
                             components = predicate.pop('components', {})
+                            tropical_fish = {}
                             for type_name,value in components.items():
                                 type_name = flatering(type_name)
                                 match type_name:
-                                    case 'sheep/color':
-                                        comment.append(f'is {value}')
-                                    case 'mooshroom/variant':
+                                    case ('axolotl/variant' |
+                                          'cat/variant' |
+                                          'fox/variant' |
+                                          'frog/variant' |
+                                          'horse/variant' |
+                                          'llama/variant' |
+                                          'painting/variant' |
+                                          'parrot/variant' |
+                                          'pig/variant' |
+                                          'mooshroom/variant' |
+                                          'rabbit/variant' |
+                                          'villager/variant' |
+                                          'wolf/variant' |
+                                          'mooshroom/variant'):
                                         comment.append(f'is {value} variant')
+                                    case 'cat/collar' | 'wolf/collar':
+                                        comment.append(f'have {value} collar')
+                                    case 'salmon/size':
+                                        comment.append(f'is size {value}')
+                                    case 'sheep/color' | 'shulker/color':
+                                        comment.append(f'is {value}')
+                                    case 'tropical_fish/base_color' | 'tropical_fish/pattern_color' | 'tropical_fish/pattern':
+                                        tropical_fish[type_name.removeprefix('tropical_fish/')] = value
                                     case _:
-                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity components {type_name!r} in loot_tables {name!r}')
+                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity component {type_name!r} in loot_tables {name!r}')
+                            
+                            if tropical_fish:
+                                color = ''
+                                pattern = tropical_fish.get('pattern', '')
+                                base_color = tropical_fish.get('base_color', '')
+                                pattern_color = tropical_fish.get('pattern_color', '')
+                                if base_color and pattern_color:
+                                    color = f'{base_color}-{pattern_color}'
+                                elif base_color:
+                                    color = f'base {base_color}'
+                                elif pattern_color:
+                                    color = f'pattern {base_color}'
+                                comment.append(' '.join([color, pattern]).strip())
                             
                             def type_specific(type_name, predicate):
                                 match type_name:
