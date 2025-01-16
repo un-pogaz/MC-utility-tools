@@ -445,6 +445,8 @@ def flat_n(entry, name) -> str:
     return flatering(entry[name])
 def flat_type(entry) -> str:
     return flat_n(entry, 'type')
+def flat_function(entry):
+    return flat_n(entry, 'function')
 
 def unquoted_json(obj) -> str:
     import json
@@ -789,9 +791,6 @@ def listing_special_subdirs(temp):
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
 
 def listing_loot_tables(temp):
-    
-    def flat_function(entry):
-        return flat_n(entry, 'function')
     
     dir = match_dir(temp, [
         'data/minecraft/loot_table',
