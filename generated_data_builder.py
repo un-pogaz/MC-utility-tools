@@ -847,54 +847,63 @@ def listing_loot_tables(temp):
             else:
                 return 'empty'
         
-        if test_type(entry, 'item'):
-            return convert(entry['name'])
-        if test_type(entry, 'empty'):
-            return 'empty'
-        if test_type(entry, 'tag'):
-            return '#'+namespace(entry['name'])
-        if test_type(entry, 'loot_table'):
-            v = entry.get('value') or entry['name']
-            if isinstance(v, str):
-                return 'loot_table[]'+namespace(v)
-            if isinstance(v, dict):
-                return 'loot_table[]'
-            raise ValueError("listing_loot_tables().get_simple(): Unknow loot_table[] format in loot_tables '{}'".format(name))
-        if test_type(entry, 'alternatives'):
-            return '{}alternatives'
-        
-        raise ValueError("listing_loot_tables().get_simple(): Unknow type '{}' in loot_tables '{}'".format(entry['type'], name))
+        type_name = flat_type(entry)
+        match type_name:
+            case 'item':
+                return convert(entry['name'])
+            case 'empty':
+                return 'empty'
+            case 'tag':
+                return '#'+namespace(entry['name'])
+            case 'loot_table':
+                v = entry.get('value') or entry['name']
+                if isinstance(v, str):
+                    return 'loot_table[]'+namespace(v)
+                if isinstance(v, dict):
+                    return 'loot_table[]'
+                raise ValueError(f'listing_loot_tables().get_simple(): Unknow loot_table[] format in loot_tables {name!r}')
+            case 'alternatives':
+                return '{}alternatives'
+            case _:
+                raise ValueError(f'listing_loot_tables().get_simple(): Unknow type {type_name!r} in loot_tables {name!r}')
     
     def mcrange(name, entry, limit=None):
         if isinstance(entry, dict):
             
-            if 'type' not in entry and 'min' in entry and 'max' in entry:
-                entry['type'] = 'uniform'
-            
-            if test_type(entry, 'uniform'):
-                min = entry['min']
-                max = entry['max']
-                
-                if limit:
-                    if isinstance(limit, dict):
-                        if 'min' in limit:
-                            min = limit['min']
-                        if 'max' in limit:
-                            max = limit['max']
-                    else:
-                        max = limit
-                
-                if min < 0:
-                    min = 0
-                if min != max:
-                    return no_end_0(min) +'..'+ no_end_0(max)
+            if 'type' not in entry:
+                if 'min' in entry and 'max' in entry:
+                    entry['type'] = 'uniform'
                 else:
-                    return no_end_0(min)
+                    raise ValueError(f'listing_loot_tables().mcrange(): A entry cannot be converted in loot_tables {name!r}')
             
-            if test_type(entry, 'constant') or ('value' in entry):
-                return no_end_0(entry['value'])
-            
-            raise ValueError("listing_loot_tables().mcrange(): Unknow range type '{}' in loot_tables '{}'".format(entry['type'], name))
+            type_name = flat_type(entry)
+            match type_name:
+                case 'uniform':
+                    min = entry['min']
+                    max = entry['max']
+                    
+                    if limit:
+                        if isinstance(limit, dict):
+                            if 'min' in limit:
+                                min = limit['min']
+                            if 'max' in limit:
+                                max = limit['max']
+                        else:
+                            max = limit
+                    
+                    if min < 0:
+                        min = 0
+                    if min != max:
+                        return no_end_0(min) +'..'+ no_end_0(max)
+                    else:
+                        return no_end_0(min)
+                
+                case 'constant':
+                    return no_end_0(entry['value'])
+                case _:
+                    if 'value' in entry:
+                        return no_end_0(entry['value'])
+                    raise ValueError(f'listing_loot_tables().mcrange(): Unknow range type {type_name!r} in loot_tables {name!r}')
         
         else:
             return no_end_0(entry)
