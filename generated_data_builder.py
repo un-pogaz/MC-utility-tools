@@ -1352,39 +1352,45 @@ def listing_worldgens(temp):
 
 def listing_blocks(temp):
     def mcrange(name, entry):
-        if test_type(entry, 'constant'):
-            return no_end_0(entry['value'])
-        if test_type(entry, 'uniform'):
-            min = entry.get('min_inclusive')
-            if min is None:
-                min = entry['value']['min_inclusive']
-            max = entry.get('max_inclusive')
-            if max is None:
-                max = entry['value']['max_inclusive']
-            return no_end_0(min)+'..'+no_end_0(max)
-        raise NotImplementedError(f'listing_blocks(): Block definition of "{name}" has not implemented "{entry['type']}" type value.')
+        type_name = flat_type(entry)
+        match type_name:
+            case 'constant':
+                return no_end_0(entry['value'])
+            case 'uniform':
+                min = entry.get('min_inclusive')
+                if min is None:
+                    entry['value']['min_inclusive']
+                max = entry.get('max_inclusive')
+                if min is None:
+                    entry['value']['max_inclusive']
+                return no_end_0(min)+'..'+no_end_0(max)
+            case _:
+                raise NotImplementedError(f'listing_blocks(): Block definition of {name!r} has not implemented {type_name!r} type value.')
     def parse_value(block_name, name, value):
-        not_implemented = NotImplementedError(f'Block definition of "{block_name}" has not implemented "{name}" properties.')
+        not_implemented = NotImplementedError(f'Block definition of {block_name!r} has not implemented {name!r} properties.')
         if isinstance(value, bool):
             return str(value).lower()
         if isinstance(value, (str, int, float)):
             return no_end_0(value)
-        if name in ['experience']:
-            return mcrange(name, value)
-        if name == 'base_state':
-            if len(value) != 1:
+        
+        match name:
+            case 'experience':
+                return mcrange(name, value)
+            case 'base_state':
+                if len(value) != 1:
+                    raise not_implemented
+                return value['Name']
+            case 'suspicious_stew_effects':
+                return ', '.join('{} ({} ticks)'.format(e['id'], e.get('duration', 160)) for e in value)
+            case 'properties':
+                if value:
+                    raise not_implemented
+                else:
+                    return
+            case 'particle' | 'leaf_particle':
+                return unquoted_json(value)
+            case _:
                 raise not_implemented
-            return value['Name']
-        if name == 'suspicious_stew_effects':
-            return ', '.join("{} ({} ticks)".format(e['id'], e.get('duration', 160)) for e in value)
-        if name == 'properties':
-            if value:
-                raise not_implemented
-            else:
-                return
-        if name in ['particle', 'leaf_particle']:
-            return unquoted_json(value)
-        raise not_implemented
     
     blockstates = defaultdict(lambda:defaultdict(set))
     definitions = defaultdict(dict)
@@ -1404,19 +1410,20 @@ def listing_blocks(temp):
         
         write_json(os.path.join(temp, 'lists/blocks', name+'.json'), content)
         
-        for k,v in content.items():
-            if k == 'properties':
-                for vs in v:
-                    for vv in v[vs]:
-                        blockstates[vs][vv].add(namespace(name))
-            elif k == 'definition':
-                write_json(os.path.join(temp, 'lists/blocks/definition', name+'.json'), v, sort_keys=True)
-                for kk,vv in v.items():
-                    value = parse_value(name, kk, vv)
-                    if value is not None:
-                        definitions[kk][namespace(name)] = value
-            else:
-                raise NotImplementedError(f'listing_blocks(): Block element "{k}" not implemented.')
+        for content_type,content_value in content.items():
+            match content_type:
+                case 'properties':
+                    for k,v in content_value.items():
+                        for vv in v:
+                            blockstates[k][vv].add(namespace(name))
+                case 'definition':
+                    write_json(os.path.join(temp, 'lists/blocks/definition', name+'.json'), content_value, sort_keys=True)
+                    for k,v in content_value.items():
+                        value = parse_value(name, k, v)
+                        if value is not None:
+                            definitions[k][namespace(name)] = value
+                case _:
+                    raise NotImplementedError(f'listing_blocks(): Block element {content_type!r} not implemented.')
     
     for k,v in blockstates.items():
         lines = set()
