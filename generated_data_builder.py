@@ -1642,32 +1642,34 @@ def listing_commands(temp):
     lines = set()
     
     def get_argument(value, entry):
-        if test_type(entry, 'literal'):
-            return value
-        elif test_type(entry, 'argument') or test_type(entry, 'unknown'):
-            if test_type(entry, 'unknown') and value not in ['dimension', 'angle']:
-                # raise error if unknown specific case
-                raise ValueError("listing_commands(): Unknow type '{}' in commands '{}'".format(entry['type'], name))
+        type_name = flat_type(entry)
+        match type_name:
+            case 'literal':
+                return value
+            case 'argument' | 'unknown':
+                if type_name == 'unknown' and value not in ['dimension', 'angle']:
+                    # raise error if unknown specific case
+                    raise ValueError("listing_commands(): Unknow type '{}' in commands '{}'".format(entry['type'], name))
+                
+                type = entry.get('parser', '')
+                if type:
+                    type = namespace(type)
+                    lines.add(type)
+                    type = ' '+type
+                
+                properties = []
+                for k,v in entry.get('properties', {}).items():
+                    properties.append(k+'="'+str(v)+'"')
+                
+                if properties:
+                    properties = '['+', '.join(properties)+']'
+                else:
+                    properties = ''
+                
+                return '<'+value+type+properties+'>'
             
-            type = entry.get('parser', '')
-            if type:
-                type = namespace(type)
-                lines.add(type)
-                type = ' '+type
-            
-            properties = []
-            for k,v in entry.get('properties', {}).items():
-                properties.append(k+'="'+str(v)+'"')
-            
-            if properties:
-                properties = '['+', '.join(properties)+']'
-            else:
-                properties = ''
-            
-            return '<'+value+type+properties+'>'
-        
-        else:
-            raise ValueError("listing_commands(): Unknow type '{}' in commands '{}'".format(entry['type'], name))
+            case _:
+                raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}')
     
     def get_syntaxes(base, entry):
         rslt = []
