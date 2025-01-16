@@ -1,7 +1,4 @@
-VERSION = (0, 35, 0)
-
 import argparse
-from functools import cache
 import glob
 import os.path
 import pathlib
@@ -13,6 +10,8 @@ from common import (
     read_manifest_json, run_animation, safe_del, urlretrieve, urlopen,
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
+
+VERSION = (0, 35, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
