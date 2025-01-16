@@ -801,9 +801,9 @@ def listing_loot_tables(temp):
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
             entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
-            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
+            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
             # legacy
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_tables'), ns=ns))
             tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
     
     entries.discard('minecraft:empty')
