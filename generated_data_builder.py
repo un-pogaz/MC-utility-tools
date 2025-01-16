@@ -45,7 +45,7 @@ def main(args):
     
     valide_output(args)
     
-    if args.zip == None:
+    if args.zip is None:
         if args.quiet:
             args.zip = False
         else:
@@ -337,7 +337,8 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
         if rslt[i]:
             for y in range(len(rslt[i])):
                 d = str(rslt[i][y])
-                if d: rslt[i][y] = '"'+d+'"'
+                if d:
+                    rslt[i][y] = '"'+d+'"'
             rslt[i] = ','.join(rslt[i])
         elif rslt[i] is None:
             rslt[i] = ','.join('——' for _ in head_tbl)
@@ -1077,7 +1078,7 @@ def listing_loot_tables(temp):
                             def type_specific(type_name, predicate):
                                 match type_name:
                                     case 'raider':
-                                        if predicate['is_captain'] == True:
+                                        if predicate['is_captain'] is True:
                                             comment.append('is captain raider')
                                     case 'slime':
                                         v = predicate['size']
@@ -1097,15 +1098,15 @@ def listing_loot_tables(temp):
                                                     msg = 'size is superior {max}'
                                             comment.append(f'{msg} (inclusive)')
                                     case 'fishing_hook':
-                                        if predicate['in_open_water'] == True:
+                                        if predicate['in_open_water'] is True:
                                             comment.append('is on open water')
                                     case 'sheep':
                                         msg = []
                                         if 'color' in predicate:
                                             msg.append('is '+predicate['color'])
-                                        if predicate.get('sheared') == True:
+                                        if predicate.get('sheared') is True:
                                             msg.append('is sheared')
-                                        if predicate.get('sheared') == False:
+                                        if predicate.get('sheared') is False:
                                             msg.append('is not sheared')
                                         comment.append(' and '.join(msg))
                                     case 'mooshroom':
@@ -1257,7 +1258,8 @@ def listing_loot_tables(temp):
                 if lines_tbl[i]:
                     for y in range(len(lines_tbl[i])):
                         d = str(lines_tbl[i][y])
-                        if d: lines_tbl[i][y] = no_end_0(d)
+                        if d:
+                            lines_tbl[i][y] = no_end_0(d)
             
             write_tbl_csv(os.path.join(temp, 'lists/loot_tables', name+'.csv'), head_tbl, lines_tbl)
             write_tbl_md(os.path.join(temp, 'lists/loot_tables', name+'.md'), head_tbl, lines_tbl)
