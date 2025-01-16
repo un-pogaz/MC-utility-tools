@@ -785,8 +785,8 @@ def listing_special_subdirs(temp):
 
 def listing_loot_tables(temp):
     
-    def test_function(entry, target_type):
-        return test_n(entry,'function', namespace(target_type))
+    def flat_function(entry):
+        return flat_n(entry, 'function')
     
     dir = 'data/minecraft/loot_table'
     if not os.path.exists(os.path.join(temp, dir)):
@@ -820,22 +820,20 @@ def listing_loot_tables(temp):
     def get_simple(name, entry):
         def convert(item):
             item = namespace(item)
+            functions = set(flat_function(f) for f in entry.get('functions', []))
             match flatering(item):
                 case 'book':
-                    for f in entry.get('functions', []):
-                        for ef in ['enchant_randomly', 'enchant_with_levels', 'set_enchantments']:
-                            if test_function(f, ef):
-                                return namespace('enchanted_book')
+                    if functions.intersection({'enchant_randomly', 'enchant_with_levels', 'set_enchantments'}):
+                        return namespace('enchanted_book')
                 
                 case 'golden_apple':
                     for f in entry.get('functions', []):
-                        if test_function(f, 'set_data') and f['data'] == 1:
+                        if flat_function(f) == 'set_data' and f['data'] == 1:
                             return namespace('enchanted_golden_apple')
                 
                 case 'map':
-                    for f in entry.get('functions', []):
-                        if test_function(f, 'exploration_map'):
-                            return namespace('explorer_map')
+                    if 'exploration_map' in functions:
+                        return namespace('explorer_map')
             
             return item
         
@@ -901,89 +899,91 @@ def listing_loot_tables(temp):
         count = 1
         limit = None
         for e in entry.get('functions', []):
-            if test_function(e, 'set_count'):
-                count = e.get('count', 1)
-            if test_function(e, 'limit_count'):
-                limit = e.get('limit', None)
+            match flat_function(e):
+                case 'set_count':
+                    count = e.get('count', 1)
+                case 'limit_count':
+                    limit = e.get('limit', None)
         
         return mcrange(name, count, limit)
     
     def lootcomment(name, entry):
         comment = []
         for e in entry.get('functions', []):
-            if test_function(e, 'furnace_smelt'):
-                comment.append('furnace smelt')
-            if test_function(e, 'explosion_decay'):
-                comment.append('explosion decay')
-            
-            if test_function(e, 'enchant_randomly'):
-                enchantments = e.get('options') or e.get('enchantments', '*')
-                if isinstance(enchantments, str):
-                    enchantments = [enchantments]
-                enchantments = [flatering(x) for x in enchantments]
-                if len(enchantments) == 1:
-                    enchantments = enchantments[0]
-                else:
-                    enchantments = '['+', '.join(enchantments)+']'
-                comment.append('enchantments: '+ enchantments)
-            if test_function(e, 'enchant_with_levels'):
-                levels = []
-                range = mcrange(name, e['levels'])
-                try:
-                    levels.append('level: '+str(int(range)))
-                except:
-                    levels.append('levels: '+str(range))
-                if e.get('treasure', False):
-                    levels.append('treasure: true')
-                enchantments = e.get('options')
-                if enchantments is not None:
+            match flat_function(e):
+                case 'furnace_smelt':
+                    comment.append('furnace smelt')
+                case 'explosion_decay':
+                    comment.append('explosion decay')
+                
+                case 'enchant_randomly':
+                    enchantments = e.get('options') or e.get('enchantments', '*')
                     if isinstance(enchantments, str):
                         enchantments = [enchantments]
                     enchantments = [flatering(x) for x in enchantments]
                     if len(enchantments) == 1:
-                        levels.append(enchantments[0])
+                        enchantments = enchantments[0]
                     else:
-                        levels.append('['+', '.join(enchantments)+']')
-                comment.append('enchantments: '+ '{'+ ', '.join(levels) +'}')
-            if test_function(e, 'set_enchantments'):
-                enchantments = e.get('enchantments', None)
-                if not enchantments:
-                    pass
-                else:
-                    comment.append('enchantments: '+ ', '.join(flatering(k) for k,v in enchantments.items() if v))
-            
-            if test_function(e, 'looting_enchant') or test_function(e, 'enchanted_count_increase'):
-                comment.append('add drop: '+ mcrange(name, e['count'])+' * level {enchantment: '+flatering(e.get('enchantment', 'looting'))+'}')
-            
-            if test_function(e, 'exploration_map'):
-                comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
-            
-            if test_function(e, 'set_instrument'):
-                comment.append('instrument: '+ e['options'])
-            
-            if test_function(e, 'set_potion'):
-                if not test_n(e, 'id', 'empty'):
-                    id = flatering(e['id'])
-                    m = []
-                    modifer = [
-                        'strong',
-                        'long',
-                    ]
-                    for k in modifer:
-                        p = k+'_'
-                        if p in id:
-                            id = id.replace(p,'')
-                            m.append(k)
-                    
-                    if m:
-                        id = id + ' ('+ ', '.join(m) +')'
-                    comment.append(id)
-            
-            if test_function(e, 'set_nbt'):
-                from nbtlib import parse_nbt
-                j = parse_nbt(e['tag']).unpack(json=True)
-                if 'Potion' in j:
-                    comment.append(flatering(j['Potion']))
+                        enchantments = '['+', '.join(enchantments)+']'
+                    comment.append('enchantments: '+ enchantments)
+                case 'enchant_with_levels':
+                    levels = []
+                    range = mcrange(name, e['levels'])
+                    try:
+                        levels.append('level: '+str(int(range)))
+                    except:
+                        levels.append('levels: '+str(range))
+                    if e.get('treasure', False):
+                        levels.append('treasure: true')
+                    enchantments = e.get('options')
+                    if enchantments is not None:
+                        if isinstance(enchantments, str):
+                            enchantments = [enchantments]
+                        enchantments = [flatering(x) for x in enchantments]
+                        if len(enchantments) == 1:
+                            levels.append(enchantments[0])
+                        else:
+                            levels.append('['+', '.join(enchantments)+']')
+                    comment.append('enchantments: '+ '{'+ ', '.join(levels) +'}')
+                case 'set_enchantments':
+                    enchantments = e.get('enchantments', None)
+                    if not enchantments:
+                        pass
+                    else:
+                        comment.append('enchantments: '+ ', '.join(flatering(k) for k,v in enchantments.items() if v))
+                
+                case 'looting_enchant' | 'enchanted_count_increase':
+                    comment.append('add drop: '+ mcrange(name, e['count'])+' * level {enchantment: '+flatering(e.get('enchantment', 'looting'))+'}')
+                
+                case 'exploration_map':
+                    comment.append('destination: '+ '#'+namespace(e.get('destination', 'on_treasure_maps')))
+                
+                case 'set_instrument':
+                    comment.append('instrument: '+ e['options'])
+                
+                case 'set_potion':
+                    if not flat_n(e, 'id') == 'empty':
+                        id = flatering(e['id'])
+                        m = []
+                        modifer = [
+                            'strong',
+                            'long',
+                        ]
+                        for k in modifer:
+                            p = k+'_'
+                            if p in id:
+                                id = id.replace(p,'')
+                                m.append(k)
+                        
+                        if m:
+                            id = id + ' ('+ ', '.join(m) +')'
+                        comment.append(id)
+                
+                case 'set_nbt':
+                    from nbtlib import parse_nbt
+                    j = parse_nbt(e['tag']).unpack(json=True)
+                    if 'Potion' in j:
+                        comment.append(flatering(j['Potion']))
         
         for e in entry.get('conditions', []):
             condition_type = flatering(e['condition'])
