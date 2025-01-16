@@ -381,6 +381,14 @@ def write_tbl_md(path, head_tbl, lines_tbl):
     write_lines(path, rslt)
 
 
+def match_dir(temp, dirs) -> str:
+    rslt = None
+    for rslt in dirs:
+        if os.path.exists(os.path.join(temp, rslt)):
+            break
+    return rslt
+
+
 def get_datapack_paths(temp) -> list[tuple[str,str]]:
     sub_datapacks = 'data/minecraft/datapacks'
     rslt = ['']
@@ -389,12 +397,11 @@ def get_datapack_paths(temp) -> list[tuple[str,str]]:
     return rslt
 
 def get_structures_dir(temp) -> str:
-    dir = 'data/minecraft/structure'
-    if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'data/minecraft/structures' # old
-        if not os.path.exists(os.path.join(temp, dir)):
-            dir = 'assets/minecraft/structures' # legacy
-    return dir
+    return match_dir(temp, [
+        'data/minecraft/structure',
+        'data/minecraft/structures', # old
+        'assets/minecraft/structures', # legacy
+    ])
 
 def write_serialize_nbt(temp):
     from common import serialize_nbt
@@ -647,11 +654,11 @@ class Advancement():
         self.hidden = display.get('hidden', False)
 
 def listing_advancements(temp):
-    dir = 'data/minecraft/advancement'
-    if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'data/minecraft/advancements' # old
-        if not os.path.exists(os.path.join(temp, dir)):
-            dir = 'assets/minecraft/advancements' # legacy
+    dir = match_dir(temp, [
+        'data/minecraft/advancement',
+        'data/minecraft/advancements', # old
+        'assets/minecraft/advancements', # legacy
+    ])
     
     lst_namespace, _dirs = get_sub_folders_data(temp)
     entries = set()
@@ -756,13 +763,12 @@ def listing_subdir_reports(temp):
     ]
     for subdir in lst_subdir:
         lines = set()
-        dir = 'reports/'+ subdir +'/minecraft' # root
-        if not os.path.exists(os.path.join(temp, dir)):
-            dir = 'reports/'+ subdir # alt root
-            if not os.path.exists(os.path.join(temp, dir)):
-                dir = 'reports/minecraft/'+ subdir # old
-                if not os.path.exists(os.path.join(temp, dir)):
-                    dir = 'reports/worldgen/minecraft/'+ subdir # legacy
+        dir = match_dir(temp, [
+            'reports/'+ subdir +'/minecraft', # root
+            'reports/'+ subdir, # alt root
+            'reports/minecraft/'+ subdir, # old
+            'reports/worldgen/minecraft/'+ subdir, # legacy
+        ])
         
         lines.update(enum_json(os.path.join(temp, dir)))
         if lines:
@@ -788,11 +794,11 @@ def listing_loot_tables(temp):
     def flat_function(entry):
         return flat_n(entry, 'function')
     
-    dir = 'data/minecraft/loot_table'
-    if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'data/minecraft/loot_tables' # old
-        if not os.path.exists(os.path.join(temp, dir)):
-            dir = 'assets/minecraft/loot_tables' # legacy
+    dir = match_dir(temp, [
+        'data/minecraft/loot_table',
+        'data/minecraft/loot_tables', # old
+        'assets/minecraft/loot_tables', # legacy
+    ])
     
     lst_namespace, _dirs = get_sub_folders_data(temp)
     entries = set()
@@ -1254,11 +1260,11 @@ def listing_loot_tables(temp):
             write_tbl_md(os.path.join(temp, 'lists/loot_tables', name+'.md'), head_tbl, lines_tbl)
 
 def listing_worldgens(temp):
-    dir = 'data/minecraft/worldgen'
-    if not os.path.exists(os.path.join(temp, dir)):
-        dir = 'reports/minecraft/worldgen' # old
-        if not os.path.exists(os.path.join(temp, dir)):
-            dir = 'reports/worldgen/minecraft/worldgen' # legacy
+    dir = match_dir(temp, [
+        'data/minecraft/worldgen',
+        'reports/minecraft/worldgen', # old
+        'reports/worldgen/minecraft/worldgen', # legacy
+    ])
     
     lines = set()
     for dp in get_datapack_paths(temp):
