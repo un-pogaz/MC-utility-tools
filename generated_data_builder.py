@@ -437,10 +437,6 @@ def namespace(name, ns=None) -> str:
         name = split[1]
     return ns+':'+flatering(name)
 
-def test_n(entry, n, target_type) -> bool:
-    return namespace(entry[n]) == namespace(target_type)
-def test_type(entry, target_type) -> bool:
-    return test_n(entry,'type', namespace(target_type))
 def flat_n(entry, name) -> str:
     return flatering(entry[name])
 def flat_type(entry) -> str:
