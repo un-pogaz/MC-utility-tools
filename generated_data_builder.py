@@ -614,17 +614,19 @@ class Advancement():
         if self.rewards:
             lst = []
             for k,v in self.rewards.items():
-                if k == 'experience':
-                    if v:
-                        lst.append(str(v)+' xp')
-                    continue
-                if k == 'recipes':
-                    lst.extend('recipe()'+namespace(l) for l in v)
-                    continue
-                if k == 'loot':
-                    lst.extend('loot_table[]'+namespace(l) for l in v)
-                    continue
-                raise ValueError(f'Unknow rewards keys "{k}" in the Advancement "{self.full_name}"')
+                match k:
+                    case 'experience':
+                        if v:
+                            lst.append(str(v)+' xp')
+                        continue
+                    case 'recipes':
+                        lst.extend('recipe()'+namespace(l) for l in v)
+                        continue
+                    case 'loot':
+                        lst.extend('loot_table[]'+namespace(l) for l in v)
+                        continue
+                    case _:
+                        raise ValueError(f'Unknow rewards keys {k!r} in the Advancement {self.full_name!r}')
             self.rewards = ', '.join(sorted(lst))
         else:
             self.rewards = None
