@@ -498,7 +498,7 @@ def parse_json_text(json_text, languages_json) -> str|None:
     if isinstance(json_text, list):
         return ''.join([parse_json_text(e, languages_json) for e in json_text])
     
-    raise ValueError('parse_json_text(): Unknow json_text format')
+    raise ValueError('parse_json_text(): Unknow json_text format.')
 
 def no_end_0(num):
     return str(num).removesuffix('.0')
@@ -626,7 +626,7 @@ class Advancement():
                         lst.extend('loot_table[]'+namespace(l) for l in v)
                         continue
                     case _:
-                        raise ValueError(f'Unknow rewards keys {k!r} in the Advancement {self.full_name!r}')
+                        raise ValueError(f'Unknow rewards keys {k!r} in the Advancement {self.full_name!r}.')
             self.rewards = ', '.join(sorted(lst))
         else:
             self.rewards = None
@@ -860,11 +860,11 @@ def listing_loot_tables(temp):
                     return 'loot_table[]'+namespace(v)
                 if isinstance(v, dict):
                     return 'loot_table[]'
-                raise ValueError(f'listing_loot_tables().get_simple(): Unknow loot_table[] format in loot_tables {name!r}')
+                raise ValueError(f'listing_loot_tables().get_simple(): Unknow loot_table[] format in loot_tables {name!r}.')
             case 'alternatives':
                 return '{}alternatives'
             case _:
-                raise ValueError(f'listing_loot_tables().get_simple(): Unknow type {type_name!r} in loot_tables {name!r}')
+                raise ValueError(f'listing_loot_tables().get_simple(): Unknow type {type_name!r} in loot_tables {name!r}.')
     
     def mcrange(name, entry, limit=None):
         if isinstance(entry, dict):
@@ -873,7 +873,7 @@ def listing_loot_tables(temp):
                 if 'min' in entry and 'max' in entry:
                     entry['type'] = 'uniform'
                 else:
-                    raise ValueError(f'listing_loot_tables().mcrange(): A entry cannot be converted in loot_tables {name!r}')
+                    raise ValueError(f'listing_loot_tables().mcrange(): A range cannot be converted in loot_tables {name!r}.')
             
             type_name = flat_type(entry)
             match type_name:
@@ -902,7 +902,7 @@ def listing_loot_tables(temp):
                 case _:
                     if 'value' in entry:
                         return no_end_0(entry['value'])
-                    raise ValueError(f'listing_loot_tables().mcrange(): Unknow range type {type_name!r} in loot_tables {name!r}')
+                    raise ValueError(f'listing_loot_tables().mcrange(): Unknow range type {type_name!r} in loot_tables {name!r}.')
         
         else:
             return no_end_0(entry)
@@ -1015,7 +1015,7 @@ def listing_loot_tables(temp):
                         case 'linear':
                             chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
                         case _:
-                            raise ValueError(f'listing_loot_tables().lootcomment(): Unknow level-based value type {chance_type!r} in loot_tables {name!r}')
+                            raise ValueError(f'listing_loot_tables().lootcomment(): Unknow level-based value type {chance_type!r} in loot_tables {name!r}.')
                     unenchanted_chance = no_end_0(e.get('unenchanted_chance') or e.get('chance', {}).get('base', 0))+'%'
                     comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(e['enchantment'])+'}: '+ chance)
                 case 'killer_main_hand_tool':
@@ -1030,7 +1030,7 @@ def listing_loot_tables(temp):
                             if 'type' in predicate:
                                 comment.append('killed by '+predicate['type'])
                             else:
-                                raise ValueError(f'listing_loot_tables().lootcomment(): entity_properties contain unsuported data {name!r}')
+                                raise ValueError(f'listing_loot_tables().lootcomment(): entity_properties contain unsuported data {name!r}.')
                         
                         case 'this':
                             components = predicate.pop('components', {})
@@ -1062,7 +1062,7 @@ def listing_loot_tables(temp):
                                     case 'tropical_fish/base_color' | 'tropical_fish/pattern_color' | 'tropical_fish/pattern':
                                         tropical_fish[type_name.removeprefix('tropical_fish/')] = value
                                     case _:
-                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity component {type_name!r} in loot_tables {name!r}')
+                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity component {type_name!r} in loot_tables {name!r}.')
                             
                             if tropical_fish:
                                 color = ''
@@ -1114,7 +1114,7 @@ def listing_loot_tables(temp):
                                     case 'mooshroom':
                                         comment.append('is '+predicate['variant']+' variant')
                                     case _:
-                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow type_specific {type_name!r} in loot_tables {name!r}')
+                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow type_specific {type_name!r} in loot_tables {name!r}.')
                             
                             if 'type_specific' in predicate:
                                 value = predicate['type_specific']
@@ -1124,7 +1124,7 @@ def listing_loot_tables(temp):
                                     type_specific(type_name, value)
                         
                         case _:
-                            raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity origin {entity_origin!r} in loot_tables {name!r}')
+                            raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity origin {entity_origin!r} in loot_tables {name!r}.')
         
         return ', '.join(comment)
     
@@ -1183,7 +1183,7 @@ def listing_loot_tables(temp):
             for e in pool['entries']:
                 add_entrie(tbl_pool, e, weight_groupe)
         else:
-            raise ValueError("listing_loot_tables(): Invalid input pool")
+            raise ValueError('listing_loot_tables(): Invalid input pool.')
     
     for dp in get_datapack_paths(temp):
         for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
@@ -1365,9 +1365,9 @@ def listing_blocks(temp):
                     entry['value']['max_inclusive']
                 return no_end_0(min)+'..'+no_end_0(max)
             case _:
-                raise NotImplementedError(f'listing_blocks(): Block definition of {name!r} has not implemented {type_name!r} type value.')
+                raise ValueError(f'listing_blocks(): Block definition of {name!r} has not implemented {type_name!r} type value.')
     def parse_value(block_name, name, value):
-        not_implemented = NotImplementedError(f'Block definition of {block_name!r} has not implemented {name!r} properties.')
+        value_error = ValueError(f'Block definition of {block_name!r} has not implemented {name!r} properties.')
         if isinstance(value, bool):
             return str(value).lower()
         if isinstance(value, (str, int, float)):
@@ -1378,19 +1378,19 @@ def listing_blocks(temp):
                 return mcrange(name, value)
             case 'base_state':
                 if len(value) != 1:
-                    raise not_implemented
+                    raise value_error
                 return value['Name']
             case 'suspicious_stew_effects':
                 return ', '.join('{} ({} ticks)'.format(e['id'], e.get('duration', 160)) for e in value)
             case 'properties':
                 if value:
-                    raise not_implemented
+                    raise value_error
                 else:
                     return
             case 'particle' | 'leaf_particle':
                 return unquoted_json(value)
             case _:
-                raise not_implemented
+                raise value_error
     
     blockstates = defaultdict(lambda:defaultdict(set))
     definitions = defaultdict(dict)
@@ -1423,7 +1423,7 @@ def listing_blocks(temp):
                         if value is not None:
                             definitions[k][namespace(name)] = value
                 case _:
-                    raise NotImplementedError(f'listing_blocks(): Block element {content_type!r} not implemented.')
+                    raise ValueError(f'listing_blocks(): Block element {content_type!r} not implemented.')
     
     for k,v in blockstates.items():
         lines = set()
@@ -1493,7 +1493,7 @@ def listing_items(temp):
                         type = flatering(type)
                         itemstates[vk][type][namespace(k)] = value
             else:
-                raise NotImplementedError(f'listing_items(): ItemStates "{vk}" not implemented.')
+                raise ValueError(f'listing_items(): ItemStates {vk!r} not implemented.')
     
     def _one_key_dict(value):
         if len(value) == 1:
@@ -1550,7 +1550,7 @@ def listing_items(temp):
                     rslt = unquoted_json(value)
         
         if not rslt:
-            raise ValueError(f'listing_items(): component with a unknow type to retrive value {type(value)!r}')
+            raise ValueError(f'listing_items(): component with a unknow type to retrive value {type(value)!r}.')
         return '  = ' + rslt
     
     def _quote_str(value):
@@ -1610,7 +1610,7 @@ def listing_items(temp):
                             if component_test_value(v, is_file=True) or (c in components_always_json_value and v):
                                 write_json(os.path.join(temp, 'lists/items/components', c, flatering(n)+'.json'), v)
             case _:
-                raise ValueError(f'listing_items(): Unknow item states {k!r}')
+                raise ValueError(f'listing_items(): Unknow item states {k!r}.')
 
 def listing_packets(temp):
     for k,tv in read_json(os.path.join(temp, 'reports/packets.json')).items():
@@ -1632,7 +1632,7 @@ def listing_datapacks(temp):
                 elif isinstance(vv, str):
                     values['value/'+kk].add(f'{t}  = {vv}')
                 else:
-                    raise ValueError("listing_datapacks(): The value '{}' of '{}' is a unknow type")
+                    raise ValueError('listing_datapacks(): The value {kk!r} of {name!r} is a unknow type.')
             write_json(os.path.join(temp, 'lists/datapacks', k, name)+'.json', v)
     
     for k,v in values.items():
@@ -1649,7 +1649,7 @@ def listing_commands(temp):
             case 'argument' | 'unknown':
                 if type_name == 'unknown' and value not in ['dimension', 'angle']:
                     # raise error if unknown specific case
-                    raise ValueError("listing_commands(): Unknow type '{}' in commands '{}'".format(entry['type'], name))
+                    raise ValueError(f'listing_commands(): Type {type_name!r} with invalide value in commands {name!r}.')
                 
                 type = entry.get('parser', '')
                 if type:
@@ -1669,7 +1669,7 @@ def listing_commands(temp):
                 return '<'+value+type+properties+'>'
             
             case _:
-                raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}')
+                raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}.')
     
     def get_syntaxes(base, entry):
         rslt = []
@@ -1690,7 +1690,7 @@ def listing_commands(temp):
         
         for k in entry.keys():
             if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect']:
-                raise ValueError("listing_commands(): Additional key '{}' in commands '{}'".format(k, name))
+                raise ValueError(f'listing_commands(): Additional key {k!r} in commands {name!r}.')
         
         return rslt
     
@@ -1740,7 +1740,7 @@ def listing_paintings(temp):
                 j = read_json(os.path.join(dir, file))
                 title = parse_json_text(j.get('title'), languages_json) or languages_json.get(lng_id+'.title') or lng_id+'.title'
                 author = parse_json_text(j.get('author'), languages_json) or languages_json.get(lng_id+'.author') or lng_id+'.author'
-                size = f'{j['width']}x{j['height']}'
+                size = '{}x{}'.format(j['width'], j['height'])
                 paintings['authors'][author].add(ns_name)
                 paintings['sizes'][size].add(ns_name)
                 lines = []
@@ -1771,7 +1771,7 @@ def listing_jukebox_songs(temp):
                 if ' - ' in desc:
                     author, title = desc.split(' - ', maxsplit=1)
                 else:
-                    raise ValueError(f"listing_jukebox_songs(): The jukebox_song '{name}' don't have 'author - title' pairs")
+                    raise ValueError(f"listing_jukebox_songs(): The jukebox_song {name!r} don't have 'author - title' pairs.")
                 jukebox_songs['authors'][author].add(ns_name)
                 jukebox_songs['comparator_output'][str(j['comparator_output'])].add(ns_name)
                 lines = []
