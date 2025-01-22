@@ -11,7 +11,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 35, 0)
+VERSION = (0, 35, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1561,10 +1561,12 @@ def listing_items(temp):
         'enchantments',
         'repair_cost',
         'attribute_modifiers',
+        'tooltip_display',
     ]
     components_grouped_value = [
         'max_stack_size',
         'rarity',
+        'break_sound',
     ]
     components_always_json_value = [
         'tool',
@@ -1600,6 +1602,8 @@ def listing_items(temp):
                     if c in components_grouped_value:
                         dic = defaultdict(list)
                         for n,v in e.items():
+                            if isinstance(v, str) and ':' in v:
+                                v = flatering(v)
                             dic[v].append(n)
                         for v,n in dic.items():
                             write_lines(os.path.join(temp, 'lists/items/components', c, str(v)+'.txt'), sorted(set(n)))
