@@ -71,10 +71,21 @@ def package_datapack(path):
     
     if work == temp:
         new_path = os.path.splitext(path)[0]+'.jar'
+        update_jar = False
     else:
-        new_path = os.path.abspath(path)+'.jar'
+        inner_jar_path = os.path.join(os.path.abspath(path), name)+'.jar'
+        update_jar = False
+        if os.path.exists(inner_jar_path):
+            print('The target folder already have a mod with the same name.')
+            print('Do you want update this one?')
+            update_jar = input().lower().startswith('y')
+        
+        if update_jar:
+            new_path = inner_jar_path
+        else:
+            new_path = os.path.abspath(path)+'.jar'
     
-    if os.path.exists(new_path):
+    if not update_jar and os.path.exists(new_path):
         print('Error: packaged Datapack already exist {}'.format(os.path.basename(new_path)))
         return None
     
@@ -105,7 +116,7 @@ def package_datapack(path):
     map = {'id': id, 'mcmeta': mcmeta, 'name': name, 'description': description.replace('\n', '\\n').replace('"', '\\"')}
     
     print('Building jar...')
-    with zipfile.ZipFile(temp+'.zip', mode='a') as zip:
+    with zipfile.ZipFile(new_path, mode='w') as zip:
         icon = os.path.join(work, 'pack.png')
         if os.path.exists(icon):
             zip.write(icon, f"{id}_pack.png")
@@ -115,12 +126,11 @@ def package_datapack(path):
         # fc = id.encode('utf-8').join(forge_class)
         # zip.writestr(f'net/pdpm/{id}/pdpmWrapper.class', fc)
         for f in glob.iglob('**/*.*', recursive=True, root_dir=work):
+            if f.lower().endswith(('.zip', '.jar')):
+                continue
             zip.write(os.path.join(work, f), f)
     
-    shutil.move(temp+'.zip', new_path)
-    
     safe_del(temp)
-    safe_del(temp+'.zip')
 
 
 if __name__ == "__main__":
