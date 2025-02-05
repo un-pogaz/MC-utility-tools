@@ -11,7 +11,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 35, 1)
+VERSION = (0, 35, 2)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1040,6 +1040,7 @@ def listing_loot_tables(temp):
                                 match type_name:
                                     case ('axolotl/variant' |
                                           'cat/variant' |
+                                          'chicken/variant' |
                                           'fox/variant' |
                                           'frog/variant' |
                                           'horse/variant' |
