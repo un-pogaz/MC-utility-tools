@@ -1,4 +1,5 @@
 import os
+import glob
 import shutil
 import zipfile
 from tempfile import gettempdir
@@ -101,18 +102,20 @@ def package_datapack(path):
         print(f'Error: invalide Datapack')
         return None
     
-    map = {'id': id, 'mcmeta':mcmeta, 'name':name, 'description':description.replace('\n', '\\n').replace('"', '\\"')}
+    map = {'id': id, 'mcmeta': mcmeta, 'name': name, 'description': description.replace('\n', '\\n').replace('"', '\\"')}
     
-    shutil.make_archive(temp, 'zip', root_dir=work)
+    print('Building jar...')
     with zipfile.ZipFile(temp+'.zip', mode='a') as zip:
         icon = os.path.join(work, 'pack.png')
         if os.path.exists(icon):
             zip.write(icon, f"{id}_pack.png")
-        zip.writestr('META-INF/mods.toml', forge.format_map(map))
-        zip.writestr('fabric.mod.json', fabric.format_map(map))
-        zip.writestr('quilt.mod.json', quilt.format_map(map))
-        fc = id.encode('utf-8').join(forge_class)
-        zip.writestr(f'net/pdpm/{id}/pdpmWrapper.class', fc)
+        zip.writestr('META-INF/mods.toml', forge.format(**map))
+        zip.writestr('fabric.mod.json', fabric.format(**map))
+        zip.writestr('quilt.mod.json', quilt.format(**map))
+        # fc = id.encode('utf-8').join(forge_class)
+        # zip.writestr(f'net/pdpm/{id}/pdpmWrapper.class', fc)
+        for f in glob.iglob('**/*.*', recursive=True, root_dir=work):
+            zip.write(os.path.join(work, f), f)
     
     shutil.move(temp+'.zip', new_path)
     
