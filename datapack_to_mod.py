@@ -116,6 +116,11 @@ def package_datapack(path):
     try:
         j = read_json(os.path.join(work, 'pack.mcmeta'))
         mcmeta = j['pack']['pack_format']
+        range_formats = j['pack'].get('supported_formats')
+        if isinstance(range_formats, dict):
+            range_formats = [range_formats['min_inclusive'], range_formats['max_inclusive']]
+        if isinstance(range_formats, list):
+            mcmeta = f'{range_formats[0]}-{range_formats[1]}'
         description = j['pack'].get('description', '')
         if isinstance(description, list):
             for i in range(len(description)):
