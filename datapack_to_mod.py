@@ -1,15 +1,13 @@
 import os
 import glob
-import shutil
+import unicodedata
+import re
 import zipfile
 from tempfile import gettempdir
 
 from common import read_json, safe_del
 
 temp = os.path.join(gettempdir(), 'package_datapack_to_mod')
-
-import re
-import unicodedata
 
 def slugify(value, allow_unicode=False):
     """
@@ -130,7 +128,7 @@ def package_datapack(path):
             description = ''.join(description).replace('\r\n','\n')
         
     except:
-        print(f'Error: invalide Datapack')
+        print('Error: invalide Datapack')
         return None
     
     map = {'id': id, 'mcmeta': mcmeta, 'name': name, 'description': description.replace('\n', '\\n').replace('"', '\\"')}
