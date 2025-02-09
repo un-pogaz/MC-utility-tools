@@ -72,47 +72,60 @@ def package_datapack(path):
     os.makedirs(temp, exist_ok=True)
     path = os.path.abspath(path)
     
-    if zipfile.is_zipfile(path):
-        print('Extracting Datapack...')
-        with zipfile.ZipFile(path, mode='r') as zip:
-            zip.extractall(temp)
-        work = temp
-        name = os.path.splitext(os.path.basename(path))[0]
-    else:
-        work = path
-        name = os.path.basename(path)
+    if not os.path.exists(path):
+        print("Target path don't exist.")
+        return None
     
-    if work == temp:
-        new_path = os.path.splitext(path)[0]+'.jar'
+    if os.path.isdir(path):
+        is_folder = True
+        name = os.path.basename(path)
+        _path_jar = os.path.join(path, name)+'.jar'
+        _path_zip = os.path.join(path, name)+'.zip'
         update_jar = False
-    else:
-        inner_jar_path = os.path.join(os.path.abspath(path), name)+'.jar'
-        update_jar = False
-        if os.path.exists(inner_jar_path):
-            print('The target folder already have a mod with the same name.')
+        if os.path.exists(_path_jar) or os.path.exists(_path_zip):
+            print('The target folder already have a mod/zip with the same name.')
             print('Do you want update this one?')
             update_jar = input().lower().startswith('y')
         
         if update_jar:
-            new_path = inner_jar_path
+            path_jar = _path_jar
+            path_zip = _path_zip
         else:
-            new_path = os.path.abspath(path)+'.jar'
+            path_jar = os.path.abspath(path)+'.jar'
+            path_zip = os.path.abspath(path)+'.zip'
+        
+    else:
+        is_folder = False
+        update_jar = False
+        name = os.path.splitext(os.path.basename(path))[0]
+        path_jar = os.path.splitext(path)[0]+'.jar'
+        path_zip = os.path.splitext(path)[0]+'.zip'
     
-    if not update_jar and os.path.exists(new_path):
-        print('Error: packaged Datapack already exist {}'.format(os.path.basename(new_path)))
+    if (
+        is_folder and not update_jar and (os.path.exists(path_jar), os.path.exists(path_zip))
+        ) or (
+        not is_folder and os.path.exists(path_jar)
+        ):
+        print('Error: packaged Datapack already exist {!r}'.format(os.path.basename(path_jar)))
         return None
     
     id = slugify(name)
     id = re.sub(r'^([0-9])',r'n\1', id)
-    id = re.sub(r'^([^a-z])',r'a\1', id)
+    id = re.sub(r'^([^\w])',r'a\1', id)
     
-    if not os.path.isdir(work):
-        print(f'Error: the target path is not a folder or a ZIP "{path}"')
-        return None
+    if is_folder:
+        print('Building zip...')
+        with zipfile.ZipFile(path_zip, mode='w') as zip:
+            for f in glob.iglob('**/*', recursive=True, root_dir=path):
+                if f.lower().endswith(('.zip', '.jar')):
+                    continue
+                if not os.path.isfile(os.path.join(path, f)):
+                    continue
+                zip.write(os.path.join(path, f), f)
     
     print('Writing metadata...')
     try:
-        j = read_json(os.path.join(work, 'pack.mcmeta'))
+        j = read_json(os.path.join(path, 'pack.mcmeta'))
         mcmeta = j['pack']['pack_format']
         range_formats = j['pack'].get('supported_formats')
         if isinstance(range_formats, dict):
@@ -131,25 +144,22 @@ def package_datapack(path):
         print('Error: invalide Datapack')
         return None
     
+    with open(path_zip, 'rb') as fi:
+        with open(path_jar, 'wb') as fo:
+            while (b := fi.read(2**16)):
+                fo.write(b)
+    
     map = {'id': id, 'mcmeta': mcmeta, 'name': name, 'description': description.replace('\n', '\\n').replace('"', '\\"')}
     
-    print('Building jar...')
-    with zipfile.ZipFile(new_path, mode='w') as zip:
-        icon = os.path.join(work, 'pack.png')
-        if os.path.exists(icon):
-            zip.write(icon, f"{id}_pack.png")
+    with zipfile.ZipFile(path_jar, mode='a') as zip:
+        if 'pack.png' in zip.namelist():
+            zip.writestr(f'{id}_pack.png', zip.open('pack.png').read())
         zip.writestr('META-INF/mods.toml', forge.format(**map))
         zip.writestr('META-INF/neoforge.mods.toml', neoforge.format(**map))
         zip.writestr('fabric.mod.json', fabric.format(**map))
         zip.writestr('quilt.mod.json', quilt.format(**map))
         # fc = id.encode('utf-8').join(forge_class)
         # zip.writestr(f'net/pdpm/{id}/pdpmWrapper.class', fc)
-        for f in glob.iglob('**/*.*', recursive=True, root_dir=work):
-            if f.lower().endswith(('.zip', '.jar')):
-                continue
-            zip.write(os.path.join(work, f), f)
-    
-    safe_del(temp)
 
 
 if __name__ == "__main__":
