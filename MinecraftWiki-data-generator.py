@@ -135,7 +135,6 @@ def main(path: str, output: str=None, *, silent=False, version_target=None):
 
 if __name__ == '__main__':
     args = args.parse_args()
-    print()
     main(
         path=args.path,
         output=args.output,
