@@ -25,6 +25,7 @@ args = argparse.ArgumentParser(description=('Small utility tool to generate data
                                             'Caution, it recommends to use this tool only on release versions.'))
 args.add_argument('path', type=str, help='Game jar or folder to analyze')
 args.add_argument('--output', default=DEFAULT_FOLDER, type=str, help=f'Output folder to write the files. Deault: {DEFAULT_FOLDER}')
+args.add_argument('--silent', action='store_true', help='Reduce the printed output messages.')
 
 args_error = args.error
 
@@ -80,12 +81,16 @@ def tag_list_generator(work_dir, output_dir):
     write_json(os.path.join(output_dir, 'Tag_list_generator.json'), rslt, sort_keys=True)
 
 
-def main(path: str, output: str=None):
+def main(path: str, output: str=None, *, silent=False):
     if not output:
         output = DEFAULT_FOLDER
     
     path = os.path.abspath(path)
     output = os.path.abspath(output)
+    
+    def prints(*args, **kargs):
+        if not silent:
+            print(*args, **kargs)
     
     if not os.path.exists(path):
         args_error("Target path don't exist.")
@@ -96,7 +101,7 @@ def main(path: str, output: str=None):
         if not zipfile.is_zipfile(path):
             args_error('Target file is not a valid zip file.')
         
-        print('Extraction of content...')
+        prints('Extraction of content...')
         temp_root = os.path.join(gettempdir(), DEFAULT_FOLDER)
         try:
             shutil.rmtree(temp_root)
@@ -116,7 +121,7 @@ def main(path: str, output: str=None):
     
     os.makedirs(output, exist_ok=True)
     
-    print('Module:Tag_list_generator...')
+    prints('Module:Tag_list_generator...')
     tag_list_generator(work_dir, output)
     
     ## clean-up
@@ -132,4 +137,5 @@ if __name__ == '__main__':
     main(
         path=args.path,
         output=args.output,
+        silent=args.silent,
     )
