@@ -46,7 +46,7 @@ def iglob(pathname: str, recursive: bool, root_dir: str):
         yield path.replace('\\', '/').strip('/')
 
 
-def tag_list_generator(work_dir, output_dir):
+def tag_list_generator(work_dir, output_dir, *, version_target=None):
     '''
     Module:Tag_list_generator
     Module:Tag_list_generator/data.json
@@ -56,6 +56,8 @@ def tag_list_generator(work_dir, output_dir):
     rslt.update(COMMENT_INFO)
     rslt['__comment_module1'] = 'data for Module:Tag_list_generator'
     rslt['__comment_module2'] = 'listing of tag used in others tags'
+    if version_target:
+        rslt['__comment_version'] = version_target
     
     tags_dir = os.path.join(work_dir, 'data/minecraft/tags')
     types = []
@@ -81,7 +83,7 @@ def tag_list_generator(work_dir, output_dir):
     write_json(os.path.join(output_dir, 'Tag_list_generator.json'), rslt, sort_keys=True)
 
 
-def main(path: str, output: str=None, *, silent=False):
+def main(path: str, output: str=None, *, silent=False, version_target=None):
     if not output:
         output = DEFAULT_FOLDER
     
@@ -122,7 +124,7 @@ def main(path: str, output: str=None, *, silent=False):
     os.makedirs(output, exist_ok=True)
     
     prints('Module:Tag_list_generator...')
-    tag_list_generator(work_dir, output)
+    tag_list_generator(work_dir, output, version_target=version_target)
     
     ## clean-up
     try:
