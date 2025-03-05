@@ -27,43 +27,6 @@ args.add_argument('path', type=str, help='Game jar or folder to analyze')
 args.add_argument('--output', default=DEFAULT_FOLDER, type=str, help=f'Output folder to write the files. Deault: {DEFAULT_FOLDER}')
 
 args_error = args.error
-args = args.parse_args()
-print()
-
-if not args.output:
-    args.output = DEFAULT_FOLDER
-
-args.path = os.path.abspath(args.path)
-args.output = os.path.abspath(args.output)
-
-if not os.path.exists(args.path):
-    args_error("Target path don't exist.")
-
-
-temp_root = None
-work_dir = None
-if os.path.isfile(args.path):
-    if not zipfile.is_zipfile(args.path):
-        args_error('Target file is not a valid zip file.')
-    
-    print('Extraction of content...')
-    temp_root = os.path.join(gettempdir(), DEFAULT_FOLDER)
-    try:
-        shutil.rmtree(temp_root)
-    except Exception:
-        pass
-    with zipfile.ZipFile(args.path) as zip:
-        for info in zip.filelist:
-            if info.filename.startswith(('assets/', 'data/')):
-                zip.extract(info, temp_root)
-    work_dir = temp_root
-
-if os.path.isdir(args.path):
-    work_dir = args.path
-
-if not work_dir:
-    args_error('The target path was not recognized.')
-
 
 
 def read_json(path) -> dict:
@@ -82,14 +45,11 @@ def iglob(pathname: str, recursive: bool, root_dir: str):
         yield path.replace('\\', '/').strip('/')
 
 
-
-def tag_list_generator():
+def tag_list_generator(work_dir, output_dir):
     '''
     Module:Tag_list_generator
     Module:Tag_list_generator/data.json
     '''
-    
-    print('Module:Tag_list_generator...')
     
     rslt = defaultdict(lambda: defaultdict(set[str]))
     rslt.update(COMMENT_INFO)
@@ -117,14 +77,59 @@ def tag_list_generator():
         if '/' in type:
             rslt[type.rsplit('/', maxsplit=1)[1]] = content
     
-    write_json(os.path.join(args.output, 'Tag_list_generator.json'), rslt, sort_keys=True)
-
-tag_list_generator()
+    write_json(os.path.join(output_dir, 'Tag_list_generator.json'), rslt, sort_keys=True)
 
 
+def main(path: str, output: str=None):
+    if not output:
+        output = DEFAULT_FOLDER
+    
+    path = os.path.abspath(path)
+    output = os.path.abspath(output)
+    
+    if not os.path.exists(path):
+        args_error("Target path don't exist.")
+    
+    temp_root = None
+    work_dir = None
+    if os.path.isfile(path):
+        if not zipfile.is_zipfile(path):
+            args_error('Target file is not a valid zip file.')
+        
+        print('Extraction of content...')
+        temp_root = os.path.join(gettempdir(), DEFAULT_FOLDER)
+        try:
+            shutil.rmtree(temp_root)
+        except Exception:
+            pass
+        with zipfile.ZipFile(path) as zip:
+            for info in zip.filelist:
+                if info.filename.startswith(('assets/', 'data/')):
+                    zip.extract(info, temp_root)
+        work_dir = temp_root
+    
+    if os.path.isdir(path):
+        work_dir = path
+    
+    if not work_dir:
+        args_error('The target path was not recognized.')
+    
+    os.makedirs(output, exist_ok=True)
+    
+    print('Module:Tag_list_generator...')
+    tag_list_generator(work_dir, output)
+    
+    ## clean-up
+    try:
+        shutil.rmtree(temp_root)
+    except Exception:
+        pass
 
-## clean-up
-try:
-    shutil.rmtree(temp_root)
-except Exception:
-    pass
+
+if __name__ == '__main__':
+    args = args.parse_args()
+    print()
+    main(
+        path=args.path,
+        output=args.output,
+    )
