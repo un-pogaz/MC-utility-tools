@@ -24,8 +24,9 @@ DEFAULT_FOLDER = 'MinecraftWiki-data-generator'
 args = argparse.ArgumentParser(description=('Small utility tool to generate data from the game jar, for the use of various MinecraftWiki module and template. '
                                             'Caution, it recommends to use this tool only on release versions.'))
 args.add_argument('path', type=str, help='Game jar or folder to analyze')
-args.add_argument('--output', default=DEFAULT_FOLDER, type=str, help=f'Output folder to write the files. Deault: {DEFAULT_FOLDER}')
-args.add_argument('--silent', action='store_true', help='Reduce the printed output messages.')
+args.add_argument('-o', '--output', default=DEFAULT_FOLDER, type=str, help=f'Output folder to write the files. Deault: {DEFAULT_FOLDER}')
+args.add_argument('-s', '--silent', action='store_true', help='Reduce the printed output messages.')
+args.add_argument('-l', '--langs', '--languages', nargs='+', help='Languages to extract/work.')
 
 args_error = args.error
 
@@ -83,7 +84,143 @@ def tag_list_generator(work_dir, output_dir, *, version_target=None):
     write_json(os.path.join(output_dir, 'Tag_list_generator.json'), rslt, sort_keys=True)
 
 
-def main(path: str, output: str=None, *, silent=False, version_target=None):
+def translation_test(work_dir, output_dir, languages: list[str]=None, *, version_target=None):
+    '''
+    Create a page for Testing Translation and English Redirection
+    '''
+    
+    lang_dir = os.path.join(work_dir, 'assets/minecraft/lang')
+    if not languages:
+        languages = []
+    if isinstance(languages, str):
+        languages = [languages]
+    languages.append('en_us')
+    def _parse_lang(langs: list[str]) -> list[str]:
+        for x in langs:
+            if ',' in x:
+                yield from _parse_lang(x.split(','))
+            else:
+                yield x.strip().lower()
+    languages = list(sorted(set(_parse_lang(languages))))
+    
+    if len(languages) <= 1:
+        return
+    
+    languages_name: dict[str, str] = {}
+    languages_data = defaultdict(dict[str, str])
+    
+    for x in languages:
+        languages_name[x] = x
+    
+    def lang_name(key, data):
+        return f"{data[key]['name']} ({data[key]['region']}) [{key}]"
+    
+    if os.path.exists(os.path.join(work_dir, 'assets.json')):
+        assets = read_json(os.path.join(work_dir, 'assets.json'))
+        assets = assets.get('objects', assets)
+        def load_asset(name):
+            import json
+            import urllib.request
+            try:
+                hash = assets[name.replace('\\', '/')]['hash']
+            except KeyError:
+                return None
+            with urllib.request.urlopen(f'https://resources.download.minecraft.net/{hash[:2]}/{hash}') as f:
+                return json.loads(f.read())
+        mcmeta = load_asset('pack.mcmeta')['language']
+        for x in languages:
+            languages_name[x] = lang_name(x, mcmeta)
+            languages_data[x] = load_asset(f'minecraft/lang/{x}.json')
+    
+    if os.path.exists(os.path.join(work_dir, 'pack.mcmeta')):
+        mcmeta = read_json(os.path.join(work_dir, 'pack.mcmeta'))['language']
+        for x in languages:
+            languages_name[x] = lang_name(x, mcmeta)
+    
+    if os.path.exists(os.path.join(work_dir, 'lists/languages')):
+        data = read_json(os.path.join(work_dir, 'lists/languages'))
+        for x in languages:
+            languages_name[x] = lang_name(x, data)
+    
+    for x in glob.iglob('*.json', root_dir=lang_dir):
+        name = os.path.splitext(x)[0].lower()
+        if name in languages:
+            languages_data[name] = read_json(os.path.join(lang_dir, x))
+    
+    
+    rslt = defaultdict(lambda: defaultdict(set[str]))
+    rslt.update(COMMENT_INFO)
+    rslt['__comment_data'] = 'Testing Translation and English Redirection'
+    if version_target:
+        rslt['__comment_version'] = version_target
+    
+    lines = list(COMMENT_INFO.values())
+    lines.append('')
+    lines.append(';Testing Translation and English Redirection.')
+    if version_target:
+        lines.append('')
+        lines.append(f'version: {version_target}')
+    
+    
+    def analyze_data(lang):
+        data = defaultdict(lambda: defaultdict(dict[str, tuple[str, str]]))
+        
+        for k,v in languages_data[lang].items():
+            kk = k.split('.')
+            vv = languages_data['en_us'][k], v
+            
+            if len(kk) == 3 and kk[1] == 'minecraft':
+                data[kk[0]][kk[2]] = vv
+            
+            if kk[0] == 'advancements' and kk[-1] == 'title':
+                data['advancement'][kk[-2]] = vv
+            
+            if kk[0] == 'attribute' and kk[1] == 'name':
+                data['attribute'][kk[-1]] = vv
+            
+            if kk[0] == 'gamerule' and len(kk) == 2:
+                data['gamerule'][kk[1]] = vv
+        
+        lines.append('')
+        lines.append(f'== {languages_name[lang]} ==')
+        
+        rslt.update(data)
+        
+        for type in sorted(data.keys()):
+            lines.append('')
+            lines.append(f'=== [[{type}]] ===')
+            lines.append('{| class="mw-collapsible mw-collapsed wikitable sortable"')
+            lines.append('! key')
+            lines.append('! english')
+            lines.append('! name')
+            lines.append('! ')
+            for k,v in data[type].items():
+                lines.append('|-')
+                lines.append(f'! [[{k}]]')
+                lines.append(f'| [[{v[0]}]]')
+                lines.append(f'| [[{v[1]}]]')
+            lines.append('|}')
+    
+    languages.remove('en_us')
+    for lang in languages:
+        analyze_data(lang)
+    
+    with open(os.path.join(output_dir, 'Translation_Test.wiki'), 'wt', encoding='utf-8', newline='\n') as f:
+        for x in lines:
+            f.write(x or '')
+            f.write('\n')
+    
+    write_json(os.path.join(output_dir, 'Translation_Test.json'), rslt, sort_keys=True)
+
+
+def main(
+    path: str,
+    output: str=None,
+    *,
+    silent=False,
+    version_target: str=None,
+    languages: list[str]=None,
+    ):
     if not output:
         output = DEFAULT_FOLDER
     
@@ -117,6 +254,7 @@ def main(path: str, output: str=None, *, silent=False, version_target=None):
     
     if os.path.isdir(path):
         work_dir = path
+    del path
     
     if not work_dir:
         args_error('The target path was not recognized.')
@@ -125,6 +263,9 @@ def main(path: str, output: str=None, *, silent=False, version_target=None):
     
     prints('Module:Tag_list_generator...')
     tag_list_generator(work_dir, output, version_target=version_target)
+    
+    prints('Translation Test...')
+    translation_test(work_dir, output, languages, version_target=version_target)
     
     ## clean-up
     try:
@@ -139,4 +280,5 @@ if __name__ == '__main__':
         path=args.path,
         output=args.output,
         silent=args.silent,
+        languages=args.langs,
     )
