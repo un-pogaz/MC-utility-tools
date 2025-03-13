@@ -184,11 +184,14 @@ def translation_test(work_dir, output_dir, languages: list[str]=None, *, version
         lines.append('')
         lines.append(f'== {languages_name[lang]} ==')
         
+        data.pop('stat_type', None)
         rslt.update(data)
         
+        def make_link(lien):
+            return f'[[{lien}]] ([{{{{canonicalurl:{lien}|redirect=no}}}} direct])'
         for type in sorted(data.keys()):
             lines.append('')
-            lines.append(f'=== [[{type}]] ===')
+            lines.append(f'=== {make_link(type)} ===')
             lines.append('{| class="mw-collapsible mw-collapsed wikitable sortable"')
             lines.append('! key')
             lines.append('! english')
@@ -196,9 +199,9 @@ def translation_test(work_dir, output_dir, languages: list[str]=None, *, version
             lines.append('! ')
             for k,v in data[type].items():
                 lines.append('|-')
-                lines.append(f'! [[{k}]]')
-                lines.append(f'| [[{v[0]}]]')
-                lines.append(f'| [[{v[1]}]]')
+                lines.append(f'! {make_link(k)}')
+                lines.append(f'| {make_link(v[0])}')
+                lines.append(f'| {make_link(v[1])}')
             lines.append('|}')
     
     languages.remove('en_us')
