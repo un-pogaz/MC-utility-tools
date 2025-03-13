@@ -150,17 +150,9 @@ def translation_test(work_dir, output_dir, languages: list[str]=None, *, version
     
     rslt = defaultdict(lambda: defaultdict(set[str]))
     rslt.update(COMMENT_INFO)
-    rslt['__comment_data'] = 'Testing Translation and English Redirection'
+    rslt['__comment_data'] = 'Testing Translation and English Redirection.'
     if version_target:
         rslt['__comment_version'] = version_target
-    
-    lines = list(COMMENT_INFO.values())
-    lines.append('')
-    lines.append(';Testing Translation and English Redirection.')
-    if version_target:
-        lines.append('')
-        lines.append(f'version: {version_target}')
-    
     
     def analyze_data(lang):
         data = defaultdict(lambda: defaultdict(dict[str, tuple[str, str]]))
@@ -181,39 +173,64 @@ def translation_test(work_dir, output_dir, languages: list[str]=None, *, version
             if kk[0] == 'gamerule' and len(kk) == 2:
                 data['gamerule'][kk[1]] = vv
         
-        lines.append('')
-        lines.append(f'== {languages_name[lang]} ==')
-        
         data.pop('stat_type', None)
-        rslt.update(data)
-        
-        def make_link(lien):
-            return f'[[{lien}]] ([{{{{canonicalurl:{lien}|redirect=no}}}} direct])'
-        for type in sorted(data.keys()):
-            lines.append('')
-            lines.append(f'=== {make_link(type)} ===')
-            lines.append('{| class="mw-collapsible mw-collapsed wikitable sortable"')
-            lines.append('! key')
-            lines.append('! english')
-            lines.append('! name')
-            lines.append('! ')
-            for k,v in data[type].items():
-                lines.append('|-')
-                lines.append(f'! {make_link(k)}')
-                lines.append(f'| {make_link(v[0])}')
-                lines.append(f'| {make_link(v[1])}')
-            lines.append('|}')
+        data['_name'] = languages_name[lang]
+        rslt[lang] = data
     
     languages.remove('en_us')
     for lang in languages:
         analyze_data(lang)
     
-    with open(os.path.join(output_dir, 'Translation_Test.wiki'), 'wt', encoding='utf-8', newline='\n') as f:
-        for x in lines:
-            f.write(x or '')
-            f.write('\n')
-    
     write_json(os.path.join(output_dir, 'Translation_Test.json'), rslt, sort_keys=True)
+    
+    #######
+    # build wiki page sample
+    with open(os.path.join(output_dir, 'Translation_Test.wiki'), 'wt', encoding='utf-8', newline='\n') as f:
+        def write(args):
+            if isinstance(args, str):
+                args = [args]
+            print(*args, file=f)
+        
+        # build lead
+        write('{{TOC|right}}')
+        write('')
+        for k,v in rslt.items():
+            if not k.startswith('__'):
+                continue
+            if k not in ('__comment_data', '__comment_version'):
+                write(v)
+        write('')
+        write(';'+rslt['__comment_data'])
+        if '__comment_version' in rslt:
+            write('')
+            write('version:'+rslt['__comment_version'])
+        
+        # build content
+        def make_link(name):
+            return '[['+name+']] ([{{canonicalurl:'+name+'|redirect=no}} direct])'
+        for lang,content in rslt.items():
+            if lang.startswith('_'):
+                continue
+            
+            write('')
+            name = content['_name'] or lang
+            write(f'== {name} ==')
+            for type,data in content.items():
+                if type.startswith('_'):
+                    continue
+                write('')
+                write(f'=== {make_link(type)} ===')
+                write('{| class="mw-collapsible mw-collapsed wikitable sortable"')
+                write('! key')
+                write('! english')
+                write('! name')
+                write('! ')
+                for k,v in data.items():
+                    write('|-')
+                    write(f'! {make_link(k)}')
+                    write(f'| {make_link(v[0])}')
+                    write(f'| {make_link(v[1])}')
+                write('|}')
 
 
 def main(
