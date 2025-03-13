@@ -171,7 +171,7 @@ def translation_test(work_dir, output_dir, languages: list[str]=None, *, version
                 data['attribute'][kk[-1]] = vv
             
             if kk[0] == 'gamerule' and len(kk) == 2:
-                data['gamerule'][kk[1]] = ['N/A','N/A']
+                data['gamerule'][kk[1]] = []
         
         data.pop('jukebox_song', None)
         data.pop('stat', None)
