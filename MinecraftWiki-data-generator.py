@@ -231,8 +231,11 @@ def translation_test(work_dir, output_dir, languages: list[str]=None, *, version
                 for k,v in data.items():
                     write('|-')
                     write(f'! {make_link(k)}')
-                    write(f'| {make_link(v[0])}')
-                    write(f'| {make_link(v[1])}')
+                    if v:
+                        write(f'| {make_link(v[0])}')
+                        write(f'| {make_link(v[1])}')
+                    else:
+                        write('| N/A')
                 write('|}')
 
 
