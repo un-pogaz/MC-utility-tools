@@ -102,7 +102,7 @@ def package_datapack(path):
         path_zip = os.path.splitext(path)[0]+'.zip'
     
     if (
-        is_folder and not update_jar and (os.path.exists(path_jar), os.path.exists(path_zip))
+        is_folder and not update_jar and (os.path.exists(path_jar) or os.path.exists(path_zip))
         ) or (
         not is_folder and os.path.exists(path_jar)
         ):
@@ -140,7 +140,7 @@ def package_datapack(path):
             
             description = ''.join(description).replace('\r\n','\n')
         
-    except:
+    except Exception:
         print('Error: invalide Datapack')
         return None
     

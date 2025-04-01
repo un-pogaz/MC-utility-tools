@@ -1,5 +1,3 @@
-VERSION = (1, 2, 0)
-
 import argparse
 import os.path
 import pathlib
@@ -11,6 +9,8 @@ from common import (
     read_manifest_json, run_animation, safe_del, urlretrieve,
     valide_output, valide_version, work_done, write_json,
 )
+
+VERSION = (1, 2, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -28,7 +28,7 @@ def main():
     
     update_version_manifest()
     
-    print(f'--==| Minecraft: Assets Unindexer |==--')
+    print('--==| Minecraft: Assets Unindexer |==--')
     print()
     
     args.version = valide_version(args.version, args.quiet, args.manifest_json)

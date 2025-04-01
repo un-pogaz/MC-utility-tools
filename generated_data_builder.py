@@ -86,11 +86,9 @@ def build_generated_data(args):
     
     client_sha1 = None
     server_sha1 = None
-    asset_sha1 = None
     if 'assetIndex' in manifest_json:
         #minecraft/original manifest
         version_json['asset_index'] = manifest_json['assetIndex']['url']
-        asset_sha1                  = manifest_json['assetIndex']['sha1']
         version_json['client'] = manifest_json['downloads']['client']['url']
         client_sha1 =            manifest_json['downloads']['client']['sha1']
         version_json['client_mappings'] = manifest_json['downloads'].get('client_mappings', {}).get('url', None)
@@ -476,10 +474,10 @@ def get_languages_json(temp) -> dict[str, str]:
 
 def parse_languages_lang(path) -> dict[str, str]:
     rslt = {}
-    for l in read_lines(path):
-        if '=' not in l:
+    for x in read_lines(path):
+        if '=' not in x:
             continue
-        split = l.split('=',1)
+        split = x.split('=',1)
         rslt[split[0]] = split[1]
     return rslt
 
@@ -620,10 +618,10 @@ class Advancement():
                             lst.append(str(v)+' xp')
                         continue
                     case 'recipes':
-                        lst.extend('recipe()'+namespace(l) for l in v)
+                        lst.extend('recipe()'+namespace(n) for n in v)
                         continue
                     case 'loot':
-                        lst.extend('loot_table[]'+namespace(l) for l in v)
+                        lst.extend('loot_table[]'+namespace(n) for n in v)
                         continue
                     case _:
                         raise ValueError(f'Unknow rewards keys {k!r} in the Advancement {self.full_name!r}.')
@@ -943,7 +941,7 @@ def listing_loot_tables(temp):
                     range = mcrange(name, e['levels'])
                     try:
                         levels.append('level: '+str(int(range)))
-                    except:
+                    except Exception:
                         levels.append('levels: '+str(range))
                     if e.get('treasure', False):
                         levels.append('treasure: true')
@@ -1212,12 +1210,12 @@ def listing_loot_tables(temp):
             lines_tbl = []
             
             head_tbl = ['Name', 'Count', 'Chance', 'Weight', 'Comment']
-            for l in rslt_tbl:
-                lines_tbl.append([l.rolls,'--','--','--',l.comment])
+            for r in rslt_tbl:
+                lines_tbl.append([r.rolls,'--','--','--',r.comment])
                 
-                use_weight_groupe = len(l.all_weight_groupes()) > 1
+                use_weight_groupe = len(r.all_weight_groupes()) > 1
                 
-                for e in l.entries:
+                for e in r.entries:
                     c = e.chance
                     
                     if c is None:
@@ -1865,7 +1863,7 @@ def listing_languages(temp):
         for en in ['en_us', 'en_US']:
             if en in src_lang:
                 languages['en_us'] = src_lang.pop(en)
-        languages.update({l.lower():src_lang[l] for l in sorted(src_lang.keys())})
+        languages.update({x.lower():src_lang[x] for x in sorted(src_lang.keys())})
         write_json(os.path.join(temp, 'lists', 'languages.json'), languages)
     
     safe_del(pack_mcmeta)
@@ -1880,11 +1878,11 @@ def listing_assets(temp):
         for ns in lst_namespace:
             root = os.path.join(temp, 'assets', ns, dir)
             for f in glob.iglob('**/*.'+ext, root_dir=root, recursive=True):
-                l = namespace(filename(f), ns=ns)
+                n = namespace(filename(f), ns=ns)
                 if ext == 'png':
                     if os.path.exists(os.path.join(root, f +'.mcmeta')):
-                        l = l+ '  [mcmeta]'
-                rslt.append(l)
+                        n = n+ '  [mcmeta]'
+                rslt.append(n)
         return rslt
     
     for dir in lst_subdir:

@@ -10,7 +10,7 @@ parser.add_argument('datapack', help='Target Worldgen datapack.', type=pathlib.P
 args = parser.parse_args()
 
 def main():
-    print(f'--==| Minecraft: Datapack Seeder |==--')
+    print('--==| Minecraft: Datapack Seeder |==--')
     print('         for 1.16.2 to 1.18.2')
     print()
     
@@ -38,12 +38,13 @@ def main():
         print('Invalide target datapack,', msg)
         return -1
     
-    if args.seed == None and not args.datapack:
+    if args.seed is None and not args.datapack:
         print('Enter a seed (blanck to random):')
         args.seed = input()
-        if not args.seed.strip(): args.seed = None
+        if not args.seed.strip():
+            args.seed = None
     
-    if args.seed == None:
+    if args.seed is None:
         import random
         
         args.seed = random.getrandbits(64)
@@ -53,7 +54,7 @@ def main():
     if isinstance(seed, str):
         try:
             seed = int(seed.strip())
-        except:
+        except Exception:
             print('Invalid seed, must be a integer.')
     
     datapack_out = os.path.splitext(datapack)[0] +'-'+ str(seed) +'.zip'
@@ -67,7 +68,7 @@ def main():
                 
                 old_seed = dimension.get('generator', {}).get('seed', None)
                 
-                if old_seed != None:
+                if old_seed is not None:
                     dimension['generator']['seed'] = seed
                     dimensions[file.filename] = json.dumps(dimension, indent=2, ensure_ascii=False)
     

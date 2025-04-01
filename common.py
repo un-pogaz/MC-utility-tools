@@ -27,7 +27,8 @@ def run_animation(awaitable, text_wait, text_end=None):
             print(msg + ' '*(len(msg_last)-len(msg)+1), end='\r')
             msg_last = msg
             idx += 1
-            if idx == len(run_animation.loop): idx == 0
+            if idx == len(run_animation.loop):
+                idx == 0
             time.sleep(0.2)
     
     animation_run = True
@@ -54,11 +55,12 @@ def run_command(command_line, wait=True):
     :return:                The pointer the subprocess returned by the Popen call
     """
     
-    from subprocess import DEVNULL, PIPE, Popen
+    from subprocess import DEVNULL, Popen
     
     if not isinstance(command_line, str):
         for idx in range(len(command_line)):
-            if ' ' in command_line[idx]: command_line[idx] = '"'+command_line[idx]+'"'
+            if ' ' in command_line[idx]:
+                command_line[idx] = '"'+command_line[idx]+'"'
         command_line = ' '.join(command_line)
     
     #subproc = Popen(command_line, shell=True)
@@ -78,7 +80,7 @@ def read_json(path, default=None):
     try:
         with open(path, 'rb') as f:
             return json.loads(f.read())
-    except:
+    except Exception:
         return default or {}
 
 def write_json(path, obj, sort_keys: bool=False):
@@ -96,7 +98,7 @@ def write_text(path, text):
         f.write(text)
 
 def read_lines(path):
-    return [l for l in read_text(path).splitlines(False)]
+    return [x for x in read_text(path).splitlines(False)]
 
 def write_lines(path, lines, newline_end=True):
     make_dirname(path)
@@ -127,7 +129,7 @@ def safe_del(path):
     
     try:
         remove(path)
-    except Exception as ex:
+    except Exception:
         pass
 
 def remove_empty(path):
@@ -213,7 +215,7 @@ def update_version_manifest():
     try:
         with urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
             github_manifest = json.load(fl)
-    except:
+    except Exception:
         github_manifest = None
     
     if github_manifest:
