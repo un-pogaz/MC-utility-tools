@@ -12,7 +12,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 35, 2)
+VERSION = (0, 36, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -144,7 +144,7 @@ def build_generated_data(args):
     async def data_client():
         with zipfile.ZipFile(client, mode='r') as zip:
             for entry in zip.filelist:
-                if entry.filename.startswith('assets/') or entry.filename.startswith('data/'):
+                if entry.filename.startswith('assets/') or entry.filename.startswith('data/') or entry.filename == 'version.json':
                     safe_del(os.path.join(temp, entry.filename))
                     zip.extract(entry.filename, temp)
             
