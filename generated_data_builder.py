@@ -4,6 +4,7 @@ import os.path
 import pathlib
 from collections import OrderedDict, defaultdict
 from typing import Callable
+from tempfile import gettempdir
 
 from common import (
     find_output, get_latest, version_path, hash_test, make_dirname,
@@ -58,17 +59,17 @@ def main(args):
     work_done(error, args.quiet)
     return error
 
+TEMP_DIR = os.path.abspath(os.path.join(gettempdir(), 'MC Generated data'))
 
 def build_generated_data(args):
     import shutil
     import subprocess
     import zipfile
     from datetime import datetime
-    from tempfile import gettempdir
     
     version = get_latest(args.version, args.manifest_json)
     
-    temp_root = os.path.join(gettempdir(), 'MC Generated data', version)
+    temp_root = os.path.join(TEMP_DIR, version)
     temp = os.path.join(temp_root, 'generated')
     os.makedirs(temp_root, exist_ok=True)
     
