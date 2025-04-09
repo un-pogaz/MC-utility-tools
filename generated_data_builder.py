@@ -59,7 +59,7 @@ def main(args):
     work_done(error, args.quiet)
     return error
 
-TEMP_DIR = os.path.abspath(os.path.join(gettempdir(), 'MC Generated data'))
+TEMP_DIR = os.path.abspath(os.path.join(gettempdir(), 'MC_Generated_data'))
 
 def build_generated_data(args):
     import shutil
