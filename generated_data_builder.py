@@ -2,6 +2,7 @@ import argparse
 import glob
 import os.path
 import pathlib
+from contextlib import suppress
 from collections import OrderedDict, defaultdict
 from typing import Callable
 from tempfile import gettempdir
@@ -144,7 +145,7 @@ def build_generated_data(args):
     async def data_client():
         with zipfile.ZipFile(client, mode='r') as zip:
             for entry in zip.filelist:
-                if entry.filename.startswith('assets/') or entry.filename.startswith('data/') or entry.filename == 'version.json':
+                if entry.filename.startswith('assets/') or entry.filename.startswith('data/'):
                     safe_del(os.path.join(temp, entry.filename))
                     zip.extract(entry.filename, temp)
             
@@ -153,6 +154,11 @@ def build_generated_data(args):
                     if entry.filename.endswith('.png') or entry.filename.endswith('.txt') or entry.filename.endswith('.lang'):
                         safe_del(os.path.join(temp, 'assets', entry.filename))
                         zip.extract(entry.filename, os.path.join(temp, 'assets'))
+            else:
+                # additional files to extract
+                for name in ('pack.png', 'version.json'):
+                    with suppress(KeyError):
+                        zip.extract(name, temp)
             
     run_animation(data_client, 'Extracting data client')
     
