@@ -275,6 +275,33 @@ def update_version_manifest():
     LATEST_RELEASE = VERSION_MANIFEST.get('latest', {}).get('release')
     LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot')
 
+def update_pack_format(path_version_json, version):
+    global VERSION_MANIFEST
+    
+    if not os.path.exists(path_version_json):
+        return
+    
+    edited = False
+    pack_version = read_json(path_version_json).get("pack_version", {})
+    pack_format = VERSION_MANIFEST['pack_format']
+    if isinstance(pack_version, int):
+        pack_version = {"resource": pack_version}
+    for k,v in pack_version.items():
+        v = str(v)
+        if k not in pack_format:
+            pack_format[k] = {}
+        if v not in pack_format[k]:
+            pack_format[k][v] = []
+        if version not in pack_format[k][v]:
+            pack_format[k][v].insert(0, version)
+            edited = True
+    
+    if edited:
+        VERSION_MANIFEST['pack_format'] = dict(sorted(
+            (k, dict(sorted(v.items(), key=lambda x: int(x[0]), reverse=True))) for k,v in pack_format.items()
+        ))
+        write_json(_VERSION_MANIFEST_PATH, VERSION_MANIFEST)
+        print("INFO: 'pack_format' in version_manifest.json has been updated")
 
 def version_path(version):
     for k,v in VERSION_MANIFEST['versioning'].items():
