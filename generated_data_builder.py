@@ -550,6 +550,7 @@ def _get_sub_folders(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
 
 def get_sub_folders_assets(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
+        'structures.snbt',
         'advancements',
         'lang',
         'loot_tables',
@@ -559,6 +560,7 @@ def get_sub_folders_assets(temp) -> tuple[list[str], list[str]]:
 
 def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
+        'structures.snbt',
         'advancements',
         'advancement',
         'datapacks',
