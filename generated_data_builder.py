@@ -1828,10 +1828,9 @@ def listing_jukebox_songs(temp):
                 lng_id = '.'.join(['jukebox_song', ns, name])
                 j = read_json(os.path.join(dir, file))
                 desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
-                if ' - ' in desc:
-                    author, title = desc.split(' - ', maxsplit=1)
-                else:
-                    raise ValueError(f"listing_jukebox_songs(): The jukebox_song {name!r} don't have 'author - title' pairs.")
+                author, _, title = desc.partition(' - ')
+                if not title:
+                    raise ValueError(f"listing_jukebox_songs(): The jukebox_song {name!r} don't use 'author - title' pairs.")
                 jukebox_songs['authors'][author].add(ns_name)
                 jukebox_songs['comparator_output'][str(j['comparator_output'])].add(ns_name)
                 lines = []
@@ -1899,6 +1898,42 @@ def listing_sounds(temp):
     
     if full_lines:
         write_lines(os.path.join(temp, 'lists', 'sounds.ogg.txt'), sorted(full_lines))
+
+def listing_musics(temp):
+    languages_json = get_languages_json(temp)
+    musics = defaultdict(lambda:defaultdict(set))
+    sound_events = defaultdict(set)
+    for k,v in read_json(os.path.join(temp, 'assets/minecraft', 'sounds.json')).items():
+        if k.startswith('music.'):
+            for n in v.get('sounds', []):
+                if isinstance(n, dict):
+                    n = n['name']
+                sound_events[namespace(n)].add(namespace(k))
+    
+    for k,v in languages_json.items():
+        if k.startswith('music.'):
+            ns_name = namespace(k.replace('.', '/'))
+            author, _, title = v.partition(' - ')
+            if not title:
+                raise ValueError(f"listing_musics(): The musics {k!r} don't use 'author - title' pairs.")
+            musics['authors'][author].add(ns_name)
+            events = sorted(sound_events[ns_name])
+            for e in events:
+                musics['sound_events'][flatering(e)].add(ns_name)
+            name = v.removeprefix('music.')
+            lines = []
+            if not events:
+                lines.append('sound_events:')
+            else:
+                lines.append('sound_events: '+ ', '.join(events))
+            lines.append('assets: '+ ns_name)
+            lines.append('title: '+ title)
+            lines.append('author: '+ author)
+            write_lines(os.path.join(temp, 'lists/musics', name)+'.txt', lines)
+    
+    for k,v in musics.items():
+        for kk,vv in v.items():
+            write_lines(os.path.join(temp, 'lists/musics', k, kk)+'.txt', sorted(vv))
 
 def listing_languages(temp):
     src_lang = {}
@@ -1992,6 +2027,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_registries,
     listing_tags,
     listing_sounds,
+    listing_musics,
     listing_languages,
     listing_assets,
 ]
