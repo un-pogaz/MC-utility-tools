@@ -1681,33 +1681,50 @@ def listing_commands(temp):
             case _:
                 raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}.')
     
-    def get_syntaxes(base, entry):
+    def parse_level(parent_level, level):
+        if parent_level is not level:
+            return f'((required_level: {level}))'
+        return ''
+    
+    def get_syntaxes(base, entry, parent_level, level):
         rslt = []
         
         if entry.get('executable', False):
             rslt.append(base)
         
         if 'redirect' in entry:
-            rslt.append(base +' >>redirect{'+ '|'.join(entry['redirect']) +'}')
+            rslt.append(base +' >>redirect{'+ '|'.join(entry['redirect']) +'}'+parse_level(parent_level, level))
         
-        elif entry.get('type') == 'literal' and len(entry) == 1:
-            rslt.append(base +' >>redirect{*}')
+        elif entry.get('type') == 'literal' and (len(entry) == 1 or len(entry) == 2 and 'required_level' in entry):
+            rslt.append(base +' >>redirect{*}'+parse_level(parent_level, level))
         
         elif 'children' in entry:
             for k,v in entry['children'].items():
                 build = base +' '+ get_argument(k, v)
-                rslt.extend(get_syntaxes(build, v))
+                level = v.get('required_level', parent_level)
+                rslt.extend(get_syntaxes(build, v, parent_level, level))
         
         for k in entry.keys():
-            if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect']:
+            if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect', 'required_level']:
                 raise ValueError(f'listing_commands(): Additional key {k!r} in commands {name!r}.')
         
         return rslt
     
-    for k,v in read_json(os.path.join(temp, 'reports/commands.json')).get('children', {}).items():
+    src_json = read_json(os.path.join(temp, 'reports/commands.json'))
+    base_level = src_json.get('required_level')
+    if base_level is None:
+        for v in src_json.get('children', {}).values():
+            if 'required_level' in v:
+                base_level = 0
+    
+    for k,v in src_json.get('children', {}).items():
         name = flatering(k)
         write_json(os.path.join(temp, 'lists/commands', name+'.json'), v)
-        write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), get_syntaxes(name, v))
+        level = v.get('required_level', base_level)
+        rslt = get_syntaxes(name, v, level, level)
+        if level is not None:
+            rslt.insert(0, parse_level(None, level))
+        write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), rslt)
     
     if lines:
         write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), sorted(lines))
