@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 36, 0)
+VERSION = (0, 37, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1133,6 +1133,37 @@ def listing_loot_tables(temp):
                         
                         case _:
                             raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity origin {entity_origin!r} in loot_tables {name!r}.')
+                
+                case 'damage_source_properties':
+                    predicate = e['predicate']
+                    if predicate.pop('is_direct', False):
+                        comment.append('Is direct damage')
+                    entitys = set()
+                    for k in ['source_entity', 'direct_entity']:
+                        type = predicate.pop(k, {}).pop('type', None)
+                        if type:
+                            entitys.add(flatering(type))
+                    tags = set()
+                    for v in predicate.pop('tags', []):
+                        if isinstance(v, str):
+                            tags.add('#'+flatering(v))
+                        elif v.get('expected', True):
+                            tags.add('#'+flatering(v['id']))
+                    
+                    for k in ['is_explosion',  'is_fire', 'is_magic', 'is_projectile', 'is_lightning',
+                                'bypasses_armor', 'bypasses_invulnerability', 'bypasses_magic']:
+                        if predicate.pop(k, False):
+                            comment.append(f'Damaged by: {k!r}')
+                    
+                    if predicate:
+                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow damage source {list(predicate.keys())} in loot_tables {name!r}.')
+                    
+                    rslt = sorted(entitys) + sorted(tags)
+                    if rslt:
+                        if len(rslt) == 1:
+                            comment.append(f'Damaged by: {rslt[0]}')
+                        else:
+                            comment.append('Damaged by: ['+ ', '.join(rslt) +']')
         
         return ', '.join(comment)
     
