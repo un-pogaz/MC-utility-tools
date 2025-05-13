@@ -1367,10 +1367,10 @@ def listing_blocks(temp):
             case 'uniform':
                 min = entry.get('min_inclusive')
                 if min is None:
-                    entry['value']['min_inclusive']
+                    min = entry['value']['min_inclusive']
                 max = entry.get('max_inclusive')
-                if min is None:
-                    entry['value']['max_inclusive']
+                if max is None:
+                    max = entry['value']['max_inclusive']
                 return no_end_0(min)+'..'+no_end_0(max)
             case _:
                 raise ValueError(f'listing_blocks(): Block definition of {name!r} has not implemented {type_name!r} type value.')
