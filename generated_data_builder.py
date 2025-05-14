@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 38, 0)
+VERSION = (0, 39, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1865,7 +1865,7 @@ def listing_jukebox_songs(temp):
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/jukebox_songs', k, kk)+'.txt', sorted(vv))
     if all_names:
-        write_lines(os.path.join(temp, 'lists/jukebox_songs', 'all-names.txt'), sorted(all_names))
+        write_lines(os.path.join(temp, 'lists/jukebox_songs.names.txt'), sorted(all_names))
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
@@ -1889,7 +1889,7 @@ def listing_instruments(temp):
                 write_lines(os.path.join(temp, 'lists/instruments', name)+'.txt', lines)
     
     if all_names:
-        write_lines(os.path.join(temp, 'lists/instruments', 'all-names.txt'), sorted(all_names))
+        write_lines(os.path.join(temp, 'lists/instruments.names.txt'), sorted(all_names))
 
 def listing_tags(temp):
     entries = set()
@@ -1979,7 +1979,7 @@ def listing_musics(temp):
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/musics', k, kk)+'.txt', vv)
     if all_names:
-        write_lines(os.path.join(temp, 'lists/musics', 'all-names.txt'), sorted(all_names))
+        write_lines(os.path.join(temp, 'lists/musics.names.txt'), sorted(all_names))
 
 def listing_languages(temp):
     src_lang = {}
