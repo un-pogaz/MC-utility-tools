@@ -1967,6 +1967,11 @@ def listing_musics(temp):
                     lines.append(f'sound_event: {e}')
             write_lines(os.path.join(temp, 'lists/musics', name)+'.txt', lines)
     
+    for k,v in musics.items():
+        for kk,vv in v.items():
+            if isinstance(vv, set):
+                musics[k][kk] = sorted(vv)
+    
     musics.pop('events', None)
     for k,v in musics.items():
         for kk,vv in v.items():
