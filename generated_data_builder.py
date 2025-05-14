@@ -1930,6 +1930,8 @@ def listing_sounds(temp):
 def listing_musics(temp):
     languages_json = get_languages_json(temp)
     musics = defaultdict(lambda:defaultdict(set))
+    all_events = defaultdict(set)
+    sound_events = defaultdict(list)
     musics['sound_events'] = defaultdict(list)
     all_names = set()
     
@@ -1938,14 +1940,15 @@ def listing_musics(temp):
             for n in v.get('sounds', []):
                 if isinstance(n, dict):
                     n = n['name']
-                musics['events'][namespace(n)].add(namespace(k))
-                musics['sound_events'][flatering(k)].append(namespace(n))
+                all_events[namespace(n)].add(namespace(k))
+                sound_events[flatering(k)].append(namespace(n))
     
-    for k,v in musics['events'].items():
-        musics['events'][k] = sorted(v)
+    for k,v in all_events.items():
+        all_events[k] = sorted(v)
     
     for k,desc in languages_json.items():
         if k.startswith('music.'):
+            musics['sound_events'] = sound_events
             name = k.removeprefix('music.')
             ns_name = namespace(k.replace('.', '/'))
             ogg_file = 'minecraft/sounds/' + k.replace('.', '/') + '.ogg'
@@ -1954,7 +1957,7 @@ def listing_musics(temp):
             if not title:
                 raise ValueError(f"listing_musics(): The musics {k!r} don't use 'author - title' pairs.")
             musics['authors'][author].add(ns_name)
-            events = musics['events'][ns_name]
+            events = all_events[ns_name]
             lines = []
             lines.append('assets: '+ ns_name)
             lines.append('title: '+ title)
@@ -1972,7 +1975,6 @@ def listing_musics(temp):
             if isinstance(vv, set):
                 musics[k][kk] = sorted(vv)
     
-    musics.pop('events', None)
     for k,v in musics.items():
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/musics', k, kk)+'.txt', vv)
