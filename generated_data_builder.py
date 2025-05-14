@@ -530,6 +530,25 @@ def seconds_to_human_duration(seconds):
         tbl.append(f'{seconds}s')
     return ' '.join(tbl)
 
+def human_duration_from_assets(temp, file):
+    from mutagen.oggvorbis import OggVorbis
+    
+    assets = read_json(os.path.join(temp, 'assets.json'))['objects']
+    def cache_asset(file):
+        if file in assets:
+            asset = assets[file]
+            file = os.path.join(TEMP_DIR, 'cache/assets', asset['hash'])
+            if not hash_test(asset['hash'], file):
+                safe_del(file)
+                make_dirname(file)
+                urlretrieve(asset['url'], file)
+            return file
+        return None
+    
+    with open(cache_asset(file), 'rb') as f:
+        ogg = OggVorbis(f)
+        return seconds_to_human_duration(ogg.info.length)
+
 def strip_list(lst: list):
     while lst and not lst[-1]:
         lst.pop(-1)
@@ -1913,6 +1932,7 @@ def listing_musics(temp):
     for k,v in languages_json.items():
         if k.startswith('music.'):
             ns_name = namespace(k.replace('.', '/'))
+            ogg_file = 'minecraft/sounds/' + k.replace('.', '/') + '.ogg'
             author, _, title = v.partition(' - ')
             if not title:
                 raise ValueError(f"listing_musics(): The musics {k!r} don't use 'author - title' pairs.")
@@ -1929,6 +1949,7 @@ def listing_musics(temp):
             lines.append('assets: '+ ns_name)
             lines.append('title: '+ title)
             lines.append('author: '+ author)
+            lines.append('length: '+ human_duration_from_assets(temp, ogg_file))
             write_lines(os.path.join(temp, 'lists/musics', name)+'.txt', lines)
     
     for k,v in musics.items():
