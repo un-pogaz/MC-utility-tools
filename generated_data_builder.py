@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 37, 0)
+VERSION = (0, 38, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1921,40 +1921,44 @@ def listing_sounds(temp):
 def listing_musics(temp):
     languages_json = get_languages_json(temp)
     musics = defaultdict(lambda:defaultdict(set))
-    sound_events = defaultdict(set)
+    musics['sound_events'] = defaultdict(list)
     for k,v in read_json(os.path.join(temp, 'assets/minecraft', 'sounds.json')).items():
         if k.startswith('music.'):
             for n in v.get('sounds', []):
                 if isinstance(n, dict):
                     n = n['name']
-                sound_events[namespace(n)].add(namespace(k))
+                musics['events'][namespace(n)].add(namespace(k))
+                musics['sound_events'][flatering(k)].append(namespace(n))
+    
+    for k,v in musics['events'].items():
+        musics['events'][k] = sorted(v)
     
     for k,v in languages_json.items():
         if k.startswith('music.'):
+            name = k.removeprefix('music.')
             ns_name = namespace(k.replace('.', '/'))
             ogg_file = 'minecraft/sounds/' + k.replace('.', '/') + '.ogg'
             author, _, title = v.partition(' - ')
             if not title:
                 raise ValueError(f"listing_musics(): The musics {k!r} don't use 'author - title' pairs.")
             musics['authors'][author].add(ns_name)
-            events = sorted(sound_events[ns_name])
-            for e in events:
-                musics['sound_events'][flatering(e)].add(ns_name)
-            name = v.removeprefix('music.')
+            events = musics['events'][ns_name]
             lines = []
-            if not events:
-                lines.append('sound_events:')
-            else:
-                lines.append('sound_events: '+ ', '.join(events))
             lines.append('assets: '+ ns_name)
             lines.append('title: '+ title)
             lines.append('author: '+ author)
             lines.append('length: '+ human_duration_from_assets(temp, ogg_file))
+            if not events:
+                lines.append('sound_event:')
+            else:
+                for e in events:
+                    lines.append(f'sound_event: {e}')
             write_lines(os.path.join(temp, 'lists/musics', name)+'.txt', lines)
     
+    musics.pop('events', None)
     for k,v in musics.items():
         for kk,vv in v.items():
-            write_lines(os.path.join(temp, 'lists/musics', k, kk)+'.txt', sorted(vv))
+            write_lines(os.path.join(temp, 'lists/musics', k, kk)+'.txt', vv)
 
 def listing_languages(temp):
     src_lang = {}
