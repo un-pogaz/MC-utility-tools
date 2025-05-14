@@ -1837,6 +1837,7 @@ def listing_jukebox_songs(temp):
     languages_json = get_languages_json(temp)
     lst_namespace, _dirs = get_sub_folders_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
+    all_names = set()
     
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
@@ -1847,6 +1848,7 @@ def listing_jukebox_songs(temp):
                 lng_id = '.'.join(['jukebox_song', ns, name])
                 j = read_json(os.path.join(dir, file))
                 desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
+                all_names.add(desc)
                 author, _, title = desc.partition(' - ')
                 if not title:
                     raise ValueError(f"listing_jukebox_songs(): The jukebox_song {name!r} don't use 'author - title' pairs.")
@@ -1862,10 +1864,13 @@ def listing_jukebox_songs(temp):
     for k,v in jukebox_songs.items():
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/jukebox_songs', k, kk)+'.txt', sorted(vv))
+    if all_names:
+        write_lines(os.path.join(temp, 'lists/jukebox_songs', 'all-names.txt'), sorted(all_names))
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
     lst_namespace, _dirs = get_sub_folders_data(temp)
+    all_names = set()
     
     for ns in lst_namespace:
         for dp in get_datapack_paths(temp):
@@ -1875,12 +1880,16 @@ def listing_instruments(temp):
                 lng_id = '.'.join(['instrument', ns, name])
                 j = read_json(os.path.join(dir, file))
                 desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
+                all_names.add(desc)
                 lines = []
                 lines.append('sound_event: '+ namespace(j['sound_event']))
                 lines.append('description: '+ desc)
                 lines.append('range: '+ no_end_0(j['range'])+ ' block')
                 lines.append('length: '+ seconds_to_human_duration(j['use_duration']))
                 write_lines(os.path.join(temp, 'lists/instruments', name)+'.txt', lines)
+    
+    if all_names:
+        write_lines(os.path.join(temp, 'lists/instruments', 'all-names.txt'), sorted(all_names))
 
 def listing_tags(temp):
     entries = set()
@@ -1922,6 +1931,8 @@ def listing_musics(temp):
     languages_json = get_languages_json(temp)
     musics = defaultdict(lambda:defaultdict(set))
     musics['sound_events'] = defaultdict(list)
+    all_names = set()
+    
     for k,v in read_json(os.path.join(temp, 'assets/minecraft', 'sounds.json')).items():
         if k.startswith('music.'):
             for n in v.get('sounds', []):
@@ -1933,12 +1944,13 @@ def listing_musics(temp):
     for k,v in musics['events'].items():
         musics['events'][k] = sorted(v)
     
-    for k,v in languages_json.items():
+    for k,desc in languages_json.items():
         if k.startswith('music.'):
             name = k.removeprefix('music.')
             ns_name = namespace(k.replace('.', '/'))
             ogg_file = 'minecraft/sounds/' + k.replace('.', '/') + '.ogg'
-            author, _, title = v.partition(' - ')
+            all_names.add(desc)
+            author, _, title = desc.partition(' - ')
             if not title:
                 raise ValueError(f"listing_musics(): The musics {k!r} don't use 'author - title' pairs.")
             musics['authors'][author].add(ns_name)
@@ -1959,6 +1971,8 @@ def listing_musics(temp):
     for k,v in musics.items():
         for kk,vv in v.items():
             write_lines(os.path.join(temp, 'lists/musics', k, kk)+'.txt', vv)
+    if all_names:
+        write_lines(os.path.join(temp, 'lists/musics', 'all-names.txt'), sorted(all_names))
 
 def listing_languages(temp):
     src_lang = {}
