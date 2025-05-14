@@ -1745,10 +1745,10 @@ def listing_commands(temp):
             rslt.append(base)
         
         if 'redirect' in entry:
-            rslt.append(base +' >>redirect{'+ '|'.join(entry['redirect']) +'}'+parse_level(parent_level, level))
+            rslt.append(base +' >>redirect{'+ '|'.join(entry['redirect']) +'}')
         
         elif entry.get('type') == 'literal' and (len(entry) == 1 or len(entry) == 2 and 'required_level' in entry):
-            rslt.append(base +' >>redirect{*}'+parse_level(parent_level, level))
+            rslt.append(base +' >>redirect{*}')
         
         elif 'children' in entry:
             for k,v in entry['children'].items():
