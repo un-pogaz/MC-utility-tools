@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 39, 0)
+VERSION = (0, 39, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1140,6 +1140,13 @@ def listing_loot_tables(temp):
                                         comment.append(' and '.join(msg))
                                     case 'mooshroom':
                                         comment.append('is '+predicate['variant']+' variant')
+                                    case 'vehicle':
+                                        comment.append('is riding a '+ flatering(predicate['type']))
+                                    case 'flags':
+                                        if predicate.pop('is_baby', None):
+                                            comment.append('is a baby')
+                                        if predicate:
+                                            ValueError(f'listing_loot_tables().lootcomment(): Unknow flags predicate {list(predicate.keys())} in loot_tables {name!r}.')
                                     case _:
                                         raise ValueError(f'listing_loot_tables().lootcomment(): Unknow type_specific {type_name!r} in loot_tables {name!r}.')
                             
