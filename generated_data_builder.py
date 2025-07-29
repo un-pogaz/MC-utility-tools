@@ -176,10 +176,6 @@ def build_generated_data(args):
     
     write_json(os.path.join(temp, version+'.json') , version_json)
     
-    async def write_serialize():
-        write_serialize_nbt(temp)
-    run_animation(write_serialize, 'Generating NBT serialized')
-    
     async def listing_various():
         tbl = [
             'libraries',
@@ -197,6 +193,10 @@ def build_generated_data(args):
         uniform_reports(temp)
         listing_various_data(temp)
     run_animation(listing_various, 'Generating /list/ folder')
+    
+    async def write_serialize():
+        write_serialize_nbt(temp)
+    run_animation(write_serialize, 'Generating NBT serialized')
     
     
     if args.zip:
