@@ -1147,6 +1147,8 @@ def listing_loot_tables(temp):
                                             comment.append('is a baby')
                                         if predicate:
                                             ValueError(f'listing_loot_tables().lootcomment(): Unknow flags predicate {list(predicate.keys())} in loot_tables {name!r}.')
+                                    case 'type':
+                                        comment.append('is a '+ flatering(predicate))
                                     case _:
                                         raise ValueError(f'listing_loot_tables().lootcomment(): Unknow type_specific {type_name!r} in loot_tables {name!r}.')
                             
