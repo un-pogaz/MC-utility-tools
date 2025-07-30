@@ -302,12 +302,7 @@ def update_pack_format(path_version_json, version):
     
     if edited:
         def key_sort(entry):
-            key = entry[0]
-            if '.' in entry:
-                key = key.split('.')
-                return float(f'{key[0]}.{int(key[1]):05}')
-            else:
-                return float(key)
+            return tuple(map(int, entry[0].split('.')))
         VERSION_MANIFEST['pack_format'] = dict(sorted(
             (k, dict(sorted(v.items(), key=key_sort, reverse=True))) for k,v in pack_format.items()
         ))
