@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 40, 0)
+VERSION = (0, 41, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -2063,6 +2063,43 @@ def listing_assets(temp):
                 txt_path = name + '.'+ext +'.txt'
                 write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
 
+
+def listing_rpc_api_schema(temp):
+    rj = read_json(os.path.join(temp, 'reports/json-rpc-api-schema.json'))
+    if not rj:
+        return
+    lines = [
+        'title: ' + rj['info']['title'],
+        'version: ' + rj['info']['version'],
+        'openrpc: ' + rj['openrpc'],
+    ]
+    write_lines(os.path.join(temp, 'lists/json-rpc-api-schema/info.txt'), lines)
+    rj.pop('info')
+    rj.pop('openrpc')
+    
+    lines = set()
+    for method in rj.pop('methods'):
+        name = method['name']
+        lines.add(namespace(name))
+        write_json(os.path.join(temp, 'lists/json-rpc-api-schema/methods', flatering(name)+'.json'), method)
+    if lines:
+        write_lines(os.path.join(temp, 'lists/json-rpc-api-schema/methods.txt'), sorted(lines))
+    
+    components = rj.pop('components')
+    schemas = components.pop('schemas')
+    if components:
+        raise ValueError('rpc_api_schema(): unknow data inside the "components"', *(repr(k) for k in components.keys()))
+    lines = set()
+    for name, data in schemas.items():
+        lines.add(name)
+        write_json(os.path.join(temp, 'lists/json-rpc-api-schema/components', name+'.json'), data)
+    if lines:
+        write_lines(os.path.join(temp, 'lists/json-rpc-api-schema/components.txt'), sorted(lines))
+    
+    if rj:
+        raise ValueError('rpc_api_schema(): unknow data inside the rpc-api-schema', *(repr(k) for k in rj.keys()))
+
+
 listing_various_functions: list[Callable[[str], None]] = [
     listing_builtit_datapacks,
     listing_structures,
@@ -2085,6 +2122,8 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_musics,
     listing_languages,
     listing_assets,
+    listing_assets,
+    listing_rpc_api_schema,
 ]
 def listing_various_data(temp):
     for func in listing_various_functions:
