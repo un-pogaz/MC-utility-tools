@@ -6,7 +6,6 @@ import os.path
 from github import GitHub
 
 GITHUB_DATA = GitHub('un-pogaz', 'MC-generated-data')
-GITHUB_DATA_LATEST = GitHub('un-pogaz', 'MC-generated-data-latest')
 GITHUB_BUILDER = GitHub('un-pogaz', 'MC-utility-tools')
 
 
