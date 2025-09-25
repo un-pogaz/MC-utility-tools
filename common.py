@@ -56,12 +56,6 @@ def run_command(command_line, wait=True):
     
     from subprocess import DEVNULL, Popen
     
-    if not isinstance(command_line, str):
-        for idx in range(len(command_line)):
-            if ' ' in command_line[idx]:
-                command_line[idx] = '"'+command_line[idx]+'"'
-        command_line = ' '.join(command_line)
-    
     #subproc = Popen(command_line, shell=True)
     subproc = Popen(command_line, stdout=DEVNULL, stderr=DEVNULL, shell=True)
     

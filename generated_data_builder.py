@@ -137,8 +137,13 @@ def build_generated_data(args):
         run_animation(server_dl, 'Downloading server.jar')
         
         async def data_server():
-            for cmd in ['-DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all', '-cp server.jar net.minecraft.data.Main --all']:
-                subprocess.run('java ' + cmd, cwd=temp_root, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
+            lst_cmd = (
+                ('java', '-DbundlerMainClass=net.minecraft.data.Main', '-jar', 'server.jar', '--all'),
+                ('java', '-cp', 'server.jar', 'net.minecraft.data.Main', '--all'),
+            )
+            
+            for cmd in lst_cmd:
+                subprocess.run(cmd, cwd=temp_root, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
         run_animation(data_server, 'Extracting data server')
     
     
