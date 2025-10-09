@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 41, 0)
+VERSION = (0, 41, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1634,6 +1634,8 @@ def listing_items(temp):
         'repair_cost',
         'attribute_modifiers',
         'tooltip_display',
+        'swing_animation',
+        'use_effects',
     ]
     components_grouped_value = [
         'max_stack_size',
@@ -1747,10 +1749,25 @@ def listing_commands(temp):
             case _:
                 raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}.')
     
-    def parse_level(parent_level, level):
+    def parse_level(prefix, parent_level, level):
         if parent_level is not level:
-            return f'((required_level: {level}))'
+            return f'(({prefix}: {level}))'
         return ''
+    
+    def parse_permissions(entry, parent_level):
+        rslt = parent_level
+        if 'required_level' in entry:
+            rslt = entry['required_level']
+        if 'permissions' in entry:
+            p = entry['permissions']
+            error = ValueError(f'Invalid permissions entry: {p}')
+            if len(p) != 2 or 'permission' not in p or flat_type(p) != 'require':
+                raise error
+            p = p['permission']
+            if len(p) != 2 or 'level' not in p or flat_type(p) != 'command_level':
+                raise error
+            rslt = p['level']
+        return rslt
     
     def get_syntaxes(base, entry, parent_level, level):
         rslt = []
@@ -1767,29 +1784,35 @@ def listing_commands(temp):
         elif 'children' in entry:
             for k,v in entry['children'].items():
                 build = base +' '+ get_argument(k, v)
-                level = v.get('required_level', parent_level)
+                level = parse_permissions(v, parent_level)
                 rslt.extend(get_syntaxes(build, v, parent_level, level))
         
         for k in entry.keys():
-            if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect', 'required_level']:
+            if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect', 'required_level', 'permissions']:
                 raise ValueError(f'listing_commands(): Additional key {k!r} in commands {name!r}.')
         
         return rslt
     
     src_json = read_json(os.path.join(temp, 'reports/commands.json'))
-    base_level = src_json.get('required_level')
-    if base_level is None:
-        for v in src_json.get('children', {}).values():
-            if 'required_level' in v:
-                base_level = 0
+    base_level = None
+    prefix_level = None
+    for v in src_json.get('children', {}).values():
+        if 'required_level' in v:
+            prefix_level = 'required_level'
+            base_level = 0
+            break
+        if 'permissions' in v:
+            prefix_level = 'permissions'
+            base_level = 'players'
+            break
     
     for k,v in src_json.get('children', {}).items():
         name = flatering(k)
         write_json(os.path.join(temp, 'lists/commands', name+'.json'), v)
-        level = v.get('required_level', base_level)
+        level = parse_permissions(v, base_level)
         rslt = get_syntaxes(name, v, level, level)
         if level is not None:
-            rslt.insert(0, parse_level(None, level))
+            rslt.insert(0, parse_level(prefix_level, None, level))
         write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), rslt)
     
     if lines:
