@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 41, 1)
+VERSION = (0, 42, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1749,11 +1749,6 @@ def listing_commands(temp):
             case _:
                 raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}.')
     
-    def parse_level(prefix, parent_level, level):
-        if parent_level is not level:
-            return f'(({prefix}: {level}))'
-        return ''
-    
     def parse_permissions(entry, parent_level):
         rslt = parent_level
         if 'required_level' in entry:
@@ -1769,23 +1764,28 @@ def listing_commands(temp):
             rslt = p['level']
         return rslt
     
-    def get_syntaxes(base, entry, parent_level, level):
+    def get_syntaxes(base, entry, parent_level):
         rslt = []
         
+        level = parse_permissions(entry, parent_level)
+        
         if entry.get('executable', False):
-            rslt.append(base)
+            rslt.append((level, base))
         
         if 'redirect' in entry:
-            rslt.append(base +' >>redirect{'+ '|'.join(entry['redirect']) +'}')
+            rslt.append((level, base +' >>redirect{'+ '|'.join(entry['redirect']) +'}'))
         
-        elif entry.get('type') == 'literal' and (len(entry) == 1 or len(entry) == 2 and 'required_level' in entry):
-            rslt.append(base +' >>redirect{*}')
+        elif entry.get('type') == 'literal' and len(entry) == 1:
+            rslt.append((level, base +' >>redirect{*}'))
+        elif entry.get('type') == 'literal' and len(entry) == 2 and 'required_level' in entry:
+            rslt.append((level, base +' >>redirect{*}'))
+        elif entry.get('type') == 'literal' and len(entry) == 2 and 'permissions' in entry:
+            rslt.append((level, base +' >>redirect{*}'))
         
         elif 'children' in entry:
             for k,v in entry['children'].items():
                 build = base +' '+ get_argument(k, v)
-                level = parse_permissions(v, parent_level)
-                rslt.extend(get_syntaxes(build, v, parent_level, level))
+                rslt.extend(get_syntaxes(build, v, level))
         
         for k in entry.keys():
             if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect', 'required_level', 'permissions']:
@@ -1809,11 +1809,14 @@ def listing_commands(temp):
     for k,v in src_json.get('children', {}).items():
         name = flatering(k)
         write_json(os.path.join(temp, 'lists/commands', name+'.json'), v)
-        level = parse_permissions(v, base_level)
-        rslt = get_syntaxes(name, v, level, level)
-        if level is not None:
-            rslt.insert(0, parse_level(prefix_level, None, level))
-        write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), rslt)
+        lines = []
+        level_prev = None
+        for level, line in get_syntaxes(name, v, base_level):
+            if level_prev != level:
+                lines.append(f'(({prefix_level}: {level}))')
+                level_prev = level
+            lines.append(line)
+        write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), lines)
     
     if argument_type:
         write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), sorted(argument_type))
