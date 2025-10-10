@@ -1717,7 +1717,7 @@ def listing_datapacks(temp):
         write_lines(os.path.join(temp, 'lists/datapacks', k)+'.txt', sorted(v))
 
 def listing_commands(temp):
-    lines = set()
+    argument_type = set()
     
     def get_argument(value, entry):
         type_name = flat_type(entry)
@@ -1732,7 +1732,7 @@ def listing_commands(temp):
                 type = entry.get('parser', '')
                 if type:
                     type = namespace(type)
-                    lines.add(type)
+                    argument_type.add(type)
                     type = ' '+type
                 
                 properties = []
@@ -1815,8 +1815,8 @@ def listing_commands(temp):
             rslt.insert(0, parse_level(prefix_level, None, level))
         write_lines(os.path.join(temp, 'lists/commands', name+'.txt'), rslt)
     
-    if lines:
-        write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), sorted(lines))
+    if argument_type:
+        write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), sorted(argument_type))
 
 def listing_registries(temp):
     lines = [namespace(k) for k in read_json(os.path.join(temp, 'reports/registries.json')).keys()]
