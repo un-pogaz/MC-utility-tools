@@ -126,7 +126,7 @@ def package_datapack(path):
     print('Writing metadata...')
     try:
         j = read_json(os.path.join(path, 'pack.mcmeta'))
-        mcmeta = j['pack']['pack_format']
+        mcmeta = j['pack'].get('pack_format')
         range_formats = [j['pack'].get('min_format'), j['pack'].get('max_format')]
         if None in range_formats:
             range_formats = j['pack'].get('supported_formats')
