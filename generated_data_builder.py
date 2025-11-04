@@ -350,7 +350,7 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
             for y in range(len(rslt[i])):
                 d = str(rslt[i][y])
                 if d:
-                    rslt[i][y] = '"'+d+'"'
+                    rslt[i][y] = f'"{d}"'
             rslt[i] = ','.join(rslt[i])
         elif rslt[i] is None:
             rslt[i] = separator_line
