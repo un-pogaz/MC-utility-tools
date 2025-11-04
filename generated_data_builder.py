@@ -343,6 +343,8 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
     rslt.insert(0, head_tbl.copy())
     rslt.insert(1, '')
     
+    separator_line = ','.join('——' for x in range(len(head_tbl)))
+    empty_line = ','*(len(head_tbl)-1)
     for i in range(len(rslt)):
         if rslt[i]:
             for y in range(len(rslt[i])):
@@ -351,9 +353,9 @@ def write_tbl_csv(path, head_tbl, lines_tbl):
                     rslt[i][y] = '"'+d+'"'
             rslt[i] = ','.join(rslt[i])
         elif rslt[i] is None:
-            rslt[i] = ','.join('——' for _ in head_tbl)
+            rslt[i] = separator_line
         else:
-            rslt[i] = ','*(len(head_tbl)-1)
+            rslt[i] = empty_line
     
     write_lines(path, rslt)
 
@@ -370,11 +372,12 @@ def write_tbl_md(path, head_tbl, lines_tbl):
         return '| '+ ' | '.join(line) +' |'
     def calcspace(line, col):
         return ' '*(col_len[col] - len(line[col]))
+    
     rslt = []
     rslt.append(concatline([head_tbl[i]+calcspace(head_tbl, i) for i in range(len(head_tbl))]))
     rslt.append(concatline(['-'*i for i in col_len]))
-    empty_line = concatline([' '*i for i in col_len])
     separator_line = concatline(['– '*(i//2) + ('–' if i % 2 != 0 else '') for i in col_len])
+    empty_line = concatline([' '*i for i in col_len])
     for line in deepcopy(lines_tbl):
         if line:
             line[0] = line[0]+calcspace(line, 0)
