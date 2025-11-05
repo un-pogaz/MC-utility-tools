@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 42, 0)
+VERSION = (0, 43, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -458,11 +458,16 @@ def flat_type(entry) -> str:
 def flat_function(entry):
     return flat_n(entry, 'function')
 
-def unquoted_json(obj) -> str:
+
+def flat_json(obj) -> str:
     import json
+    return json.dumps(obj, indent=None)
+
+def unquoted_json(obj) -> str:
     import re
     # remove the quote around the name of the propety {name: "Value"}
-    return re.sub(r'"([^":\\/]+)":', r'\1:', json.dumps(obj, indent=None))
+    return re.sub(r'"([^":\\/]+)":', r'\1:', flat_json(obj))
+
 
 def str_to_json(text) -> dict|list:
     import json
@@ -2134,6 +2139,77 @@ def listing_rpc_api_schema(temp):
         raise ValueError('rpc_api_schema(): unknow data inside the rpc-api-schema', *(repr(k) for k in rj.keys()))
 
 
+def listing_timelines(temp):
+    
+    def explore_data(data, width_right, width_left):
+        lines = set()
+        lines_csv = []
+        lines_md = []
+        
+        def append_csv_sep(sep):
+            lines_csv.append(f'{sep},{sep}')
+        def append_csv(right, left):
+            lines_csv.append(f'"{right}","{left}"')
+        
+        def append_md_sep(sep):
+            append_md(sep*width_right, sep*width_left, False)
+        def append_md(right, left, number):
+            if number:
+                right = ' '*(width_right-len(right)) + right
+            else:
+                right = right + ' '*(width_right-len(right))
+            left = left + ' '*(width_left-len(left))
+            lines_md.append(f'| {right} | {left} |')
+        
+        ## explore data
+        period_ticks = data.get('period_ticks')
+        if period_ticks is not None:
+            val = f'period_ticks: {period_ticks}'
+            append_csv(val, '')
+            append_md(val, '', False)
+            width_right = max(width_right, len(val))
+        
+        for t,d in data['tracks'].items():
+            lines.add(t)
+            append_md_sep('=')
+            append_csv_sep('==')
+            
+            ease = d.get('ease', 'linear')
+            if isinstance(ease, dict):
+                ease = unquoted_json(ease)
+            modifier = d.get('modifier', 'override')
+            info = f'ease: {ease} (modifier: {modifier})'
+            
+            append_csv(t, info)
+            append_md(t, info, False)
+            width_right = max(width_right, len(t))
+            width_left = max(width_left, len(info))
+            
+            append_csv_sep('——')
+            append_md_sep('-')
+            
+            for e in d['keyframes']:
+                right, left = str(e['ticks']), str(e['value'])
+                append_csv(right, left)
+                append_md(right, left, True)
+                width_right = max(width_right, len(right))
+                width_left = max(width_left, len(left))
+        
+        return width_right, width_left, lines, lines_csv, lines_md
+
+    dir = 'data/minecraft/timeline/'
+    for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
+        data = read_json(os.path.join(temp, dir, f))
+        
+        width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
+        _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the corrct lines
+        
+        name = os.path.splitext(f)[0]
+        write_lines(os.path.join(temp, 'lists/timelines/', name + '.txt'), sorted(lines))
+        write_lines(os.path.join(temp, 'lists/timelines/', name + '.csv'), lines_csv)
+        write_lines(os.path.join(temp, 'lists/timelines/', name + '.md'), lines_md)
+
+
 listing_various_functions: list[Callable[[str], None]] = [
     listing_builtit_datapacks,
     listing_structures,
@@ -2158,6 +2234,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_assets,
     listing_assets,
     listing_rpc_api_schema,
+    listing_timelines,
 ]
 def listing_various_data(temp):
     for func in listing_various_functions:
