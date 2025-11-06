@@ -370,21 +370,19 @@ def write_tbl_md(path, head_tbl, lines_tbl):
     
     def concatline(line):
         return '| '+ ' | '.join(line) +' |'
-    def calcspace(line, col):
-        return ' '*(col_len[col] - len(line[col]))
+    def format_col(text, col, fmt):
+        return format(text, fmt+str(col_len[col]))
     
     rslt = []
-    rslt.append(concatline([head_tbl[i]+calcspace(head_tbl, i) for i in range(len(head_tbl))]))
+    rslt.append(concatline([format_col(head_tbl[i], i, '<') for i in range(len(head_tbl))]))
     rslt.append(concatline(['-'*i for i in col_len]))
     separator_line = concatline(['– '*(i//2) + ('–' if i % 2 != 0 else '') for i in col_len])
     empty_line = concatline([' '*i for i in col_len])
     for line in deepcopy(lines_tbl):
         if line:
-            line[0] = line[0]+calcspace(line, 0)
-            for idx in range(1, len(line)-1):
-                line[idx] = calcspace(line, idx)+line[idx]
-            idx = len(line)-1
-            line[idx] = line[idx]+calcspace(line, idx)
+            for idx in range(len(line)):
+                fmt = '>' if 0 < idx < len(line)-1 else '<'
+                line[idx] = format_col(line[idx], idx, fmt)
             rslt.append(concatline(line))
         elif line is None:
             rslt.append(separator_line)
@@ -2155,10 +2153,10 @@ def listing_timelines(temp):
             append_md(sep*width_right, sep*width_left, False)
         def append_md(right, left, number):
             if number:
-                right = ' '*(width_right-len(right)) + right
+                right = format(right, '>' + str(width_right))
             else:
-                right = right + ' '*(width_right-len(right))
-            left = left + ' '*(width_left-len(left))
+                right = format(right, '<' + str(width_right))
+            left = format(left, '<' + str(width_left))
             lines_md.append(f'| {right} | {left} |')
         
         ## explore data
