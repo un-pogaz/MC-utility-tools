@@ -2232,7 +2232,6 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_musics,
     listing_languages,
     listing_assets,
-    listing_assets,
     listing_rpc_api_schema,
     listing_timelines,
 ]
