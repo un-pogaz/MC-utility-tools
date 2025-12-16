@@ -2100,7 +2100,6 @@ def listing_assets(temp):
                 txt_path = name + '.'+ext +'.txt'
                 write_lines(os.path.join(temp, 'lists', txt_path), sorted(lines))
 
-
 def listing_rpc_api_schema(temp):
     rj = read_json(os.path.join(temp, 'reports/json-rpc-api-schema.json'))
     if not rj:
@@ -2135,7 +2134,6 @@ def listing_rpc_api_schema(temp):
     
     if rj:
         raise ValueError('rpc_api_schema(): unknow data inside the rpc-api-schema', *(repr(k) for k in rj.keys()))
-
 
 def listing_timelines(temp):
     
@@ -2200,7 +2198,7 @@ def listing_timelines(temp):
         data = read_json(os.path.join(temp, dir, f))
         
         width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
-        _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the corrct lines
+        _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
         
         name = os.path.splitext(f)[0]
         write_lines(os.path.join(temp, 'lists/timelines/', name + '.txt'), sorted(lines))
