@@ -1108,6 +1108,7 @@ def listing_subdir_reports(temp):
         'dimension_type',
         'biome_parameters',
         'chat_type',
+        'components',
     ]
     for subdir in lst_subdir:
         lines = set()
@@ -1563,34 +1564,8 @@ def listing_blocks(temp):
             lines = [f'{kk}  = {vv}' for kk,vv in v.items()]
             write_lines(os.path.join(temp, 'lists/blocks/definition/values', k+'.txt'), sorted(lines))
 
-def listing_items(temp):
+def write_components_data(temp, output_dir, src_data):
     languages_json = get_languages_json(temp)
-    itemstates = defaultdict(lambda:defaultdict(dict))
-    rj = read_json(os.path.join(temp, 'reports/items.json'))
-    if rj:
-        write_lines(os.path.join(temp, 'lists', 'item.txt'), sorted(rj.keys()))
-    for k,v in rj.items():
-        name = flatering(k)
-        
-        v.pop('protocol_id', None)
-        if v:
-            vc = v.get('components', None)
-            if isinstance(vc, list):
-                v['components'] = list(sorted(vc, key=lambda x: x['type']))
-            write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
-        
-        for vk in v:
-            if vk == 'components':
-                if isinstance(v[vk], list):
-                    for vs in v[vk]:
-                        type = flatering(vs['type'])
-                        itemstates[vk][type][namespace(k)] = vs['value']
-                else:
-                    for type,value in v[vk].items():
-                        type = flatering(type)
-                        itemstates[vk][type][namespace(k)] = value
-            else:
-                raise ValueError(f'listing_items(): ItemStates {vk!r} not implemented.')
     
     def _one_key_dict(value):
         if len(value) == 1:
@@ -1647,7 +1622,7 @@ def listing_items(temp):
                     rslt = unquoted_json(value)
         
         if not rslt:
-            raise ValueError(f'listing_items(): component with a unknow type to retrive value {type(value)!r}.')
+            raise ValueError(f'write_components_data(): component with a unknow type to retrive value {type(value)!r}.')
         return '  = ' + rslt
     
     def _quote_str(value):
@@ -1679,41 +1654,101 @@ def listing_items(temp):
         'item_name',
     ]
     
+    for name,data in src_data.items():
+        if name in json_text_components:
+            for n,v in data.items():
+                if isinstance(v, str):
+                    v = str_to_json(v)
+                data[n] = _quote_str(parse_json_text(v, languages_json))
+        
+        if name in default_components:
+            lines = [n + component_text_value(v, allow_inline=True) for n,v in data.items() if component_test_value(v, is_file=False)]
+        elif name in components_always_json_value:
+            lines = [n + component_text_value(v, allow_inline=False) for n,v in data.items()]
+        else:
+            lines = [n + component_text_value(v, allow_inline=True) for n,v in data.items()]
+        if lines:
+            write_lines(os.path.join(temp, output_dir, name+'.txt'), sorted(lines))
+        
+        if name in components_grouped_value:
+            dic = defaultdict(list)
+            for n,v in data.items():
+                if isinstance(v, str) and ':' in v:
+                    v = flatering(v)
+                dic[v].append(n)
+            for v,n in dic.items():
+                write_lines(os.path.join(temp, output_dir, name, str(v)+'.txt'), sorted(set(n)))
+        else:
+            for n,v in data.items():
+                if not isinstance(v, (dict, list)):
+                    continue
+                if component_test_value(v, is_file=True) or (name in components_always_json_value and v):
+                    write_json(os.path.join(temp, output_dir, name, flatering(n)+'.json'), v)
+
+def listing_items(temp):
+    itemstates = defaultdict(lambda:defaultdict(dict))
+    rj = read_json(os.path.join(temp, 'reports/items.json'))
+    if rj:
+        write_lines(os.path.join(temp, 'lists', 'item.txt'), sorted(rj.keys()))
+    for k,v in rj.items():
+        name = flatering(k)
+        v.pop('protocol_id', None)
+        if v:
+            vc = v.get('components', None)
+            if isinstance(vc, list):
+                v['components'] = list(sorted(vc, key=lambda x: x['type']))
+            write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
+        
+        for vk in v:
+            if vk == 'components':
+                if isinstance(v[vk], list):
+                    for vs in v[vk]:
+                        type = flatering(vs['type'])
+                        itemstates[vk][type][namespace(k)] = vs['value']
+                else:
+                    for type,value in v[vk].items():
+                        itemstates[vk][flatering(type)][namespace(k)] = value
+            else:
+                raise ValueError(f'listing_items(): ItemStates {vk!r} not implemented.')
+    
     for k,kv in itemstates.items():
         match k:
             case 'components':
-                for c,e in kv.items():
-                    if c in json_text_components:
-                        for n,v in e.items():
-                            if isinstance(v, str):
-                                v = str_to_json(v)
-                            e[n] = _quote_str(parse_json_text(v, languages_json))
-                    
-                    if c in default_components:
-                        lines = [n + component_text_value(v, allow_inline=True) for n,v in e.items() if component_test_value(v, is_file=False)]
-                    elif c in components_always_json_value:
-                        lines = [n + component_text_value(v, allow_inline=False) for n,v in e.items()]
-                    else:
-                        lines = [n + component_text_value(v, allow_inline=True) for n,v in e.items()]
-                    if lines:
-                        write_lines(os.path.join(temp, 'lists/items/components', c+'.txt'), sorted(lines))
-                    
-                    if c in components_grouped_value:
-                        dic = defaultdict(list)
-                        for n,v in e.items():
-                            if isinstance(v, str) and ':' in v:
-                                v = flatering(v)
-                            dic[v].append(n)
-                        for v,n in dic.items():
-                            write_lines(os.path.join(temp, 'lists/items/components', c, str(v)+'.txt'), sorted(set(n)))
-                    else:
-                        for n,v in e.items():
-                            if not isinstance(v, (dict, list)):
-                                continue
-                            if component_test_value(v, is_file=True) or (c in components_always_json_value and v):
-                                write_json(os.path.join(temp, 'lists/items/components', c, flatering(n)+'.json'), v)
+                write_components_data(temp, 'lists/items/components', kv)
             case _:
                 raise ValueError(f'listing_items(): Unknow item states {k!r}.')
+
+def listing_components(temp):
+    dir = match_dir(temp, [
+        'data/minecraft/components',
+        'reports/minecraft/components',
+    ])
+    if not dir:
+        return
+    subtypes = [
+        'worldgen',
+    ]
+    lines = set()
+    files = defaultdict(list)
+    for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
+        f = filename(f)
+        type, name = f.split('/', maxsplit=1)
+        if type in subtypes:
+            type, subtype, name = f.split('/', maxsplit=2)
+            type = f'{type}/{subtype}'
+        lines.add(namespace(type))
+        files[type].append(name)
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'components.txt'), sorted(lines))
+    for type, names in files.items():
+        lines = set()
+        data = defaultdict(dict)
+        for f in names:
+            for c,v in read_json(os.path.join(temp, dir, type, f+'.json')).get('components', {}).items():
+                data[flatering(c)][namespace(f)] = v
+        lines.add(namespace(f))
+        write_lines(os.path.join(temp, 'lists/components', type+'.txt'), sorted(lines))
+        write_components_data(temp, 'lists/components/'+type, data)
 
 def listing_packets(temp):
     for k,tv in read_json(os.path.join(temp, 'reports/packets.json')).items():
@@ -2297,6 +2332,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_instruments,
     listing_commands,
     listing_registries,
+    listing_components,
     listing_tags,
     listing_sounds,
     listing_musics,
