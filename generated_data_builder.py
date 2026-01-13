@@ -2192,35 +2192,87 @@ def listing_rpc_api_schema(temp):
 def listing_timelines(temp):
     
     def explore_data(data, width_right, width_left):
-        lines = set()
         lines_csv = []
         lines_md = []
         
+        lines_map = defaultdict(set)
+        widths = {
+            'r': max(0, width_right),
+            'l': max(0, width_left),
+        }
+        
+        def append_header(text):
+            append_csv_header(text)
+            append_md_header(text)
+        
         def append_csv_sep(sep):
             lines_csv.append(f'{sep},{sep}')
+        def append_csv_header(text):
+            lines_csv.append(f'"# {text} #","##"')
         def append_csv(right, left):
+            widths['r'] = max(widths['r'], len(right))
+            widths['l'] = max(widths['l'], len(left))
             lines_csv.append(f'"{right}","{left}"')
         
         def append_md_sep(sep):
-            append_md(sep*width_right, sep*width_left, False)
+            append_md(sep*widths['r'], sep*widths['l'], False)
+        def append_md_header(text):
+            append_md(f' {text} '.center(widths['r'], '#'),'#'*widths['l'], False)
         def append_md(right, left, number):
+            widths['r'] = max(widths['r'], len(right))
+            widths['l'] = max(widths['l'], len(left))
             if number:
-                right = format(right, '>' + str(width_right))
+                right = format(right, '>' + str(widths['r']))
             else:
-                right = format(right, '<' + str(width_right))
-            left = format(left, '<' + str(width_left))
+                right = format(right, '<' + str(widths['r']))
+            left = format(left, '<' + str(widths['l']))
             lines_md.append(f'| {right} | {left} |')
         
         ## explore data
+        header = False
+        clock = data.get('clock')
+        if clock is not None:
+            if not header:
+                append_header('markers')
+                header = True
+            val = f'clock: {clock}'
+            append_csv(val, '')
+            append_md(val, '', False)
+        
+        for t,d in data.get('time_markers', {}).items():
+            if not header:
+                append_header('markers')
+                header = True
+            lines_map['markers'].add(t)
+            append_md_sep('=')
+            append_csv_sep('==')
+            if isinstance(d, dict):
+                append_csv(t, '')
+                append_md(t, '', False)
+                append_csv_sep('——')
+                append_md_sep('-')
+                for k,v in d.items():
+                    append_csv(k, str(v))
+                    append_md(k, str(v), False)
+            else:
+                append_csv(t, str(d))
+                append_md(t, str(d), False)
+        
+        header = False
         period_ticks = data.get('period_ticks')
         if period_ticks is not None:
+            if not header:
+                append_header('tracks')
+                header = True
             val = f'period_ticks: {period_ticks}'
             append_csv(val, '')
             append_md(val, '', False)
-            width_right = max(width_right, len(val))
         
-        for t,d in data['tracks'].items():
-            lines.add(t)
+        for t,d in data.get('tracks', {}).items():
+            if not header:
+                append_header('tracks')
+                header = True
+            lines_map['tracks'].add(t)
             append_md_sep('=')
             append_csv_sep('==')
             
@@ -2232,8 +2284,6 @@ def listing_timelines(temp):
             
             append_csv(t, info)
             append_md(t, info, False)
-            width_right = max(width_right, len(t))
-            width_left = max(width_left, len(info))
             
             append_csv_sep('——')
             append_md_sep('-')
@@ -2242,10 +2292,15 @@ def listing_timelines(temp):
                 right, left = str(e['ticks']), str(e['value'])
                 append_csv(right, left)
                 append_md(right, left, True)
-                width_right = max(width_right, len(right))
-                width_left = max(width_left, len(left))
+        append_md_sep('=')
         
-        return width_right, width_left, lines, lines_csv, lines_md
+        lines = []
+        for i, (k,v) in enumerate(lines_map.items()):
+            if i != 0:
+                lines.append('')
+            lines.append(f'[[{k}]]')
+            lines.extend(sorted(v))
+        return widths['r'], widths['l'], lines, lines_csv, lines_md
 
     dir = 'data/minecraft/timeline/'
     for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
@@ -2255,7 +2310,7 @@ def listing_timelines(temp):
         _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
         
         name = os.path.splitext(f)[0]
-        write_lines(os.path.join(temp, 'lists/timelines/', name + '.txt'), sorted(lines))
+        write_lines(os.path.join(temp, 'lists/timelines/', name + '.txt'), lines)
         write_lines(os.path.join(temp, 'lists/timelines/', name + '.csv'), lines_csv)
         write_lines(os.path.join(temp, 'lists/timelines/', name + '.md'), lines_md)
 
