@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 45, 0)
+VERSION = (0, 45, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1746,7 +1746,7 @@ def listing_components(temp):
         for f in names:
             for c,v in read_json(os.path.join(temp, dir, type, f+'.json')).get('components', {}).items():
                 data[flatering(c)][namespace(f)] = v
-        lines.add(namespace(f))
+            lines.add(namespace(f))
         write_lines(os.path.join(temp, 'lists/components', type+'.txt'), sorted(lines))
         write_components_data(temp, 'lists/components/'+type, data)
 
