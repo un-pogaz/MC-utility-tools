@@ -47,7 +47,7 @@ def iglob(pathname: str, recursive: bool, root_dir: str):
         yield path.replace('\\', '/').strip('/')
 
 
-def tag_list_generator(work_dir, output_dir, *, version_target=None):
+def tag_list_generator_data(work_dir, output_dir, *, version_target=None):
     '''
     Module:Tag_list_generator
     Module:Tag_list_generator/data.json
@@ -60,6 +60,7 @@ def tag_list_generator(work_dir, output_dir, *, version_target=None):
     if version_target:
         rslt['__comment_version'] = version_target
     
+    os.makedirs(output_dir, exist_ok=True)
     tags_dir = os.path.join(work_dir, 'data/minecraft/tags')
     types = []
     types.extend(iglob('*/', False, tags_dir))
@@ -288,7 +289,7 @@ def main(
     os.makedirs(output, exist_ok=True)
     
     prints('Module:Tag_list_generator...')
-    tag_list_generator(work_dir, output, version_target=version_target)
+    tag_list_generator_data(work_dir, output, version_target=version_target)
     
     prints('Translation Test...')
     translation_test(work_dir, output, languages, version_target=version_target)
