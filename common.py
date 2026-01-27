@@ -1,6 +1,7 @@
 #common
 
 import json
+import re
 import os.path
 
 from github import GitHub
@@ -301,6 +302,45 @@ def update_pack_format(path_version_json, version):
         ))
         write_json(_VERSION_MANIFEST_PATH, VERSION_MANIFEST)
         print("INFO: 'pack_format' in version_manifest.json has been updated")
+
+CALENDAR_VERSION = re.compile(r'^(\d{2}\.\d)(\.\d)?(?:-([\w\-]+)-\d+)?$')
+
+def update_calendar_versioning(version):
+    if not (match_id := CALENDAR_VERSION.match(version)):
+        print(f'The version {version!r} is not a calendar format.')
+        return False
+    global VERSION_MANIFEST
+    
+    version_id = match_id.group(0)
+    version = match_id.group(1)
+    
+    version_dic = VERSION_MANIFEST['versioning'].get(version)
+    if not version_dic:
+        print(f'Appending {version!r} to versioning data.')
+        new_val = {version:{}}
+        new_val.update(VERSION_MANIFEST['versioning'].items())
+        VERSION_MANIFEST['versioning'] = new_val
+    
+    type_map = {
+        'snapshot': 'snapshots',
+        'snapshots': 'snapshots',
+    }
+    if not (type_added := type_map.get(match_id.group(3))):
+        print(f'The version {version!r} is of a unknow type.')
+        return False
+    
+    type_lst = version_dic.get(type_added)
+    if not isinstance(type_lst, list):
+        version_dic[type_added] = type_lst = []
+    
+    if version_id in type_lst:
+        return True
+    
+    type_lst.insert(0, version_id)
+    
+    write_json(_VERSION_MANIFEST_PATH, VERSION_MANIFEST)
+    print("INFO: 'versioning' in version_manifest.json has been updated")
+    return True
 
 def version_path(version):
     for k,v in VERSION_MANIFEST['versioning'].items():
