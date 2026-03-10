@@ -593,6 +593,7 @@ def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
         'structures.snbt',
         'advancements',
         'advancement',
+        'components',
         'datapacks',
         'datapack',
         'loot_tables',
