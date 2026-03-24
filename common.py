@@ -325,6 +325,7 @@ def update_calendar_versioning(version):
         'snapshot': 'snapshots',
         'pre': 'pre-releases',
         'rc': 'releases-candidate',
+        None: 'releases',
     }
     if not (type_added := type_map.get(match_id.group(3))):
         print(f'The version {version!r} is of a unknow type.')
