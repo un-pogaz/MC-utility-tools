@@ -317,7 +317,13 @@ def update_calendar_versioning(version):
     version_dic = VERSION_MANIFEST['versioning'].get(version)
     if not version_dic:
         print(f'Appending {version!r} to versioning data.')
-        new_val = {version:{}}
+        version_dic = {
+            "snapshots": [],
+            "pre-releases": [],
+            "releases-candidate": [],
+            "releases": [],
+        }
+        new_val = {version: version_dic}
         new_val.update(VERSION_MANIFEST['versioning'].items())
         VERSION_MANIFEST['versioning'] = new_val
     
