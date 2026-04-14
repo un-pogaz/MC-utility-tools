@@ -906,8 +906,17 @@ def lootcomment(name, entry):
                     elif v.get('expected', True):
                         tags.add('#'+flatering(v['id']))
                 
-                for k in ['is_explosion',  'is_fire', 'is_magic', 'is_projectile', 'is_lightning',
-                            'bypasses_armor', 'bypasses_invulnerability', 'bypasses_magic']:
+                lst = [
+                    'is_explosion',
+                    'is_fire',
+                    'is_magic',
+                    'is_projectile',
+                    'is_lightning',
+                    'bypasses_armor',
+                    'bypasses_invulnerability',
+                    'bypasses_magic',
+                ]
+                for k in lst:
                     if predicate.pop(k, False):
                         comment.append(f'Damaged by: {k!r}')
                 
