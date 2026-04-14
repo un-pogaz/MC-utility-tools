@@ -13,7 +13,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 45, 1)
+VERSION = (0, 46, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -745,6 +745,15 @@ def lootcomment(name, entry):
     
     def parse_condition(item):
         condition_type = flatering(item['condition'])
+        
+        def flat_predicate(predicate):
+            rslt = {}
+            for k,v in predicate.items():
+                if k == 'type':
+                    k = 'entity_type'
+                rslt[flatering(k)] = v
+            return rslt
+        
         match condition_type:
             case 'killed_by_player':
                 comment.append('killed by player')
@@ -769,12 +778,12 @@ def lootcomment(name, entry):
                 comment.append('killed with main_hand tool: '+ value)
             
             case 'entity_properties':
-                predicate = item['predicate']
+                predicate = flat_predicate(item['predicate'])
                 entity_origin = item['entity']
                 match entity_origin:
                     case 'attacker' | 'killer':
-                        if 'type' in predicate:
-                            comment.append('killed by '+predicate['type'])
+                        if 'entity_type' in predicate:
+                            comment.append('killed by '+predicate['entity_type'])
                         else:
                             raise ValueError(f'listing_loot_tables().lootcomment(): entity_properties contain unsuported data {name!r}.')
                     
@@ -825,11 +834,15 @@ def lootcomment(name, entry):
                             comment.append(' '.join([color, pattern]).strip())
                         
                         def type_specific(type_name, predicate):
+                            if isinstance(predicate, dict):
+                                predicate = flat_predicate(predicate)
+                            if type_name.startswith('type_specific/'):
+                                type_name = type_name.removeprefix('type_specific/')
                             match type_name:
                                 case 'raider':
                                     if predicate['is_captain'] is True:
                                         comment.append('is captain raider')
-                                case 'slime':
+                                case 'slime' | 'cube_mob':
                                     v = predicate['size']
                                     if isinstance(v, int):
                                         comment.append(f'size is {v}')
@@ -861,13 +874,13 @@ def lootcomment(name, entry):
                                 case 'mooshroom':
                                     comment.append('is '+predicate['variant']+' variant')
                                 case 'vehicle':
-                                    comment.append('is riding a '+ flatering(predicate['type']))
+                                    comment.append('is riding a '+ flatering(predicate['entity_type']))
                                 case 'flags':
                                     if predicate.pop('is_baby', None):
                                         comment.append('is a baby')
                                     if predicate:
                                         ValueError(f'listing_loot_tables().lootcomment(): Unknow flags predicate {list(predicate.keys())} in loot_tables {name!r}.')
-                                case 'type':
+                                case 'entity_type':
                                     comment.append('is a '+ flatering(predicate))
                                 case 'villager/variant':
                                     if isinstance(predicate, str):
@@ -891,12 +904,12 @@ def lootcomment(name, entry):
                         raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity origin {entity_origin!r} in loot_tables {name!r}.')
             
             case 'damage_source_properties':
-                predicate = item['predicate']
+                predicate = flat_predicate(item['predicate'])
                 if predicate.pop('is_direct', False):
                     comment.append('Is direct damage')
                 entitys = set()
                 for k in ['source_entity', 'direct_entity']:
-                    type = predicate.pop(k, {}).pop('type', None)
+                    type = flat_predicate(predicate.pop(k, {})).pop('entity_type', None)
                     if type:
                         entitys.add(flatering(type))
                 tags = set()
@@ -1495,7 +1508,7 @@ def listing_blocks(temp):
                     raise value_error
                 else:
                     return
-            case 'particle' | 'leaf_particle':
+            case 'particle' | 'leaf_particle' | 'block_to_grow_on':
                 return unquoted_json(value)
             case _:
                 raise value_error
