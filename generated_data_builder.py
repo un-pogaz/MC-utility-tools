@@ -16,7 +16,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 46, 0)
+VERSION = (0, 46, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -796,21 +796,21 @@ def lootcomment(name, entry):
                         for type_name,value in components.items():
                             type_name = flatering(type_name)
                             match type_name:
-                                case ('axolotl/variant' |
-                                      'cat/variant' |
-                                      'chicken/variant' |
-                                      'fox/variant' |
-                                      'frog/variant' |
-                                      'horse/variant' |
-                                      'llama/variant' |
-                                      'painting/variant' |
-                                      'parrot/variant' |
-                                      'pig/variant' |
-                                      'mooshroom/variant' |
-                                      'rabbit/variant' |
-                                      'villager/variant' |
-                                      'wolf/variant' |
-                                      'mooshroom/variant'):
+                                case ('axolotl/variant'
+                                    | 'cat/variant'
+                                    | 'chicken/variant'
+                                    | 'fox/variant'
+                                    | 'frog/variant'
+                                    | 'horse/variant'
+                                    | 'llama/variant'
+                                    | 'painting/variant'
+                                    | 'parrot/variant'
+                                    | 'pig/variant'
+                                    | 'mooshroom/variant'
+                                    | 'rabbit/variant'
+                                    | 'villager/variant'
+                                    | 'wolf/variant'
+                                    | 'mooshroom/variant'):
                                     comment.append(f'is {value} variant')
                                 case 'cat/collar' | 'wolf/collar':
                                     comment.append(f'have {value} collar')
@@ -839,13 +839,13 @@ def lootcomment(name, entry):
                         def type_specific(type_name, predicate):
                             if isinstance(predicate, dict):
                                 predicate = flat_predicate(predicate)
-                            if type_name.startswith('type_specific/'):
-                                type_name = type_name.removeprefix('type_specific/')
                             match type_name:
-                                case 'raider':
+                                case 'raider' | 'type_specific/raider':
                                     if predicate['is_captain'] is True:
                                         comment.append('is captain raider')
-                                case 'slime' | 'cube_mob':
+                                case ('cube_mob' | 'slime'
+                                    | 'type_specific/cube_mob'
+                                    | 'type_specific/slime'):
                                     v = predicate['size']
                                     if isinstance(v, int):
                                         comment.append(f'size is {v}')
@@ -862,10 +862,10 @@ def lootcomment(name, entry):
                                             if min is None:
                                                 msg = 'size is superior {max}'
                                         comment.append(f'{msg} (inclusive)')
-                                case 'fishing_hook':
+                                case 'fishing_hook' | 'type_specific/fishing_hook':
                                     if predicate['in_open_water'] is True:
                                         comment.append('is on open water')
-                                case 'sheep':
+                                case 'sheep' | 'type_specific/sheep':
                                     msg = []
                                     if 'color' in predicate:
                                         msg.append('is '+predicate['color'])
