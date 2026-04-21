@@ -54,7 +54,7 @@ def main(args):
         if args.quiet:
             args.zip = False
         else:
-            print('Do you want to empack the Generated data folder in a ZIP file?')
+            print('Do you want to empack the Generated data folder in a ZIP file? (default no)')
             args.zip = input()[:1] == 'y'
     
     print()
