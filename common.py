@@ -1,4 +1,5 @@
-#common
+#!/usr/bin/env python
+
 
 import json
 import re

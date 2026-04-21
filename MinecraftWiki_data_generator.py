@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # Small utility tool to generate data from the game jar,
 # for the use of various MinecraftWiki module and template.

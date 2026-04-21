@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+
 import argparse
 import os.path
 import pathlib

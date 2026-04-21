@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 
 class GitHub:
     def __init__(self, user, repository):
