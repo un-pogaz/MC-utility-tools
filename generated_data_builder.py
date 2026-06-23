@@ -16,7 +16,7 @@ from common import (
     read_json, read_lines, read_text, write_json, write_lines, write_text,
 )
 
-VERSION = (0, 46, 1)
+VERSION = (0, 46, 2)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1491,7 +1491,7 @@ def listing_blocks(temp):
             case _:
                 raise ValueError(f'listing_blocks(): Block definition of {name!r} has not implemented {type_name!r} type value.')
     def parse_value(block_name, name, value):
-        value_error = ValueError(f'Block definition of {block_name!r} has not implemented {name!r} properties.')
+        value_error = ValueError(f'listing_blocks(): Block definition of {block_name!r} has not implemented {name!r} properties.')
         if isinstance(value, bool):
             return str(value).lower()
         if isinstance(value, (str, int, float)):
@@ -1513,6 +1513,8 @@ def listing_blocks(temp):
                     return
             case 'particle' | 'leaf_particle' | 'block_to_grow_on':
                 return unquoted_json(value)
+            case 'ambient_leaves_block_sound_player':
+                return value
             case _:
                 raise value_error
     
@@ -1571,6 +1573,9 @@ def listing_blocks(temp):
         'wood_type',
         'spawn_particles',
     ]
+    json_value = [
+        'ambient_leaves_block_sound_player',
+    ]
     all_blocks = [
         'type',
     ]
@@ -1586,6 +1591,9 @@ def listing_blocks(temp):
                     write_lines(os.path.join(temp, 'lists/blocks/definition', k, flatering(kk)+'.txt'), sorted(vv))
                 else:
                     write_lines(os.path.join(temp, 'lists/blocks/definition/groups', k+'='+kk+'.txt'), sorted(vv))
+        elif k in json_value:
+            for kk,vv in v.items():
+                write_json(os.path.join(temp, 'lists/blocks/definition/values', k, flatering(kk)+'.json'), vv)
         else:
             lines = [f'{kk}  = {vv}' for kk,vv in v.items()]
             write_lines(os.path.join(temp, 'lists/blocks/definition/values', k+'.txt'), sorted(lines))
