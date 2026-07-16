@@ -1427,12 +1427,14 @@ def listing_worldgens(temp):
     def biomes_list(dir):
         no_features = False
         for path in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-            j = read_json(os.path.join(dir, path))
+            src = read_json(os.path.join(dir, path))
             path = filename(path)
             
             lines = []
             dic = defaultdict(list)
-            for k,v in j.get('spawners', {}).items():
+            j = src.get('spawners', {}) or src.get('attributes', {})\
+                    .get(namespace('gameplay/natural_mob_spawns'), {}).get('spawns_by_category', {})
+            for k,v in j.items():
                 for e in v:
                     lines.append(e['type'])
                     dic[k].append(e)
@@ -1446,7 +1448,7 @@ def listing_worldgens(temp):
             write_lines(os.path.join(temp, 'lists/worldgen/biome/mobs', path+'.txt'), lines)
             
             lines = []
-            for v in j.get('features', []):
+            for v in src.get('features', []):
                 if lines is None or no_features:
                     break
                 if isinstance(v, str):
