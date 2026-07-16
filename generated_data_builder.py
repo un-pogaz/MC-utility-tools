@@ -456,8 +456,25 @@ def flat_n(entry, name) -> str:
     return flatering(entry[name])
 def flat_type(entry) -> str:
     return flat_n(entry, 'type')
-def flat_function(entry):
-    return flat_n(entry, 'function')
+def flat_function(entry) -> str:
+    for n in ('function', 'type'):
+        if n in entry:
+            return flat_n(entry, n)
+    raise ValueError('entry is not a function')
+def list_flatering(entry, name_old, name_new) -> list[dict]:
+    if name_new in entry:
+        rslt = entry[name_new]
+        if isinstance(rslt, list):
+            return rslt
+        if flat_type(rslt) == 'all_of':
+            
+            return rslt['terms']
+        return [rslt]
+    if name_old in entry:
+        return entry[name_old]
+    return []
+def list_flatering_functions(entry) -> list[dict]:
+    return list_flatering(entry, 'functions', 'modifier')
 
 
 def flat_json(obj) -> str:
@@ -714,7 +731,7 @@ def lootcomment(name, entry):
                 comment.append('add drop: '+ mcrange(name, item['count'])+' * level {enchantment: '+flatering(item.get('enchantment', 'looting'))+'}')
             
             case 'exploration_map':
-                comment.append('destination: '+ '#'+namespace(item.get('destination', 'on_treasure_maps')))
+                comment.append('destination: '+ '#'+namespace(item.get('destination', 'on_treasure_maps').strip('#')))
             
             case 'set_instrument':
                 comment.append('instrument: '+ item['options'])
@@ -747,7 +764,7 @@ def lootcomment(name, entry):
                     comment.append(flatering(j['Potion']))
     
     def parse_condition(item):
-        condition_type = flatering(item['condition'])
+        condition_type = flatering(item.get('condition') or item['type'])
         
         def flat_predicate(predicate):
             rslt = {}
@@ -918,9 +935,9 @@ def lootcomment(name, entry):
                 tags = set()
                 for v in predicate.pop('tags', []):
                     if isinstance(v, str):
-                        tags.add('#'+flatering(v))
+                        tags.add('#'+flatering(v).strip('#'))
                     elif v.get('expected', True):
-                        tags.add('#'+flatering(v['id']))
+                        tags.add('#'+flatering(v['id']).strip('#'))
                 
                 lst = [
                     'is_explosion',
@@ -947,11 +964,11 @@ def lootcomment(name, entry):
                         comment.append('Damaged by: ['+ ', '.join(rslt) +']')
     
     
-    for item in entry.get('functions', []):
+    for item in list_flatering_functions(entry):
         parse_function(item)
-    for item in entry.get('given_item_modifiers', []):
+    for item in list_flatering(entry, 'given_item_modifiers', 'given_item_modifier'):
         parse_function(item)
-    for item in entry.get('conditions', []):
+    for item in list_flatering(entry, 'conditions', 'condition'):
         parse_condition(item)
     
     return ', '.join(comment)
@@ -1198,16 +1215,17 @@ def listing_loot_tables(temp):
     def get_simple(name, entry):
         def convert(item):
             item = namespace(item)
-            functions = set(flat_function(f) for f in entry.get('functions', []))
+            
+            functions = set(flat_function(f) for f in list_flatering_functions(entry))
             match flatering(item):
-                case 'book':
-                    if functions.intersection({'enchant_randomly', 'enchant_with_levels', 'set_enchantments'}):
-                        return namespace('enchanted_book')
-                
-                case 'golden_apple':
+                case 'golden_apple':  # legacy
                     for f in entry.get('functions', []):
                         if flat_function(f) == 'set_data' and f['data'] == 1:
                             return namespace('enchanted_golden_apple')
+                
+                case 'book':
+                    if functions.intersection({'enchant_randomly', 'enchant_with_levels', 'set_enchantments'}):
+                        return namespace('enchanted_book')
                 
                 case 'map':
                     if 'exploration_map' in functions:
@@ -1228,7 +1246,7 @@ def listing_loot_tables(temp):
             case 'empty':
                 return 'empty'
             case 'tag':
-                return '#'+namespace(entry['name'])
+                return '#'+namespace(entry.get('name') or entry['items']).strip('#')
             case 'loot_table':
                 v = entry.get('value') or entry['name']
                 if isinstance(v, str):
@@ -1244,7 +1262,7 @@ def listing_loot_tables(temp):
     def lootcount(name, entry):
         count = 1
         limit = None
-        for e in entry.get('functions', []):
+        for e in list_flatering_functions(entry):
             match flat_function(e):
                 case 'set_count':
                     count = e.get('count', 1)
