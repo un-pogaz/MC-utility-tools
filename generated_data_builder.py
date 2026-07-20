@@ -466,8 +466,7 @@ def list_flatering(entry, name_old, name_new) -> list[dict]:
         rslt = entry[name_new]
         if isinstance(rslt, list):
             return rslt
-        if flat_type(rslt) == 'all_of':
-            
+        if flat_type(rslt) in {'all_of', 'any_of'}:
             return rslt['terms']
         return [rslt]
     if name_old in entry:
