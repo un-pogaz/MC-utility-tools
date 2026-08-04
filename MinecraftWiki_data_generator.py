@@ -326,7 +326,7 @@ def main(
     tag_list_generator_data(work_dir, output, version_target=version_target)
     
     prints('Generation Tag_list template...')
-    tag_list_generator_template(work_dir, output, version_target=version_target)
+    tag_list_generator_template(work_dir, output)
     
     prints('Translation Test...')
     translation_test(work_dir, output, languages, version_target=version_target)
