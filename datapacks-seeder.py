@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import argparse
 import json
 import os.path
@@ -57,7 +56,7 @@ def main():
     if isinstance(seed, str):
         try:
             seed = int(seed.strip())
-        except Exception:
+        except Exception:  # noqa: BLE001
             print('Invalid seed, must be a integer.')
     
     datapack_out = os.path.splitext(datapack)[0] +'-'+ str(seed) +'.zip'
@@ -76,8 +75,7 @@ def main():
                     dimensions[file.filename] = json.dumps(dimension, indent=2, ensure_ascii=False)
     
     if dimensions:
-        with zipfile.ZipFile(datapack, 'r') as zin:
-            with zipfile.ZipFile(datapack_out, 'w') as zout:
+        with zipfile.ZipFile(datapack, 'r') as zin, zipfile.ZipFile(datapack_out, 'w') as zout:
                 zout.comment = zin.comment # preserve the comment
                 for item in zin.infolist():
                     if item.filename in dimensions:

@@ -1,19 +1,31 @@
 #!/usr/bin/env python
 
-
 import argparse
 import glob
-import os.path
+import os
 import pathlib
-from contextlib import suppress
 from collections import OrderedDict, defaultdict
-from typing import Callable
+from collections.abc import Callable
+from contextlib import suppress
 from tempfile import gettempdir
 
 from common import (
-    find_output, get_latest, version_path, hash_test, make_dirname,
-    read_manifest_json, run_animation, safe_del, urlretrieve, urlopen,
-    read_json, read_lines, read_text, write_json, write_lines, write_text,
+    find_output,
+    get_latest,
+    hash_test,
+    make_dirname,
+    read_json,
+    read_lines,
+    read_manifest_json,
+    read_text,
+    run_animation,
+    safe_del,
+    urlopen,
+    urlretrieve,
+    version_path,
+    write_json,
+    write_lines,
+    write_text,
 )
 
 VERSION = (0, 47, 0)
@@ -30,11 +42,19 @@ parser.add_argument('--no-zip', dest='zip', help='Don\'t ask for empack the fold
 parser.add_argument('-o', '--output', help='Output folder', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='Local JSON manifest file of the target version.', type=pathlib.Path)
 
+# ruff: noqa: ASYNC221
+
 def parse_args():
     return parser.parse_args()
 
 def main(args):
-    from common import GITHUB_BUILDER, update_version_manifest, valide_output, valide_version, work_done
+    from common import (
+        GITHUB_BUILDER,
+        update_version_manifest,
+        valide_output,
+        valide_version,
+        work_done,
+    )
     
     update_version_manifest()
     
@@ -146,7 +166,7 @@ def build_generated_data(args):
             )
             
             for cmd in lst_cmd:
-                subprocess.run(cmd, cwd=temp_root, shell=False, capture_output=False, stdout=subprocess.DEVNULL)
+                subprocess.run(cmd, cwd=temp_root, shell=False, capture_output=False, stdout=subprocess.DEVNULL, check=False)
         run_animation(data_server, 'Extracting data server')
     
     
@@ -283,7 +303,7 @@ def downloading_assets_files(temp):
                 write_asset(a)
 
 
-class TBLpool():
+class TBLpool:
     def __init__(self):
         self.rolls = ''
         self.comment = ''
@@ -305,7 +325,7 @@ class TBLpool():
                 rslt.add(e.alternatives_groupe)
         return rslt
 
-class TBLentrie():
+class TBLentrie:
     def __init__(self, pool: TBLpool, weight_groupe: int = 0, alternatives_groupe: int = 0):
         self.pool = pool
         self.name = ''
@@ -583,14 +603,14 @@ def strip_list(lst: list):
     while lst and not lst[-1]:
         lst.pop(-1)
 
-def _get_sub_folders(temp, subdir, exlude=[]) -> tuple[list[str], list[str]]:
+def _get_sub_folders(temp, subdir, exlude=None) -> tuple[list[str], list[str]]:
+    exlude = exlude or []
     if os.path.exists(os.path.join(temp, subdir, 'minecraft')):
         rslt_namespaces = [flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir), recursive=False)]
         rslt_dirs = set()
         for ns in rslt_namespaces:
             rslt_dirs.update([flatering(d).strip('/') for d in glob.iglob('*/', root_dir=os.path.join(temp, subdir, ns), recursive=False)])
-        
-        rslt_dirs = list(sorted(rslt_dirs.difference(exlude)))
+        rslt_dirs = sorted(rslt_dirs.difference(exlude))
     else:
         rslt_namespaces = []
         rslt_dirs = []
@@ -628,9 +648,9 @@ def uniform_reports(temp):
     items_json = os.path.join(temp, 'reports/items.json')
     if os.path.exists(items_json) and '"components": [' in read_text(items_json):
         j = read_json(items_json)
-        for k in j.keys():
+        for k in j:
             if 'components' in j[k] and isinstance(j[k]['components'], list):
-                j[k]['components'] = list(sorted(j[k]['components'], key=lambda x: x['type']))
+                j[k]['components'] = sorted(j[k]['components'], key=lambda x: x['type'])
         write_json(items_json, j)
         do_uniform = True
     
@@ -663,8 +683,7 @@ def mcrange(name, entry, limit=None):
                     else:
                         max = limit
                 
-                if min < 0:
-                    min = 0
+                min = max(min, 0)
                 if min != max:
                     return no_end_0(min) +'..'+ no_end_0(max)
                 else:
@@ -705,7 +724,7 @@ def lootcomment(name, entry):
                 range = mcrange(name, item['levels'])
                 try:
                     levels.append('level: '+str(int(range)))
-                except Exception:
+                except Exception:  # noqa: BLE001
                     levels.append('levels: '+str(range))
                 if item.get('treasure', False):
                     levels.append('treasure: true')
@@ -736,7 +755,7 @@ def lootcomment(name, entry):
                 comment.append('instrument: '+ item['options'])
             
             case 'set_potion':
-                if not flat_n(item, 'id') == 'empty':
+                if flat_n(item, 'id') != 'empty':
                     id = flatering(item['id'])
                     m = []
                     modifer = [
@@ -850,7 +869,7 @@ def lootcomment(name, entry):
                                 color = f'base {base_color}'
                             elif pattern_color:
                                 color = f'pattern {base_color}'
-                            comment.append(' '.join([color, pattern]).strip())
+                            comment.append(f'{color} {pattern}'.strip())
                         
                         def type_specific(type_name, predicate):
                             if isinstance(predicate, dict):
@@ -898,7 +917,7 @@ def lootcomment(name, entry):
                                     if predicate.pop('is_baby', None):
                                         comment.append('is a baby')
                                     if predicate:
-                                        ValueError(f'listing_loot_tables().lootcomment(): Unknow flags predicate {list(predicate.keys())} in loot_tables {name!r}.')
+                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow flags predicate {list(predicate.keys())} in loot_tables {name!r}.')
                                 case 'entity_type':
                                     comment.append('is a '+ flatering(predicate))
                                 case 'villager/variant':
@@ -986,7 +1005,8 @@ def listing_structures(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.nbt.txt'), sorted(lines))
 
-class Advancement():
+
+class Advancement:
     def __init__(self, file: str, json: dict):
         self.full_name = namespace(filename(file))
         self.namespace = self.full_name.split(':')[0]
@@ -1062,9 +1082,9 @@ def listing_advancements(temp):
             entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancements'), ns=ns))
             tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancements'), ns=ns, is_tag=True))
     
-    recipes = set(e for e in entries if ':recipes/' in e)
+    recipes = {e for e in entries if ':recipes/' in e}
     entries.difference_update(recipes)
-    tags_recipes = set(e for e in tags if ':recipes/' in e)
+    tags_recipes = {e for e in tags if ':recipes/' in e}
     tags.difference_update(tags_recipes)
     
     if entries:
@@ -1093,8 +1113,8 @@ def listing_advancements(temp):
     
     languages_json = get_languages_json(temp)
     
-    for k in tree_child.keys():
-        tree_child[k] = list(sorted(tree_child[k]))
+    for k in tree_child:
+        tree_child[k] = sorted(tree_child[k])
     
     def read_tree(full_name: str, parent_tree: dict):
         advc = entries[full_name]
@@ -1201,9 +1221,9 @@ def listing_loot_tables(temp):
             tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
     
     entries.discard('minecraft:empty')
-    blocks = set(e for e in entries if ':blocks/' in e)
+    blocks = {e for e in entries if ':blocks/' in e}
     entries.difference_update(blocks)
-    tags_blocks = set(e for e in tags if ':blocks/' in e)
+    tags_blocks = {e for e in tags if ':blocks/' in e}
     tags.difference_update(tags_blocks)
     
     if entries:
@@ -1215,7 +1235,7 @@ def listing_loot_tables(temp):
         def convert(item):
             item = namespace(item)
             
-            functions = set(flat_function(f) for f in list_flatering_functions(entry))
+            functions = {flat_function(f) for f in list_flatering_functions(entry)}
             match flatering(item):
                 case 'golden_apple':  # legacy
                     for f in entry.get('functions', []):
@@ -1418,7 +1438,7 @@ def listing_worldgens(temp):
     for dp in get_datapack_paths(temp):
         world_preset_dir = os.path.join(temp, dir, dp, 'world_preset')
         for j in glob.iglob('**/*.json', root_dir=world_preset_dir, recursive=True):
-            lines.update([namespace(e) for e in read_json(os.path.join(world_preset_dir, j)).get('dimensions', {}).keys()])
+            lines.update([namespace(e) for e in read_json(os.path.join(world_preset_dir, j)).get('dimensions', {})])
     
     if lines:
         write_lines(os.path.join(temp, 'lists', 'dimension.txt'), sorted(lines))
@@ -1441,7 +1461,7 @@ def listing_worldgens(temp):
             if not lines:
                 lines.append('[]')
             
-            dic = {k:sorted(dic[k], key=lambda x: x['type']) for k in dic.keys()}
+            dic = {k:sorted(dic[k], key=lambda x: x['type']) for k in dic}
             lines = sorted(set(lines))
             write_json(os.path.join(temp, 'lists/worldgen/biome/mobs', path+'.json'), dic, sort_keys=True)
             write_lines(os.path.join(temp, 'lists/worldgen/biome/mobs', path+'.txt'), lines)
@@ -1622,7 +1642,7 @@ def write_components_data(temp, output_dir, src_data):
     
     def _one_key_dict(value):
         if len(value) == 1:
-            return list(value.keys())[0]
+            return next(iter(value.keys()))
         return None
     
     def component_test_value(value, is_file: bool):
@@ -1749,7 +1769,7 @@ def listing_items(temp):
         if v:
             vc = v.get('components', None)
             if isinstance(vc, list):
-                v['components'] = list(sorted(vc, key=lambda x: x['type']))
+                v['components'] = sorted(vc, key=lambda x: x['type'])
             write_json(os.path.join(temp, 'lists/items', name+'.json'), v)
         
         for vk in v:
@@ -1806,7 +1826,7 @@ def listing_components(temp):
 def listing_packets(temp):
     for k,tv in read_json(os.path.join(temp, 'reports/packets.json')).items():
         for t,v in tv.items():
-            write_lines(os.path.join(temp, 'lists/packets', k, t+'.txt'), sorted([namespace(e) for e in v.keys()]))
+            write_lines(os.path.join(temp, 'lists/packets', k, t+'.txt'), sorted([namespace(e) for e in v]))
 
 def listing_datapacks(temp):
     values = defaultdict(set)
@@ -1823,7 +1843,7 @@ def listing_datapacks(temp):
                 elif isinstance(vv, str):
                     values['value/'+kk].add(f'{t}  = {vv}')
                 else:
-                    raise ValueError('listing_datapacks(): The value {kk!r} of {name!r} is a unknow type.')
+                    raise ValueError('listing_datapacks(): The value {kk!r} of {name!r} is a unknow type.')  # noqa: TRY004
             write_json(os.path.join(temp, 'lists/datapacks', k, name)+'.json', v)
     
     for k,v in values.items():
@@ -1888,11 +1908,9 @@ def listing_commands(temp):
         if 'redirect' in entry:
             rslt.append((level, base +' >>redirect{'+ '|'.join(entry['redirect']) +'}'))
         
-        elif entry.get('type') == 'literal' and len(entry) == 1:
-            rslt.append((level, base +' >>redirect{*}'))
-        elif entry.get('type') == 'literal' and len(entry) == 2 and 'required_level' in entry:
-            rslt.append((level, base +' >>redirect{*}'))
-        elif entry.get('type') == 'literal' and len(entry) == 2 and 'permissions' in entry:
+        elif (entry.get('type') == 'literal' and len(entry) == 1
+           or entry.get('type') == 'literal' and len(entry) == 2 and 'required_level' in entry
+           or entry.get('type') == 'literal' and len(entry) == 2 and 'permissions' in entry):
             rslt.append((level, base +' >>redirect{*}'))
         
         elif 'children' in entry:
@@ -1900,7 +1918,7 @@ def listing_commands(temp):
                 build = base +' '+ get_argument(k, v)
                 rslt.extend(get_syntaxes(build, v, level))
         
-        for k in entry.keys():
+        for k in entry:
             if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect', 'required_level', 'permissions']:
                 raise ValueError(f'listing_commands(): Additional key {k!r} in commands {name!r}.')
         
@@ -1935,7 +1953,7 @@ def listing_commands(temp):
         write_lines(os.path.join(temp, 'lists', 'command_argument_type.txt'), sorted(argument_type))
 
 def listing_registries(temp):
-    lines = [namespace(k) for k in read_json(os.path.join(temp, 'reports/registries.json')).keys()]
+    lines = [namespace(k) for k in read_json(os.path.join(temp, 'reports/registries.json'))]
     if lines:
         write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
     
@@ -1946,7 +1964,7 @@ def listing_registries(temp):
         
         entries = set()
         tags = set()
-        entries.update([namespace(k) for k in v['entries'].keys()])
+        entries.update([namespace(k) for k in v['entries']])
         
         for ns in lst_namespace:
             for dp in get_datapack_paths(temp):
@@ -1968,7 +1986,7 @@ def listing_paintings(temp):
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
                 ns_name = namespace(name, ns=ns)
-                lng_id = '.'.join(['painting', ns, name])
+                lng_id = f'painting.{ns}.{name}'
                 j = read_json(os.path.join(dir, file))
                 title = parse_json_text(j.get('title'), languages_json) or languages_json.get(lng_id+'.title') or lng_id+'.title'
                 author = parse_json_text(j.get('author'), languages_json) or languages_json.get(lng_id+'.author') or lng_id+'.author'
@@ -1998,7 +2016,7 @@ def listing_jukebox_songs(temp):
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
                 ns_name = namespace(name, ns=ns)
-                lng_id = '.'.join(['jukebox_song', ns, name])
+                lng_id = f'jukebox_song.{ns}.{name}'
                 j = read_json(os.path.join(dir, file))
                 desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
                 all_names.add(desc)
@@ -2030,7 +2048,7 @@ def listing_instruments(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'instrument')
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
-                lng_id = '.'.join(['instrument', ns, name])
+                lng_id = f'instrument.{ns}.{name}'
                 j = read_json(os.path.join(dir, file))
                 desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
                 all_names.add(desc)
@@ -2170,9 +2188,8 @@ def listing_assets(temp):
             root = os.path.join(temp, 'assets', ns, dir)
             for f in glob.iglob('**/*.'+ext, root_dir=root, recursive=True):
                 n = namespace(filename(f), ns=ns)
-                if ext == 'png':
-                    if os.path.exists(os.path.join(root, f +'.mcmeta')):
-                        n = n+ '  [mcmeta]'
+                if ext == 'png' and os.path.exists(os.path.join(root, f +'.mcmeta')):
+                    n = n+ '  [mcmeta]'
                 rslt.append(n)
         return rslt
     
@@ -2231,7 +2248,7 @@ def listing_rpc_api_schema(temp):
     components = rj.pop('components')
     schemas = components.pop('schemas')
     if components:
-        raise ValueError('rpc_api_schema(): unknow data inside the "components"', *(repr(k) for k in components.keys()))
+        raise ValueError('rpc_api_schema(): unknow data inside the "components"', *(repr(k) for k in components))
     lines = set()
     for name, data in schemas.items():
         lines.add(name)
@@ -2240,7 +2257,7 @@ def listing_rpc_api_schema(temp):
         write_lines(os.path.join(temp, 'lists/json-rpc-api-schema/components.txt'), sorted(lines))
     
     if rj:
-        raise ValueError('rpc_api_schema(): unknow data inside the rpc-api-schema', *(repr(k) for k in rj.keys()))
+        raise ValueError('rpc_api_schema(): unknow data inside the rpc-api-schema', *(repr(k) for k in rj))
 
 def listing_timelines(temp):
     
@@ -2380,7 +2397,6 @@ def listing_villager_trade(temp):
                     components.append(flatering(v['potion']))
                 case _:
                     raise ValueError(f'listing_villager_trade(): Unknow component {k}.')
-            pass
         count = int(count)
         if components:
             components = ' {' + ', '.join(components) + '}'

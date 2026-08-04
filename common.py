@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-
-
 import json
-import re
 import os.path
+import re
+import sys
 
 from github import GitHub
 
@@ -21,15 +19,15 @@ def run_animation(awaitable, text_wait, text_end=None):
     msg_last = ''
     
     def start_animation():
-        global animation_run, msg_last
+        global animation_run, msg_last  # noqa: PLW0602
         idx = 0
         while animation_run:
             msg = ' '.join([text_wait, run_animation.loop[idx % len(run_animation.loop)],(run_animation.extra or '')])
             print(msg + ' '*(len(msg_last)-len(msg)+1), end='\r')
             msg_last = msg
             idx += 1
-            if idx == len(run_animation.loop):
-                idx == 0
+            if idx >= len(run_animation.loop):
+                idx = 0
             time.sleep(0.2)
     
     animation_run = True
@@ -75,7 +73,7 @@ def read_json(path, default=None):
     try:
         with open(path, 'rb') as f:
             return json.loads(f.read())
-    except Exception:
+    except Exception:  # noqa: BLE001
         return default or {}
 
 def write_json(path, obj, sort_keys: bool=False):
@@ -124,7 +122,7 @@ def safe_del(path):
     
     try:
         remove(path)
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
 
 def remove_empty(path):
@@ -202,7 +200,7 @@ def update_version_manifest():
     try:
         with urlopen(GITHUB_DATA.get_raw('main', 'version_manifest.json')) as fl:
             github_manifest = json.load(fl)
-    except Exception:
+    except Exception:  # noqa: BLE001
         github_manifest = None
     
     if github_manifest:
@@ -271,7 +269,7 @@ def update_version_manifest():
     LATEST_SNAPSHOT = VERSION_MANIFEST.get('latest', {}).get('snapshot')
 
 def update_pack_format(path_version_json, version):
-    global VERSION_MANIFEST
+    global VERSION_MANIFEST  # noqa: PLW0602
     
     if not os.path.exists(path_version_json):
         return
@@ -310,7 +308,7 @@ def update_calendar_versioning(version):
     if not (match_id := CALENDAR_VERSION.match(version)):
         print(f'The version {version!r} is not a calendar format.')
         return False
-    global VERSION_MANIFEST
+    global VERSION_MANIFEST  # noqa: PLW0602
     
     version_id = match_id.group(0)
     version = match_id.group(1)
@@ -376,7 +374,7 @@ def version_developement(version):
             if version in v.get('releases', []):
                 return version, None
             
-            for kk,vv in v.items():
+            for vv in v.values():
                 if version in vv:
                     return k, version
     
@@ -423,7 +421,7 @@ def valide_version(version, quiet = False, manifest_json_path = None):
         print(f'The version {version} has invalide.', '' if quiet else ' Press any key to exit.')
         if not quiet:
             input()
-        exit()
+        sys.exit()
 
 def valide_output(args):
     if args.output and os.path.exists(args.output):
@@ -431,7 +429,7 @@ def valide_output(args):
         if (args.quiet and args.overwrite) or input()[:1] == 'y':
             args.overwrite = True
         else:
-            exit()
+            sys.exit()
 
 
 def read_manifest_json(temp, version, manifest_json_path = None):

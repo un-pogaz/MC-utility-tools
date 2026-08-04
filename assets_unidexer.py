@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import argparse
 import os.path
 import pathlib
@@ -8,9 +7,19 @@ import shutil
 from collections import OrderedDict
 
 from common import (
-    find_output, get_latest, hash_test, make_dirname, read_json,
-    read_manifest_json, run_animation, safe_del, urlretrieve,
-    valide_output, valide_version, work_done, write_json,
+    find_output,
+    get_latest,
+    hash_test,
+    make_dirname,
+    read_json,
+    read_manifest_json,
+    run_animation,
+    safe_del,
+    urlretrieve,
+    valide_output,
+    valide_version,
+    work_done,
+    write_json,
 )
 
 VERSION = (1, 2, 0)
@@ -56,7 +65,7 @@ def unindex_assets(args):
         os.makedirs(temp)
     
     
-    manifest_json, manifest_url = read_manifest_json(temp, version, args.manifest_json)
+    manifest_json, _manifest_url = read_manifest_json(temp, version, args.manifest_json)
     
     
     assets_json = OrderedDict()
@@ -80,7 +89,6 @@ def unindex_assets(args):
     
     async def index_dl():
         urlretrieve(assets_json['asset_index'], assets_json_path)
-        pass
     run_animation(index_dl, 'Downloading index.json')
     
     for k,v in read_json(assets_json_path).items():

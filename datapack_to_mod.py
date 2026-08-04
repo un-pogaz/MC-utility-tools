@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-
-import os
 import glob
-import unicodedata
+import os
 import re
+import sys
+import unicodedata
 import zipfile
 from tempfile import gettempdir
 
@@ -77,7 +77,7 @@ def package_datapack(path):
     
     if not os.path.exists(path):
         print("Target path don't exist.")
-        return None
+        return
     
     if os.path.isdir(path):
         is_folder = True
@@ -109,8 +109,8 @@ def package_datapack(path):
         ) or (
         not is_folder and os.path.exists(path_jar)
         ):
-        print('Error: packaged Datapack already exist {!r}'.format(os.path.basename(path_jar)))
-        return None
+        print(f'Error: packaged Datapack already exist {os.path.basename(path_jar)!r}')
+        return
     
     id = slugify(name)
     id = re.sub(r'^([0-9])',r'n\1', id)
@@ -145,14 +145,13 @@ def package_datapack(path):
             
             description = ''.join(description).replace('\r\n','\n')
         
-    except Exception:
+    except Exception:  # noqa: BLE001
         print('Error: invalide Datapack')
-        return None
+        return
     
-    with open(path_zip, 'rb') as fi:
-        with open(path_jar, 'wb') as fo:
-            while (b := fi.read(2**16)):
-                fo.write(b)
+    with open(path_zip, 'rb') as fi, open(path_jar, 'wb') as fo:
+        while (b := fi.read(2**16)):
+            fo.write(b)
     
     map = {'id': id, 'mcmeta': mcmeta, 'name': name, 'description': description.replace('\n', '\\n').replace('"', '\\"')}
     
@@ -168,8 +167,6 @@ def package_datapack(path):
 
 
 if __name__ == "__main__":
-    import sys
-    
     print('{|[ Package Datapack to mod ]|}')
     args = sys.argv[1:]
     if args:
@@ -184,6 +181,6 @@ if __name__ == "__main__":
             print('(Enter empty value to quit)')
             a = input().strip().strip('"')
             if not a:
-                exit()
+                sys.exit()
             package_datapack(a)
             print()
