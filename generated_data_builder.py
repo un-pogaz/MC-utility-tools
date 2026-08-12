@@ -671,23 +671,23 @@ def mcrange(name, entry, limit=None):
         type_name = flat_type(entry)
         match type_name:
             case 'uniform':
-                min = entry['min']
-                max = entry['max']
+                min_ = entry['min']
+                max_ = entry['max']
                 
                 if limit:
                     if isinstance(limit, dict):
                         if 'min' in limit:
-                            min = limit['min']
+                            min_ = limit['min']
                         if 'max' in limit:
-                            max = limit['max']
+                            max_ = limit['max']
                     else:
-                        max = limit
+                        max_ = limit
                 
-                min = max(min, 0)
-                if min != max:
-                    return no_end_0(min) +'..'+ no_end_0(max)
+                min_ = max(min_, 0)
+                if min_ != max_:
+                    return no_end_0(min_) +'..'+ no_end_0(max_)
                 else:
-                    return no_end_0(min)
+                    return no_end_0(min_)
             
             case 'constant':
                 return no_end_0(entry['value'])
@@ -885,16 +885,16 @@ def lootcomment(name, entry):
                                     if isinstance(v, int):
                                         comment.append(f'size is {v}')
                                     if isinstance(v, dict):
-                                        min = v.get('min')
-                                        max = v.get('max')
-                                        if min == max:
-                                            comment.append(f'size is {min}')
+                                        min_ = v.get('min')
+                                        max_ = v.get('max')
+                                        if min_ == max_:
+                                            comment.append(f'size is {min_}')
                                         else:
-                                            if min is not None and max is not None:
-                                                msg = f'size is between {min} and {max}'
-                                            if max is None:
-                                                msg = f'size is inferior {min}'
-                                            if min is None:
+                                            if min_ is not None and max_ is not None:
+                                                msg = f'size is between {min_} and {max_}'
+                                            if max_ is None:
+                                                msg = f'size is inferior {min_}'
+                                            if min_ is None:
                                                 msg = 'size is superior {max}'
                                         comment.append(f'{msg} (inclusive)')
                                 case 'fishing_hook' | 'type_specific/fishing_hook':
@@ -1520,13 +1520,13 @@ def listing_blocks(temp):
             case 'constant':
                 return no_end_0(entry['value'])
             case 'uniform':
-                min = entry.get('min_inclusive')
-                if min is None:
-                    min = entry['value']['min_inclusive']
-                max = entry.get('max_inclusive')
-                if max is None:
-                    max = entry['value']['max_inclusive']
-                return no_end_0(min)+'..'+no_end_0(max)
+                min_ = entry.get('min_inclusive')
+                if min_ is None:
+                    min_ = entry['value']['min_inclusive']
+                max_ = entry.get('max_inclusive')
+                if max_ is None:
+                    max_ = entry['value']['max_inclusive']
+                return no_end_0(min_)+'..'+no_end_0(max_)
             case _:
                 raise ValueError(f'listing_blocks(): Block definition of {name!r} has not implemented {type_name!r} type value.')
     def parse_value(block_name, name, value):
