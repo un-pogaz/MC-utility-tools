@@ -28,7 +28,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 47, 0)
+VERSION = (0, 47, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1451,8 +1451,12 @@ def listing_worldgens(temp):
             
             lines = []
             dic = defaultdict(list)
-            j = src.get('spawners', {}) or src.get('attributes', {})\
-                    .get(namespace('gameplay/natural_mob_spawns'), {}).get('spawns_by_category', {})
+            j = src.get('attributes', {}).get(namespace('gameplay/natural_mob_spawns'), {})
+            if j:
+                j = j.get('argument', j).get('spawns_by_category', {})
+            else:
+                j = src.get('spawners', {})
+            
             for k,v in j.items():
                 for e in v:
                     lines.append(e['type'])
