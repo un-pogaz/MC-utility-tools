@@ -449,10 +449,10 @@ def write_serialize_nbt(temp):
                 file=os.path.join(temp, dp, dir, f),
                 output_file=os.path.join(temp, dp, dir_snbt, os.path.splitext(f)[0]+'.snbt')
             )
-            write_text(
-                os.path.join(temp, dp, dir_snbt, '!!readme.txt'),
-                SERIALIZE_NBT_README.format(os.path.basename(dir_snbt))
-            )
+        write_text(
+            os.path.join(temp, dp, dir_snbt, '!!readme.txt'),
+            SERIALIZE_NBT_README.format(os.path.basename(dir_snbt))
+        )
 
 SERIALIZE_NBT_README = """\
 Attention! The folder /{}/ is not present in the original data files of Minecraft.
