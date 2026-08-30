@@ -669,7 +669,7 @@ def mcrange(name, entry, limit=None):
             if 'min' in entry and 'max' in entry:
                 entry['type'] = 'uniform'
             else:
-                raise ValueError(f'listing_loot_tables().mcrange(): A range cannot be converted in loot_tables {name!r}.')
+                raise ValueError(f'mcrange(): A range cannot be converted in loot_tables {name!r}.')
         
         type_name = flat_type(entry)
         match type_name:
@@ -697,7 +697,7 @@ def mcrange(name, entry, limit=None):
             case _:
                 if 'value' in entry:
                     return no_end_0(entry['value'])
-                raise ValueError(f'listing_loot_tables().mcrange(): Unknow range type {type_name!r} in loot_tables {name!r}.')
+                raise ValueError(f'mcrange(): Unknow range type {type_name!r} in loot_tables {name!r}.')
     
     else:
         return no_end_0(entry)
