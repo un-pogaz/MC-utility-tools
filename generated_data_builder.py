@@ -2394,6 +2394,27 @@ def listing_timelines(temp):
 def listing_villager_trade(temp):
     dir = 'data/minecraft/villager_trade/'
     
+    def numeric(item):
+        if isinstance(item, (int, float)):
+            item = int(item)
+            if item > 1:
+                return item
+            return None
+        if isinstance(item, dict):
+            match flat_type(item):
+                case 'sum':
+                    lst = []
+                    sum = item.get('summands') or item['operands']
+                    for e in sum:
+                        e = mcrange('listing_villager_trade', e)
+                        if '..' in e:
+                            e = f'[{e}]'
+                        lst.append(e)
+                    if len(lst) == 1:
+                        return lst[0]
+                    return '('+ '+'.join(lst) +')'
+        raise ValueError(f'listing_villager_trade().numeric(): unknow number provider: {item}')
+    
     def slot(item):
         name = flatering(item['id'])
         count = item.get('count', 1.0)
@@ -2404,12 +2425,12 @@ def listing_villager_trade(temp):
                     components.append(flatering(v['potion']))
                 case _:
                     raise ValueError(f'listing_villager_trade(): Unknow component {k}.')
-        count = int(count)
+        count = numeric(count)
         if components:
             components = ' {' + ', '.join(components) + '}'
         else:
             components = ''
-        if count > 1:
+        if count:
             return f'{name}{components} x{count}'
         else:
             return f'{name}{components}'
