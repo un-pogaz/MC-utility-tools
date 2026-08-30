@@ -2396,10 +2396,7 @@ def listing_villager_trade(temp):
     
     def numeric(item):
         if isinstance(item, (int, float)):
-            item = int(item)
-            if item > 1:
-                return item
-            return None
+            return int(item)
         if isinstance(item, dict):
             match flat_type(item):
                 case 'sum':
@@ -2415,7 +2412,7 @@ def listing_villager_trade(temp):
                     return '('+ '+'.join(lst) +')'
         raise ValueError(f'listing_villager_trade().numeric(): unknow number provider: {item}')
     
-    def slot(item):
+    def slot(item, is_book=None):
         name = flatering(item['id'])
         count = item.get('count', 1.0)
         components = []
@@ -2430,23 +2427,28 @@ def listing_villager_trade(temp):
             components = ' {' + ', '.join(components) + '}'
         else:
             components = ''
-        if count:
-            return f'{name}{components} x{count}'
-        else:
+        if is_book and name == 'emerald':
+            if count in {0, 1}:
+                return f'{name}{components} xLV'
+            count = count.removeprefix('(').removesuffix(')')
+            return f'{name}{components} x(LV+{count})'
+        elif count in {0, 1}:
             return f'{name}{components}'
+        return f'{name}{components} x{count}'
     
     for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
         data = read_json(os.path.join(temp, dir, f))
         name = filename(f)
         lines = []
         wants = []
+        gives = slot(data['gives'])
+        is_book = gives.startswith('enchanted_book')
         for item in (data['wants'], data.get('additional_wants', {})):
             if not item:
                 continue
-            wants.append(slot(item))
+            wants.append(slot(item, is_book=is_book))
         lines.append('wants: ' + ', '.join(wants))
         
-        gives = slot(data['gives'])
         comment = lootcomment(name, data)
         if comment:
             lines.append(f'gives: {gives} {{{comment}}}')
