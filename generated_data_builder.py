@@ -28,7 +28,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 47, 1)
+VERSION = (0, 48, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -423,12 +423,17 @@ def match_dir(temp, dirs) -> str:
     return rslt
 
 
-def get_datapack_paths(temp) -> list[tuple[str,str]]:
+def get_datapack_paths(temp) -> list[tuple[str, str]]:
     sub_datapacks = 'data/minecraft/datapacks'
-    rslt = ['']
+    rslt = [('', '')]
     for dp in glob.glob('*/', root_dir=os.path.join(temp, sub_datapacks), recursive=False):
-        rslt.append(os.path.join(sub_datapacks, dp))
+        rslt.append((dp.strip('\\/'), os.path.join(sub_datapacks, dp)))
     return rslt
+
+def name_dp(name: str, dpn: str) -> str:
+    if dpn:
+        return name + '{'+ dpn +'}'
+    return name
 
 def get_structures_dir(temp) -> str:
     return match_dir(temp, [
@@ -444,7 +449,7 @@ def write_serialize_nbt(temp):
     dir = get_structures_dir(temp)
     dir_snbt = dir+'.snbt'
     writed = False
-    for dp in get_datapack_paths(temp):
+    for dpn, dp in get_datapack_paths(temp):
         for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp, dir), recursive=True):
             serialize_nbt(
                 file=os.path.join(temp, dp, dir, f),
@@ -996,14 +1001,14 @@ def lootcomment(name, entry):
 
 
 def listing_builtit_datapacks(temp):
-    lines = [namespace(os.path.basename(dp.strip('\\/'))) for dp in get_datapack_paths(temp)[1:]]
+    lines = [namespace(dpn) for dpn, dp in get_datapack_paths(temp)[1:]]
     if lines:
         write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
 
 def listing_structures(temp):
     dir = get_structures_dir(temp)
     lines = set()
-    for dp in get_datapack_paths(temp):
+    for dpn, dp in get_datapack_paths(temp):
         lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, dp), recursive=True)])
     if lines:
         write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.nbt.txt'), sorted(lines))
@@ -1073,12 +1078,12 @@ def listing_advancements(temp):
         'assets/minecraft/advancements', # legacy
     ])
     
-    lst_namespace, _dirs = get_sub_folders_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
     for ns in lst_namespace:
-        for dp in get_datapack_paths(temp):
+        for dpn, dp in get_datapack_paths(temp):
             entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'), ns=ns))
             tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
             # legacy
@@ -1097,7 +1102,7 @@ def listing_advancements(temp):
     
     entries: dict[str, Advancement] = {}
     tree_child = defaultdict(set)
-    for dp in get_datapack_paths(temp):
+    for dpn, dp in get_datapack_paths(temp):
         root_dir = os.path.join(temp, dp, dir)
         for j in glob.iglob('**/*.json', root_dir=root_dir, recursive=True):
             advc = Advancement(j, read_json(os.path.join(root_dir, j)))
@@ -1196,7 +1201,7 @@ def listing_special_subdirs(temp):
         entries = set()
         tags = set()
         for ns in lst_namespace:
-            for dp in get_datapack_paths(temp):
+            for dpn, dp in get_datapack_paths(temp):
                 entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         subdir), ns=ns))
                 tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
         lines = sorted(entries) + sorted(tags)
@@ -1211,12 +1216,12 @@ def listing_loot_tables(temp):
         'assets/minecraft/loot_tables', # legacy
     ])
     
-    lst_namespace, _dirs = get_sub_folders_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
     for ns in lst_namespace:
-        for dp in get_datapack_paths(temp):
+        for dpn, dp in get_datapack_paths(temp):
             entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
             tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
             # legacy
@@ -1349,7 +1354,7 @@ def listing_loot_tables(temp):
         else:
             raise ValueError('listing_loot_tables(): Invalid input pool.')
     
-    for dp in get_datapack_paths(temp):
+    for dpn, dp in get_datapack_paths(temp):
         for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
             if loot == 'empty.json':
                 continue
@@ -1427,8 +1432,8 @@ def listing_loot_tables(temp):
                         if d:
                             lines_tbl[i][y] = no_end_0(d)
             
-            write_tbl_csv(os.path.join(temp, 'lists/loot_tables', name+'.csv'), head_tbl, lines_tbl)
-            write_tbl_md(os.path.join(temp, 'lists/loot_tables', name+'.md'), head_tbl, lines_tbl)
+            write_tbl_csv(os.path.join(temp, 'lists/loot_tables', name_dp(name, dpn)+'.csv'), head_tbl, lines_tbl)
+            write_tbl_md(os.path.join(temp, 'lists/loot_tables', name_dp(name, dpn)+'.md'), head_tbl, lines_tbl)
 
 def listing_worldgens(temp):
     dir = match_dir(temp, [
@@ -1438,7 +1443,7 @@ def listing_worldgens(temp):
     ])
     
     lines = set()
-    for dp in get_datapack_paths(temp):
+    for dpn, dp in get_datapack_paths(temp):
         world_preset_dir = os.path.join(temp, dir, dp, 'world_preset')
         for j in glob.iglob('**/*.json', root_dir=world_preset_dir, recursive=True):
             lines.update([namespace(e) for e in read_json(os.path.join(world_preset_dir, j)).get('dimensions', {})])
@@ -1509,7 +1514,7 @@ def listing_worldgens(temp):
         subdir = subdir.strip('/\\')
         entries = set()
         tags = set()
-        for dp in get_datapack_paths(temp):
+        for dpn, dp in get_datapack_paths(temp):
             entries.update(enum_json(os.path.join(temp, dp, dir,                            subdir)))
             tags.update(   enum_json(os.path.join(temp, dp, 'data/minecraft/tags/worldgen', subdir), is_tag=True))
             biomes_list(os.path.join(temp, dp, dir, 'biome'))
@@ -1964,7 +1969,7 @@ def listing_registries(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
     
-    lst_namespace, _dirs = get_sub_folders_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
@@ -1974,7 +1979,7 @@ def listing_registries(temp):
         entries.update([namespace(k) for k in v['entries']])
         
         for ns in lst_namespace:
-            for dp in get_datapack_paths(temp):
+            for dpn, dp in get_datapack_paths(temp):
                 entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name), ns=ns))
                 tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name), ns=ns, is_tag=True))
                 # legacy
@@ -1985,10 +1990,10 @@ def listing_registries(temp):
 
 def listing_paintings(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _dirs = get_sub_folders_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     paintings = defaultdict(lambda:defaultdict(set))
     for ns in lst_namespace:
-        for dp in get_datapack_paths(temp):
+        for dpn, dp in get_datapack_paths(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'painting_variant')
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
@@ -2013,12 +2018,12 @@ def listing_paintings(temp):
 
 def listing_jukebox_songs(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _dirs = get_sub_folders_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
     all_names = set()
     
     for ns in lst_namespace:
-        for dp in get_datapack_paths(temp):
+        for dpn, dp in get_datapack_paths(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'jukebox_song')
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
@@ -2047,11 +2052,11 @@ def listing_jukebox_songs(temp):
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _dirs = get_sub_folders_data(temp)
+    lst_namespace, _ = get_sub_folders_data(temp)
     all_names = set()
     
     for ns in lst_namespace:
-        for dp in get_datapack_paths(temp):
+        for dpn, dp in get_datapack_paths(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'instrument')
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
@@ -2071,19 +2076,28 @@ def listing_instruments(temp):
 
 def listing_tags(temp):
     entries = set()
-    for dp in get_datapack_paths(temp):
+    for dpn, dp in get_datapack_paths(temp):
         dir = os.path.join(temp, dp, 'data/minecraft/tags')
         entries.update(flatering(j) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True))
     
+    default = defaultdict(list)
     for name in entries:
-        lines = []
-        for dp in get_datapack_paths(temp):
-            j = os.path.join(temp, dp, 'data/minecraft/tags', name)
-            for v in read_json(j).get('values', []):
-                if v not in lines:
-                    lines.append(v)
-        
+        path = os.path.join(temp, 'data/minecraft/tags', name)
+        default[name] = lines = read_json(path).get('values', [])
         write_lines(os.path.join(temp, 'lists/tags', filename(name)+'.txt'), lines)
+    
+    for dpn, dp in get_datapack_paths(temp):
+        if not dpn:
+            continue
+        for name in entries:
+            path = os.path.join(temp, dp, 'data/minecraft/tags', name)
+            j = read_json(path)
+            lines = j.get('values', [])
+            if not lines:
+                continue
+            if not j.get('replace', False):
+                lines = default[name] + lines
+            write_lines(os.path.join(temp, 'lists/tags', name_dp(filename(name), dpn)+'.txt'), lines)
 
 def listing_sounds(temp):
     full_lines = set()
@@ -2380,16 +2394,17 @@ def listing_timelines(temp):
         return widths['r'], widths['l'], lines, lines_csv, lines_md
 
     dir = 'data/minecraft/timeline/'
-    for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
-        data = read_json(os.path.join(temp, dir, f))
-        
-        width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
-        _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
-        
-        name = os.path.splitext(f)[0]
-        write_lines(os.path.join(temp, 'lists/timelines/', name + '.txt'), lines)
-        write_lines(os.path.join(temp, 'lists/timelines/', name + '.csv'), lines_csv)
-        write_lines(os.path.join(temp, 'lists/timelines/', name + '.md'), lines_md)
+    for dpn, dp in get_datapack_paths(temp):
+        for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
+            data = read_json(os.path.join(temp, dp, dir, f))
+            
+            width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
+            _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
+            
+            name = filename(f)
+            write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.txt'), lines)
+            write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.csv'), lines_csv)
+            write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.md'), lines_md)
 
 def listing_villager_trade(temp):
     dir = 'data/minecraft/villager_trade/'
@@ -2436,37 +2451,38 @@ def listing_villager_trade(temp):
             return f'{name}{components}'
         return f'{name}{components} x{count}'
     
-    for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
-        data = read_json(os.path.join(temp, dir, f))
-        name = filename(f)
-        lines = []
-        wants = []
-        gives = slot(data['gives'])
-        is_book = gives.startswith('enchanted_book')
-        for item in (data['wants'], data.get('additional_wants', {})):
-            if not item:
-                continue
-            wants.append(slot(item, is_book=is_book))
-        lines.append('wants: ' + ', '.join(wants))
-        
-        comment = lootcomment(name, data)
-        if comment:
-            lines.append(f'gives: {gives} {{{comment}}}')
-        else:
-            lines.append(f'gives: {gives}')
-        lines.append('xp: ' + str(int(data.get('xp', 1))))
-        lines.append('max use: ' + str(int(data.get('max_uses', 4))))
-        lines.append('reputation discount: ' + str(data.get('reputation_discount', 0.0)))
-        
-        double_enchantments = data.get('double_trade_price_enchantments')
-        if double_enchantments:
-            lines.append('double price enchantments: ' + double_enchantments)
+    for dpn, dp in get_datapack_paths(temp):
+        for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
+            data = read_json(os.path.join(temp, dp, dir, f))
+            name = filename(f)
+            lines = []
+            wants = []
+            gives = slot(data['gives'])
+            is_book = gives.startswith('enchanted_book')
+            for item in (data['wants'], data.get('additional_wants', {})):
+                if not item:
+                    continue
+                wants.append(slot(item, is_book=is_book))
+            lines.append('wants: ' + ', '.join(wants))
             
-        merchant_predicate = data.get('merchant_predicate')
-        if merchant_predicate:
-            lines.append('condition: ' + lootcomment(name, {'conditions': [merchant_predicate]}))
-        
-        write_lines(os.path.join(temp, 'lists/villager_trade/', name + '.txt'), lines)
+            comment = lootcomment(name, data)
+            if comment:
+                lines.append(f'gives: {gives} {{{comment}}}')
+            else:
+                lines.append(f'gives: {gives}')
+            lines.append('xp: ' + str(int(data.get('xp', 1))))
+            lines.append('max use: ' + str(int(data.get('max_uses', 4))))
+            lines.append('reputation discount: ' + str(data.get('reputation_discount', 0.0)))
+            
+            double_enchantments = data.get('double_trade_price_enchantments')
+            if double_enchantments:
+                lines.append('double price enchantments: ' + double_enchantments)
+                
+            merchant_predicate = data.get('merchant_predicate')
+            if merchant_predicate:
+                lines.append('condition: ' + lootcomment(name, {'conditions': [merchant_predicate]}))
+            
+            write_lines(os.path.join(temp, 'lists/villager_trade/', name_dp(name, dpn) + '.txt'), lines)
 
 
 listing_various_functions: list[Callable[[str], None]] = [
