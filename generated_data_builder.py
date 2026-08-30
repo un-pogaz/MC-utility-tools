@@ -220,7 +220,7 @@ def build_generated_data(args):
         
         uniform_reports(temp)
         listing_various_data(temp)
-    run_animation(listing_various, 'Generating /list/ folder')
+    run_animation(listing_various, 'Generating /lists/ folder')
     
     async def write_serialize():
         write_serialize_nbt(temp)
