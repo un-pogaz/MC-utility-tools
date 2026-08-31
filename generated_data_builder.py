@@ -28,7 +28,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 48, 0)
+VERSION = (0, 48, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -2079,11 +2079,18 @@ def listing_tags(temp):
         dir = os.path.join(temp, dp, 'data/minecraft/tags')
         entries.update(flatering(j) for j in glob.iglob('**/*.json', root_dir=dir, recursive=True))
     
+    def unduplicate(lst):
+        rslt = []
+        for e in lst:
+            if e not in rslt:
+                rslt.append(e)
+        return rslt
+    
     default = defaultdict(list)
     for name in entries:
         path = os.path.join(temp, 'data/minecraft/tags', name)
         default[name] = lines = read_json(path).get('values', [])
-        write_lines(os.path.join(temp, 'lists/tags', filename(name)+'.txt'), lines)
+        write_lines(os.path.join(temp, 'lists/tags', filename(name)+'.txt'), unduplicate(lines))
     
     for dpn, dp in get_datapack_paths(temp):
         if not dpn:
@@ -2094,9 +2101,9 @@ def listing_tags(temp):
             lines = j.get('values', [])
             if not lines:
                 continue
-            if not j.get('replace', False):
+            if not j.get('replace'):
                 lines = default[name] + lines
-            write_lines(os.path.join(temp, 'lists/tags', name_dp(filename(name), dpn)+'.txt'), lines)
+            write_lines(os.path.join(temp, 'lists/tags', name_dp(filename(name), dpn)+'.txt'), unduplicate(lines))
 
 def listing_sounds(temp):
     full_lines = set()
