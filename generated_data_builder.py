@@ -1805,7 +1805,6 @@ def listing_items(temp):
 
 def listing_components(temp):
     dir = match_dir(temp, [
-        'data/minecraft/components',
         'reports/minecraft/components',
     ])
     if not dir:
@@ -2412,7 +2411,7 @@ def listing_timelines(temp):
             write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.csv'), lines_csv)
             write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.md'), lines_md)
 
-def listing_villager_trade(temp):
+def listing_villager_trades(temp):
     dir = match_dir(temp, [
         'data/minecraft/villager_trade',
         'data/minecraft/villager_trades',
@@ -2429,14 +2428,14 @@ def listing_villager_trade(temp):
                     lst = []
                     sum = item.get('summands') or item['operands']
                     for e in sum:
-                        e = mcrange('listing_villager_trade', e)
+                        e = mcrange('listing_villager_trades', e)
                         if '..' in e:
                             e = f'[{e}]'
                         lst.append(e)
                     if len(lst) == 1:
                         return lst[0]
                     return '('+ '+'.join(lst) +')'
-        raise ValueError(f'listing_villager_trade().numeric(): unknow number provider: {item}')
+        raise ValueError(f'listing_villager_trades().numeric(): unknow number provider: {item}')
     
     def slot(item, is_book=None):
         name = flatering(item['id'])
@@ -2447,7 +2446,7 @@ def listing_villager_trade(temp):
                 case 'potion_contents':
                     components.append(flatering(v['potion']))
                 case _:
-                    raise ValueError(f'listing_villager_trade(): Unknow component {k}.')
+                    raise ValueError(f'listing_villager_trades(): Unknow component {k}.')
         count = numeric(count)
         if components:
             components = ' {' + ', '.join(components) + '}'
@@ -2521,7 +2520,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_assets,
     listing_rpc_api_schema,
     listing_timelines,
-    listing_villager_trade,
+    listing_villager_trades,
 ]
 def listing_various_data(temp):
     for func in listing_various_functions:
