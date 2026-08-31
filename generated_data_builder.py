@@ -2482,7 +2482,7 @@ def listing_villager_trade(temp):
             if merchant_predicate:
                 lines.append('condition: ' + lootcomment(name, {'conditions': [merchant_predicate]}))
             
-            write_lines(os.path.join(temp, 'lists/villager_trade/', name_dp(name, dpn) + '.txt'), lines)
+            write_lines(os.path.join(temp, 'lists/villager_trades', name_dp(name, dpn) + '.txt'), lines)
 
 
 listing_various_functions: list[Callable[[str], None]] = [
