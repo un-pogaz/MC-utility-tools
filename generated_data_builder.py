@@ -2392,8 +2392,14 @@ def listing_timelines(temp):
             lines.append(f'[[{k}]]')
             lines.extend(sorted(v))
         return widths['r'], widths['l'], lines, lines_csv, lines_md
-
-    dir = 'data/minecraft/timeline/'
+    
+    dir = match_dir(temp, [
+        'data/minecraft/timeline',
+        'data/minecraft/timelines',
+    ])
+    if not dir:
+        return
+    
     for dpn, dp in get_datapack_paths(temp):
         for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
             data = read_json(os.path.join(temp, dp, dir, f))
@@ -2407,7 +2413,12 @@ def listing_timelines(temp):
             write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.md'), lines_md)
 
 def listing_villager_trade(temp):
-    dir = 'data/minecraft/villager_trade/'
+    dir = match_dir(temp, [
+        'data/minecraft/villager_trade',
+        'data/minecraft/villager_trades',
+    ])
+    if not dir:
+        return
     
     def numeric(item):
         if isinstance(item, (int, float)):
