@@ -448,19 +448,19 @@ def write_serialize_nbt(temp):
     # structures.snbt
     dir = get_structures_dir(temp)
     dir_snbt = dir+'.snbt'
-    writed = False
     for dpn, dp in get_datapack_paths(temp):
+        writed = False
         for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp, dir), recursive=True):
             serialize_nbt(
                 file=os.path.join(temp, dp, dir, f),
                 output_file=os.path.join(temp, dp, dir_snbt, filename(f)+'.snbt')
             )
             writed = True
-    if writed:
-        write_text(
-            os.path.join(temp, dp, dir_snbt, '!!readme.txt'),
-            SERIALIZE_NBT_README.format(os.path.basename(dir_snbt))
-        )
+        if writed:
+            write_text(
+                os.path.join(temp, dp, dir_snbt, '!!readme.txt'),
+                SERIALIZE_NBT_README.format(os.path.basename(dir_snbt))
+            )
 
 SERIALIZE_NBT_README = """\
 Attention! The folder /{}/ is not present in the original data files of Minecraft.
