@@ -651,8 +651,6 @@ def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     return _get_sub_folders(temp, 'data', lst_exlude)
 
 def uniform_reports(temp):
-    do_uniform = False
-    
     items_json = os.path.join(temp, 'reports/items.json')
     if os.path.exists(items_json) and '"components": [' in read_text(items_json):
         j = read_json(items_json)
@@ -660,12 +658,6 @@ def uniform_reports(temp):
             if 'components' in j[k] and isinstance(j[k]['components'], list):
                 j[k]['components'] = sorted(j[k]['components'], key=lambda x: x['type'])
         write_json(items_json, j)
-        do_uniform = True
-    
-    if do_uniform:
-        for j in glob.iglob('reports/*.json', root_dir=temp, recursive=False):
-            j = os.path.join(temp, j)
-            write_text(j, read_text(j))
 
 
 def mcrange(name, entry, limit=None) -> str:
@@ -2542,18 +2534,6 @@ def listing_various_data_alt(version, temp):
         '24w14potato': [listing_loot_tables],
     }
     exclude_funcs = exclude_funcs.get(version, [])
-    
-    ## update the 'last edit' attribut of the files to the last parsing
-    rewrite_files = [
-        os.path.join(temp, 'lists', 'languages.json')
-    ]
-    if exclude_funcs:
-        for path in glob.iglob('lists/**/*.*', root_dir=temp, recursive=True):
-            rewrite_files.append(os.path.join(temp, path))
-    
-    for path in rewrite_files:
-        if os.path.exists(path) and os.path.isfile(path):
-            write_text(path, read_text(path))
     
     for func in listing_various_functions:
         if func in exclude_funcs:
