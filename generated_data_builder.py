@@ -563,7 +563,7 @@ def parse_json_text(json_text, languages_json) -> str|None:
     
     raise ValueError('parse_json_text(): Unknow json_text format.')
 
-def no_end_0(num):
+def no_end_0(num) -> str:
     return str(num).removesuffix('.0')
 
 def seconds_to_human_duration(seconds):
@@ -668,16 +668,17 @@ def uniform_reports(temp):
             write_text(j, read_text(j))
 
 
-def mcrange(name, entry, limit=None):
+def mcrange(name, entry, limit=None) -> str:
+    if isinstance(entry, (int, float)):
+        return no_end_0(entry)
     if isinstance(entry, dict):
         if 'type' not in entry:
             if 'min' in entry and 'max' in entry:
                 entry['type'] = 'uniform'
             else:
-                raise ValueError(f'mcrange(): A range cannot be converted in loot_tables {name!r}.')
+                raise ValueError(f'mcrange(): A range cannot be converted in {name!r}.')
         
-        type_name = flat_type(entry)
-        match type_name:
+        match flat_type(entry):
             case 'uniform':
                 min_ = entry['min']
                 max_ = entry['max']
@@ -702,12 +703,9 @@ def mcrange(name, entry, limit=None):
             case _:
                 if 'value' in entry:
                     return no_end_0(entry['value'])
-                raise ValueError(f'mcrange(): Unknow range type {type_name!r} in loot_tables {name!r}.')
-    
-    else:
-        return no_end_0(entry)
+    raise ValueError(f'mcrange(): Unknow range in {name!r}: {entry}')
 
-def numeric(name, entry):
+def numeric(name, entry) -> str:
     if isinstance(entry, (int, float)):
         return no_end_0(entry)
     if isinstance(entry, dict):
@@ -837,7 +835,7 @@ def lootcomment(name, entry):
                     case 'linear':
                         chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
                     case _:
-                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow level-based value type {chance_type!r} in loot_tables {name!r}.')
+                        raise ValueError(f'lootcomment(): Unknow level-based value type {chance_type!r} in {name!r}.')
                 unenchanted_chance = no_end_0(item.get('unenchanted_chance') or item.get('chance', {}).get('base', 0))+'%'
                 comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(item['enchantment'])+'}: '+ chance)
             case 'killer_main_hand_tool':
@@ -852,7 +850,7 @@ def lootcomment(name, entry):
                         if 'entity_type' in predicate:
                             comment.append('killed by '+predicate['entity_type'])
                         else:
-                            raise ValueError(f'listing_loot_tables().lootcomment(): entity_properties contain unsuported data {name!r}.')
+                            raise ValueError(f'lootcomment(): entity_properties contain unsuported data {name!r}.')
                     
                     case 'this':
                         components = predicate.pop('components', {})
@@ -885,7 +883,7 @@ def lootcomment(name, entry):
                                 case 'tropical_fish/base_color' | 'tropical_fish/pattern_color' | 'tropical_fish/pattern':
                                     tropical_fish[type_name.removeprefix('tropical_fish/')] = value
                                 case _:
-                                    raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity component {type_name!r} in loot_tables {name!r}.')
+                                    raise ValueError(f'lootcomment(): Unknow entity component {type_name!r} in {name!r}.')
                         
                         if tropical_fish:
                             color = ''
@@ -946,7 +944,7 @@ def lootcomment(name, entry):
                                     if predicate.pop('is_baby', None):
                                         comment.append('is a baby')
                                     if predicate:
-                                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow flags predicate {list(predicate.keys())} in loot_tables {name!r}.')
+                                        raise ValueError(f'lootcomment(): Unknow flags predicate {list(predicate.keys())} in {name!r}.')
                                 case 'entity_type':
                                     comment.append('is a '+ flatering(predicate))
                                 case 'villager/variant':
@@ -958,7 +956,7 @@ def lootcomment(name, entry):
                                     for k,v in predicate.items():
                                         type_specific(flatering(k), v)
                                 case _:
-                                    raise ValueError(f'listing_loot_tables().lootcomment(): Unknow type_specific {type_name!r} in loot_tables {name!r}.')
+                                    raise ValueError(f'lootcomment(): Unknow type_specific {type_name!r} in {name!r}.')
                         
                         if 'type_specific' in predicate:
                             value = predicate['type_specific']
@@ -968,7 +966,7 @@ def lootcomment(name, entry):
                                 type_specific(type_name, value)
                     
                     case _:
-                        raise ValueError(f'listing_loot_tables().lootcomment(): Unknow entity origin {entity_origin!r} in loot_tables {name!r}.')
+                        raise ValueError(f'lootcomment(): Unknow entity origin {entity_origin!r} in {name!r}.')
             
             case 'damage_source_properties':
                 predicate = flat_predicate(item['predicate'])
@@ -1001,7 +999,7 @@ def lootcomment(name, entry):
                         comment.append(f'Damaged by: {k!r}')
                 
                 if predicate:
-                    raise ValueError(f'listing_loot_tables().lootcomment(): Unknow damage source {list(predicate.keys())} in loot_tables {name!r}.')
+                    raise ValueError(f'lootcomment(): Unknow damage source {list(predicate.keys())} in {name!r}.')
                 
                 rslt = sorted(entitys) + sorted(tags)
                 if rslt:
@@ -1301,11 +1299,11 @@ def listing_loot_tables(temp):
                     return 'loot_table[]'+namespace(v)
                 if isinstance(v, dict):
                     return 'loot_table[]'
-                raise ValueError(f'listing_loot_tables().get_simple(): Unknow loot_table[] format in loot_tables {name!r}.')
+                raise ValueError(f'listing_loot_tables().get_simple(): Unknow loot_table[] format in {name!r}.')
             case 'alternatives':
                 return '{}alternatives'
             case _:
-                raise ValueError(f'listing_loot_tables().get_simple(): Unknow type {type_name!r} in loot_tables {name!r}.')
+                raise ValueError(f'listing_loot_tables().get_simple(): Unknow type {type_name!r} in {name!r}.')
     
     def lootcount(name, entry):
         count = 1
