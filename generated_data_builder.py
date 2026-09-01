@@ -707,6 +707,27 @@ def mcrange(name, entry, limit=None):
     else:
         return no_end_0(entry)
 
+def numeric(name, entry):
+    if isinstance(entry, (int, float)):
+        return no_end_0(entry)
+    if isinstance(entry, dict):
+        match flat_type(entry):
+            case 'sum' | 'add':
+                lst = []
+                sum = entry.get('inputs') or entry.get('summands') or entry['operands']
+                for e in sum:
+                    lst.append(numeric(name, e))
+                if len(lst) == 1:
+                    return lst[0]
+                return '('+ '+'.join(lst) +')'
+            case 'uniform' | 'constant':
+                rslt = mcrange(name, entry)
+                if '..' in rslt:
+                    rslt = f'[{rslt}]'
+                return rslt
+    raise ValueError(f'numeric(): unknow number provider in {name!r}: {entry}')
+
+
 def lootcomment(name, entry):
     comment = []
     
@@ -2426,25 +2447,7 @@ def listing_villager_trades(temp):
     if not dir:
         return
     
-    def numeric(item):
-        if isinstance(item, (int, float)):
-            return int(item)
-        if isinstance(item, dict):
-            match flat_type(item):
-                case 'sum' | 'add':
-                    lst = []
-                    sum = item.get('inputs') or item.get('summands') or item['operands']
-                    for e in sum:
-                        e = mcrange('listing_villager_trades', e)
-                        if '..' in e:
-                            e = f'[{e}]'
-                        lst.append(e)
-                    if len(lst) == 1:
-                        return lst[0]
-                    return '('+ '+'.join(lst) +')'
-        raise ValueError(f'listing_villager_trades().numeric(): unknow number provider: {item}')
-    
-    def slot(item, is_book=None):
+    def slot(tname, item, is_book=None):
         name = flatering(item['id'])
         count = item.get('count', 1.0)
         components = []
@@ -2454,17 +2457,17 @@ def listing_villager_trades(temp):
                     components.append(flatering(v['potion']))
                 case _:
                     raise ValueError(f'listing_villager_trades(): Unknow component {k}.')
-        count = numeric(count)
+        count = numeric(tname, count)
         if components:
             components = ' {' + ', '.join(components) + '}'
         else:
             components = ''
         if is_book and name == 'emerald':
-            if count in {0, 1}:
+            if count in {'0', '1'}:
                 return f'{name}{components} xLV'
             count = count.removeprefix('(').removesuffix(')')
             return f'{name}{components} x(LV+{count})'
-        elif count in {0, 1}:
+        elif count in {'0', '1'}:
             return f'{name}{components}'
         return f'{name}{components} x{count}'
     
@@ -2474,12 +2477,12 @@ def listing_villager_trades(temp):
             name = filename(f)
             lines = []
             wants = []
-            gives = slot(data['gives'])
+            gives = slot(name, data['gives'])
             is_book = gives.startswith('enchanted_book')
             for item in (data['wants'], data.get('additional_wants', {})):
                 if not item:
                     continue
-                wants.append(slot(item, is_book=is_book))
+                wants.append(slot(name, item, is_book=is_book))
             lines.append('wants: ' + ', '.join(wants))
             
             comment = lootcomment(name, data)
