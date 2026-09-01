@@ -1319,21 +1319,21 @@ def listing_loot_tables(temp):
         
         return mcrange(name, count, limit)
     
-    def get_rolls(pool):
+    def get_rolls(name, pool):
         value = mcrange(name, pool.get('rolls', 1))
         if '..' in value:
             return ' to '.join(value.split('..', 1))+' time'
         else:
             return value+' time'
     
-    def get_poolcomment(pool):
+    def get_poolcomment(name, pool):
         bonus = pool.get('bonus_rolls', 0)
         if bonus:
             bonus = 'bonus rolls: '+ no_end_0(bonus)
         comment = lootcomment(name, pool)
         return ', '.join([e for e in [bonus, comment] if e])
     
-    def add_entrie(tbl_pool, e, weight_groupe, alternatives_groupe = 0):
+    def add_entrie(name, tbl_pool, e, weight_groupe, alternatives_groupe = 0):
         tbl_entrie = TBLentrie(tbl_pool, weight_groupe, alternatives_groupe)
         tbl_entrie.name = get_simple(name, e)
         tbl_entrie.comment = lootcomment(name, e)
@@ -1348,16 +1348,16 @@ def listing_loot_tables(temp):
             tbl_entrie.name = '{'+str(alternatives_groupe)+'}alternatives'
             tbl_entrie.count = ''
             for c in e['children']:
-                add_entrie(tbl_pool, c, weight_groupe, alternatives_groupe)
+                add_entrie(name, tbl_pool, c, weight_groupe, alternatives_groupe)
             return
         
         if tbl_entrie.name == 'loot_table[]':
-            tbl_entrie.count = get_rolls(pool)
-            tbl_entrie.comment = get_poolcomment(pool)
+            tbl_entrie.count = get_rolls(name, pool)
+            tbl_entrie.comment = get_poolcomment(name, pool)
             weight_groupe = len(tbl_pool.all_weight_groupes())
             sub_table = e.get('value') or e['name']
             for sub_pool in sub_table.get('pools', {}):
-                iter_pool(tbl_pool, sub_pool, weight_groupe)
+                iter_pool(name, tbl_pool, sub_pool, weight_groupe)
             return
         
         if tbl_entrie.name == 'empty':
@@ -1365,13 +1365,13 @@ def listing_loot_tables(temp):
         else:
             tbl_entrie.count = lootcount(name, e)
     
-    def iter_pool(tbl_pool, pool, weight_groupe):
+    def iter_pool(name, tbl_pool, pool, weight_groupe):
         if 'items' in pool:
             for e in pool['items']:
-                add_entrie(tbl_pool, e, weight_groupe)
+                add_entrie(name, tbl_pool, e, weight_groupe)
         elif 'entries' in pool:
             for e in pool['entries']:
-                add_entrie(tbl_pool, e, weight_groupe)
+                add_entrie(name, tbl_pool, e, weight_groupe)
         else:
             raise ValueError('listing_loot_tables(): Invalid input pool.')
     
@@ -1389,13 +1389,13 @@ def listing_loot_tables(temp):
             else:
                 for pool in table.get('pools', {}):
                     tbl_pool = TBLpool()
-                    tbl_pool.rolls = get_rolls(pool)
-                    tbl_pool.comment = get_poolcomment(pool)
+                    tbl_pool.rolls = get_rolls(name, pool)
+                    tbl_pool.comment = get_poolcomment(name, pool)
                     
                     rslt_tbl.append(tbl_pool)
                     
                     weight_groupe = len(tbl_pool.all_weight_groupes())
-                    iter_pool(tbl_pool, pool, weight_groupe)
+                    iter_pool(name, tbl_pool, pool, weight_groupe)
             
             lines_txt = []
             lines_tbl = []
