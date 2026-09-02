@@ -422,13 +422,6 @@ def match_dir(temp, dirs) -> str:
             return rslt
     return None
 
-def match_dirname(temp, dirs, default) -> str:
-    dir = match_dir(temp, dirs)
-    if dir:
-        return os.path.basename(dir)
-    else:
-        return default
-
 def dict_get(entry, keys, default=__DEFAULT) -> str:
     for k in keys:
         if k in entry:
@@ -450,31 +443,44 @@ def name_dp(name: str, dpn: str) -> str:
         return name + '{'+ dpn +'}'
     return name
 
-def get_structures_dir(temp) -> str:
-    return match_dir(temp, [
-        'data/minecraft/structure',
-        'data/minecraft/structures', # old
-        'assets/minecraft/structures', # legacy
-    ])
+def get_legacy_paths(temp, dirs, default) -> tuple[str, list[tuple[str, str, str]]]:
+    lst = set()
+    for dir in dirs:
+        lst.add(('', 'minecraft', f'assets/minecraft/{dir}'))
+    lst_namespace, _ = get_sub_folders_data(temp)
+    for ns in lst_namespace:
+        for dpn, dp in get_datapack_paths(temp):
+            for dir in dirs:
+                lst.add((dpn, ns, os.path.join(dp, 'data', ns, dir)))
+    
+    dirname = default
+    rslt = []
+    for dpn, ns, dir in lst:
+        if os.path.exists(os.path.join(temp, dir)):
+            rslt.append((dpn, ns, dir))
+            dirname = os.path.basename(dir)
+    
+    return dirname, rslt
+
 
 def write_serialize_nbt(temp):
     from common import serialize_nbt
     
     # structures.snbt
-    dir = get_structures_dir(temp)
-    dir_snbt = dir+'.snbt'
-    for dpn, dp in get_datapack_paths(temp):
+    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structure'], 'structure')
+    for dpn, ns, dir in all_dirs:
+        dir_snbt = dir+'.snbt'
         writed = False
-        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp, dir), recursive=True):
+        for f in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir), recursive=True):
             serialize_nbt(
-                file=os.path.join(temp, dp, dir, f),
-                output_file=os.path.join(temp, dp, dir_snbt, filename(f)+'.snbt')
+                file=os.path.join(temp, dir, f),
+                output_file=os.path.join(temp, dir_snbt, filename(f)+'.snbt')
             )
             writed = True
         if writed:
             write_text(
-                os.path.join(temp, dp, dir_snbt, '!!readme.txt'),
-                SERIALIZE_NBT_README.format(os.path.basename(dir_snbt))
+                os.path.join(temp, dir_snbt, '!!readme.txt'),
+                SERIALIZE_NBT_README.format(dirname)
             )
 
 SERIALIZE_NBT_README = """\
@@ -1037,12 +1043,12 @@ def listing_builtit_datapacks(temp):
         write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
 
 def listing_structures(temp):
-    dir = get_structures_dir(temp)
     lines = set()
-    for dpn, dp in get_datapack_paths(temp):
-        lines.update([namespace(filename(j)) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dir, dp), recursive=True)])
+    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structure'], 'structure')
+    for dpn, ns, dp in all_dirs:
+        lines.update([namespace(filename(j), ns=ns) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp), recursive=True)])
     if lines:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.nbt.txt'), sorted(lines))
+        write_lines(os.path.join(temp, 'lists', dirname+'.nbt.txt'), sorted(lines))
 
 
 class Advancement:
@@ -1242,23 +1248,13 @@ def listing_special_subdirs(temp):
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
 
 def listing_loot_tables(temp):
-    dirname = match_dirname(temp, [
-        'data/minecraft/loot_table',
-        'data/minecraft/loot_tables', # old
-        'assets/minecraft/loot_tables', # legacy
-    ], 'loot_tables')
-    
-    lst_namespace, _ = get_sub_folders_data(temp)
+    dirname, all_dirs = get_legacy_paths(temp, ['loot_table', 'loot_tables'], 'loot_table')
     entries = set()
     tags = set()
-    entries.update(enum_json(os.path.join(temp, 'assets/minecraft/loot_tables')))
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_table'), ns=ns))
-            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
-            # legacy
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'loot_tables'), ns=ns))
-            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
+    for dpn, ns, dp in all_dirs:
+        entries.update(enum_json(os.path.join(temp, dp), ns=ns))
+        tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_table'), ns=ns, is_tag=True))
+        tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/loot_tables'), ns=ns, is_tag=True))
     
     entries.discard('minecraft:empty')
     blocks = {e for e in entries if ':blocks/' in e}
@@ -1386,11 +1382,11 @@ def listing_loot_tables(temp):
         else:
             raise ValueError('listing_loot_tables(): Invalid input pool.')
     
-    for dpn, dp in get_datapack_paths(temp):
-        for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
+    for dpn, ns, dir in all_dirs:
+        for loot in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
             if loot == 'empty.json':
                 continue
-            table = read_json(os.path.join(temp, dp, dir, loot))
+            table = read_json(os.path.join(temp, dir, loot))
             name = filename(loot)
             
             rslt_tbl :list[TBLpool] = []
