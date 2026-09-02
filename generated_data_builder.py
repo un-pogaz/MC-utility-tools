@@ -546,8 +546,8 @@ def parse_languages_lang(path) -> dict[str, str]:
         rslt[split[0]] = split[1]
     return rslt
 
-def parse_json_text(json_text, languages_json) -> str|None:
-    if json_text is None or isinstance(json_text, str):
+def parse_json_text(json_text, languages_json, *, fallback=None) -> str | None:
+    if isinstance(json_text, str):
         return json_text
     
     if isinstance(json_text, dict):
@@ -561,7 +561,13 @@ def parse_json_text(json_text, languages_json) -> str|None:
     if isinstance(json_text, list):
         return ''.join([parse_json_text(e, languages_json) for e in json_text])
     
-    raise ValueError('parse_json_text(): Unknow json_text format.')
+    if fallback:
+        return parse_json_text({'translate': fallback}, languages_json)
+    
+    if json_text is None:
+        return None
+    
+    raise ValueError(f'parse_json_text(): Unknow json_text format: {json_text}')
 
 def no_end_0(num) -> str:
     return str(num).removesuffix('.0')
@@ -2008,10 +2014,9 @@ def listing_paintings(temp):
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
                 ns_name = namespace(name, ns=ns)
-                lng_id = f'painting.{ns}.{name}'
                 j = read_json(os.path.join(dir, file))
-                title = parse_json_text(j.get('title'), languages_json) or languages_json.get(lng_id+'.title') or lng_id+'.title'
-                author = parse_json_text(j.get('author'), languages_json) or languages_json.get(lng_id+'.author') or lng_id+'.author'
+                title = parse_json_text(j.get('title'), languages_json, fallback=f'painting.{ns}.{name}.title')
+                author = parse_json_text(j.get('author'), languages_json, fallback=f'painting.{ns}.{name}.author')
                 size = '{}x{}'.format(j['width'], j['height'])
                 paintings['authors'][author].add(ns_name)
                 paintings['sizes'][size].add(ns_name)
@@ -2038,9 +2043,8 @@ def listing_jukebox_songs(temp):
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
                 ns_name = namespace(name, ns=ns)
-                lng_id = f'jukebox_song.{ns}.{name}'
                 j = read_json(os.path.join(dir, file))
-                desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
+                desc = parse_json_text(j.get('description'), languages_json, fallback=f'jukebox_song.{ns}.{name}')
                 all_names.add(desc)
                 author, _, title = desc.partition(' - ')
                 if not title:
@@ -2070,9 +2074,8 @@ def listing_instruments(temp):
             dir = os.path.join(temp, dp, 'data', ns, 'instrument')
             for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
                 name = filename(file)
-                lng_id = f'instrument.{ns}.{name}'
                 j = read_json(os.path.join(dir, file))
-                desc = parse_json_text(j.get('description'), languages_json) or languages_json.get(lng_id) or lng_id
+                desc = parse_json_text(j.get('description'), languages_json, fallback=f'instrument.{ns}.{name}')
                 all_names.add(desc)
                 lines = []
                 lines.append('sound_event: '+ namespace(j['sound_event']))
