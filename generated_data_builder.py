@@ -1446,7 +1446,7 @@ def listing_loot_tables(temp):
             strip_list(lines_txt)
             if not lines_txt:
                 lines_txt.append('empty')
-            write_lines(os.path.join(temp, 'lists/loot_tables', name+'.txt'), lines_txt)
+            write_lines(os.path.join(temp, 'lists/loot_tables', name_dp(name, dpn)+'.txt'), lines_txt)
             
             
             strip_list(lines_tbl)
