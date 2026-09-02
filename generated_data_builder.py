@@ -417,12 +417,17 @@ def write_tbl_md(path, head_tbl, lines_tbl):
 
 
 def match_dir(temp, dirs) -> str:
-    rslt = None
     for rslt in dirs:
         if os.path.exists(os.path.join(temp, rslt)):
-            break
-    return rslt
+            return rslt
+    return None
 
+def match_dirname(temp, dirs, default) -> str:
+    dir = match_dir(temp, dirs)
+    if dir:
+        return os.path.basename(dir)
+    else:
+        return default
 
 def dict_get(entry, keys, default=__DEFAULT) -> str:
     for k in keys:
@@ -1207,14 +1212,16 @@ def listing_subdir_reports(temp):
         'components',
     ]
     for subdir in lst_subdir:
-        lines = set()
         dir = match_dir(temp, [
             'reports/'+ subdir +'/minecraft', # root
             'reports/'+ subdir, # alt root
             'reports/minecraft/'+ subdir, # old
             'reports/worldgen/minecraft/'+ subdir, # legacy
         ])
+        if not dir:
+            continue
         
+        lines = set()
         lines.update(enum_json(os.path.join(temp, dir)))
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), sorted(lines))
@@ -1235,12 +1242,11 @@ def listing_special_subdirs(temp):
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
 
 def listing_loot_tables(temp):
-    
-    dir = match_dir(temp, [
+    dirname = match_dirname(temp, [
         'data/minecraft/loot_table',
         'data/minecraft/loot_tables', # old
         'assets/minecraft/loot_tables', # legacy
-    ])
+    ], 'loot_tables')
     
     lst_namespace, _ = get_sub_folders_data(temp)
     entries = set()
@@ -1261,9 +1267,9 @@ def listing_loot_tables(temp):
     tags.difference_update(tags_blocks)
     
     if entries:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(entries) + sorted(tags))
+        write_lines(os.path.join(temp, 'lists', dirname+'.txt'), sorted(entries) + sorted(tags))
     if blocks:
-        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.blocks.txt'), sorted(blocks) + sorted(tags_blocks))
+        write_lines(os.path.join(temp, 'lists', dirname+'.blocks.txt'), sorted(blocks) + sorted(tags_blocks))
     
     def get_simple(name, entry):
         def convert(item):
@@ -2424,32 +2430,23 @@ def listing_timelines(temp):
             lines.extend(sorted(v))
         return widths['r'], widths['l'], lines, lines_csv, lines_md
     
-    dir = match_dir(temp, [
-        'data/minecraft/timeline',
-        'data/minecraft/timelines',
-    ])
-    if not dir:
-        return
-    
-    for dpn, dp in get_datapack_paths(temp):
-        for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
-            data = read_json(os.path.join(temp, dp, dir, f))
-            
-            width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
-            _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
-            
-            name = filename(f)
-            write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.txt'), lines)
-            write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.csv'), lines_csv)
-            write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.md'), lines_md)
+    lst_namespace, _ = get_sub_folders_assets(temp)
+    for ns in lst_namespace:
+        for dpn, dp in get_datapack_paths(temp):
+            dir = os.path.join(temp, dp, 'data', ns, 'timeline')
+            for f in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+                data = read_json(os.path.join(dir, f))
+                
+                width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
+                _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
+                
+                name = filename(f)
+                write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.txt'), lines)
+                write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.csv'), lines_csv)
+                write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.md'), lines_md)
 
 def listing_villager_trades(temp):
-    dir = match_dir(temp, [
-        'data/minecraft/villager_trade',
-        'data/minecraft/villager_trades',
-    ])
-    if not dir:
-        return
+    lst_namespace, _ = get_sub_folders_assets(temp)
     
     def slot(tname, item, is_book=None):
         name = flatering(item['id'])
@@ -2475,38 +2472,40 @@ def listing_villager_trades(temp):
             return f'{name}{components}'
         return f'{name}{components} x{count}'
     
-    for dpn, dp in get_datapack_paths(temp):
-        for f in glob.iglob('**/*.json', root_dir=os.path.join(temp, dp, dir), recursive=True):
-            data = read_json(os.path.join(temp, dp, dir, f))
-            name = filename(f)
-            lines = []
-            wants = []
-            gives = slot(name, data['gives'])
-            is_book = gives.startswith('enchanted_book')
-            for item in (data['wants'], data.get('additional_wants', {})):
-                if not item:
-                    continue
-                wants.append(slot(name, item, is_book=is_book))
-            lines.append('wants: ' + ', '.join(wants))
-            
-            comment = lootcomment(name, data)
-            if comment:
-                lines.append(f'gives: {gives} {{{comment}}}')
-            else:
-                lines.append(f'gives: {gives}')
-            lines.append('xp: ' + str(int(data.get('xp', 1))))
-            lines.append('max use: ' + str(int(data.get('max_uses', 4))))
-            lines.append('reputation discount: ' + str(data.get('reputation_discount', 0.0)))
-            
-            double_enchantments = data.get('double_trade_price_enchantments')
-            if double_enchantments:
-                lines.append('double price enchantments: ' + double_enchantments)
+    for ns in lst_namespace:
+        for dpn, dp in get_datapack_paths(temp):
+            dir = os.path.join(temp, dp, 'data', ns, 'villager_trade')
+            for f in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+                data = read_json(os.path.join(dir, f))
+                name = filename(f)
+                lines = []
+                wants = []
+                gives = slot(name, data['gives'])
+                is_book = gives.startswith('enchanted_book')
+                for item in (data['wants'], data.get('additional_wants', {})):
+                    if not item:
+                        continue
+                    wants.append(slot(name, item, is_book=is_book))
+                lines.append('wants: ' + ', '.join(wants))
                 
-            merchant_predicate = data.get('merchant_predicate')
-            if merchant_predicate:
-                lines.append('condition: ' + lootcomment(name, {'conditions': [merchant_predicate]}))
-            
-            write_lines(os.path.join(temp, 'lists/villager_trades', name_dp(name, dpn) + '.txt'), lines)
+                comment = lootcomment(name, data)
+                if comment:
+                    lines.append(f'gives: {gives} {{{comment}}}')
+                else:
+                    lines.append(f'gives: {gives}')
+                lines.append('xp: ' + str(int(data.get('xp', 1))))
+                lines.append('max use: ' + str(int(data.get('max_uses', 4))))
+                lines.append('reputation discount: ' + str(data.get('reputation_discount', 0.0)))
+                
+                double_enchantments = data.get('double_trade_price_enchantments')
+                if double_enchantments:
+                    lines.append('double price enchantments: ' + double_enchantments)
+                    
+                merchant_predicate = data.get('merchant_predicate')
+                if merchant_predicate:
+                    lines.append('condition: ' + lootcomment(name, {'conditions': [merchant_predicate]}))
+                
+                write_lines(os.path.join(temp, 'lists/villager_trades', name_dp(name, dpn) + '.txt'), lines)
 
 
 listing_various_functions: list[Callable[[str], None]] = [
