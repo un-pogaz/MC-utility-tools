@@ -2016,7 +2016,10 @@ def listing_paintings(temp):
                 ns_name = namespace(name, ns=ns)
                 j = read_json(os.path.join(dir, file))
                 title = parse_json_text(j.get('title'), languages_json, fallback=f'painting.{ns}.{name}.title')
-                author = parse_json_text(j.get('author'), languages_json, fallback=f'painting.{ns}.{name}.author')
+                author_id = f'painting.{ns}.{name}.author'
+                author = parse_json_text(j.get('author'), languages_json, fallback=author_id)
+                if author == author_id:
+                    author = 'unknow'
                 size = '{}x{}'.format(j['width'], j['height'])
                 paintings['authors'][author].add(ns_name)
                 paintings['sizes'][size].add(ns_name)
