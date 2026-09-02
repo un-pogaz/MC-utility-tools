@@ -84,6 +84,7 @@ def main(args):
     return error
 
 TEMP_DIR = os.path.abspath(os.path.join(gettempdir(), 'MC_Generated_data'))
+__DEFAULT = object
 
 def build_generated_data(args):
     import shutil
@@ -423,6 +424,15 @@ def match_dir(temp, dirs) -> str:
     return rslt
 
 
+def dict_get(entry, keys, default=__DEFAULT) -> str:
+    for k in keys:
+        if k in entry:
+            return entry[k]
+    if default != __DEFAULT:
+        return default
+    raise KeyError(f'dict_get(): {list(keys)}')
+
+
 def get_datapack_paths(temp) -> list[tuple[str, str]]:
     sub_datapacks = 'data/minecraft/datapacks'
     rslt = [('', '')]
@@ -710,8 +720,7 @@ def numeric(name, entry) -> str:
         match flat_type(entry):
             case 'sum' | 'add':
                 lst = []
-                sum = entry.get('inputs') or entry.get('summands') or entry['operands']
-                for e in sum:
+                for e in dict_get(entry, ['inputs', 'summands', 'operands']):
                     lst.append(numeric(name, e))
                 if len(lst) == 1:
                     return lst[0]
@@ -735,7 +744,7 @@ def lootcomment(name, entry):
                 comment.append('explosion decay')
             
             case 'enchant_randomly':
-                enchantments = item.get('options') or item.get('enchantments', '*')
+                enchantments = dict_get(item, ['options', 'enchantments'], '*')
                 if isinstance(enchantments, str):
                     enchantments = [enchantments]
                 enchantments = [flatering(x) for x in enchantments]
@@ -807,7 +816,7 @@ def lootcomment(name, entry):
                     comment.append(flatering(j['Potion']))
     
     def parse_condition(item):
-        condition_type = flatering(item.get('condition') or item['type'])
+        condition_type = flatering(dict_get(item, ['condition', 'type']))
         
         def flat_predicate(predicate):
             rslt = {}
@@ -827,17 +836,17 @@ def lootcomment(name, entry):
                 chance = no_end_0(item['chance']+item['looting_multiplier'])+'% + '+no_end_0(item['looting_multiplier'])+'%*(level-1)'
                 comment.append('random chance: '+unenchanted_chance+'|{enchantment: looting}: '+ chance)
             case 'random_chance_with_enchanted_bonus':
-                chance = item.get('enchanted_chance') or item['chance']
+                chance = dict_get(item, ['enchanted_chance', 'chance'])
                 chance_type = flat_type(chance)
                 match chance_type:
                     case 'linear':
                         chance = no_end_0(chance['base'])+'% + '+no_end_0(chance['per_level_above_first'])+'%*(level-1)'
                     case _:
                         raise ValueError(f'lootcomment(): Unknow level-based value type {chance_type!r} in {name!r}.')
-                unenchanted_chance = no_end_0(item.get('unenchanted_chance') or item.get('chance', {}).get('base', 0))+'%'
+                unenchanted_chance = no_end_0(item.get('unenchanted_chance') or item.get('chance', {}).get('base', 0))+'%'  # not dict_get()
                 comment.append('random chance: '+unenchanted_chance+'|{enchantment: '+flatering(item['enchantment'])+'}: '+ chance)
             case 'killer_main_hand_tool':
-                value = item['value'].get('items') or item['value']['id']
+                value = dict_get(item['value'], ['items', 'id'])
                 comment.append('killed with main_hand tool: '+ value)
             
             case 'entity_properties':
@@ -1071,7 +1080,7 @@ class Advancement:
         if isinstance(icon, str):
             self.icon = icon
         else:
-            self.icon = icon.get('id') or icon.get('item')
+            self.icon = dict_get(icon, ['id', 'item'], None)
         if self.icon:
             self.icon = namespace(self.icon)
         self.title = display.get('title')
@@ -1290,9 +1299,9 @@ def listing_loot_tables(temp):
             case 'empty':
                 return 'empty'
             case 'tag':
-                return '#'+namespace(entry.get('name') or entry['items']).strip('#')
+                return '#'+namespace(dict_get(entry, ['name', 'items'])).strip('#')
             case 'loot_table':
-                v = entry.get('value') or entry['name']
+                v = dict_get(entry, ['value', 'name'])
                 if isinstance(v, str):
                     return 'loot_table[]'+namespace(v)
                 if isinstance(v, dict):
@@ -1351,7 +1360,7 @@ def listing_loot_tables(temp):
             tbl_entrie.count = get_rolls(name, pool)
             tbl_entrie.comment = get_poolcomment(name, pool)
             weight_groupe = len(tbl_pool.all_weight_groupes())
-            sub_table = e.get('value') or e['name']
+            sub_table = dict_get(e, ['value', 'name'])
             for sub_pool in sub_table.get('pools', {}):
                 iter_pool(name, tbl_pool, sub_pool, weight_groupe)
             return
