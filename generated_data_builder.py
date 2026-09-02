@@ -28,7 +28,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 48, 2)
+VERSION = (0, 49, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
@@ -1849,7 +1849,7 @@ def listing_components(temp):
         lines.add(namespace(type))
         files[type].append(name)
     if lines:
-        write_lines(os.path.join(temp, 'lists', 'components.txt'), sorted(lines))
+        write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.txt'), sorted(lines))
     for type, names in files.items():
         lines = set()
         data = defaultdict(dict)
@@ -1857,7 +1857,6 @@ def listing_components(temp):
             for c,v in read_json(os.path.join(temp, dir, type, f+'.json')).get('components', {}).items():
                 data[flatering(c)][namespace(f)] = v
             lines.add(namespace(f))
-        write_lines(os.path.join(temp, 'lists/components', type+'.txt'), sorted(lines))
         write_components_data(temp, 'lists/components/'+type, data)
 
 def listing_packets(temp):
