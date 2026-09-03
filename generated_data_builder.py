@@ -7,6 +7,7 @@ import pathlib
 from collections import OrderedDict, defaultdict
 from collections.abc import Callable
 from contextlib import suppress
+from functools import lru_cache
 from tempfile import gettempdir
 
 from common import (
@@ -431,6 +432,7 @@ def match_dir(temp, dirs) -> str:
             return rslt
     return None
 
+@lru_cache(maxsize=4)
 def get_datapack_paths(temp) -> list[tuple[str, str]]:
     sub_datapacks = 'data/minecraft/datapacks'
     rslt = [('', '')]
@@ -555,6 +557,7 @@ def enum_json(dir, is_tag=False, ns=None) -> list[str]:
     lst = glob.iglob('**/*.json', root_dir=dir, recursive=True)
     return [('#' if is_tag else '')+namespace(filename(j), ns=ns) for j in lst]
 
+@lru_cache(maxsize=4)
 def get_languages_json(temp) -> dict[str, str]:
     path = os.path.join(temp, 'assets/minecraft/lang/en_us.json')
     if os.path.exists(path):
@@ -659,6 +662,7 @@ def _get_sub_folders(temp, subdir, exlude=None) -> tuple[list[str], list[str]]:
     
     return rslt_namespaces, rslt_dirs
 
+@lru_cache(maxsize=4)
 def get_sub_folders_assets(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
         'structures.snbt',
@@ -669,6 +673,7 @@ def get_sub_folders_assets(temp) -> tuple[list[str], list[str]]:
     ]
     return _get_sub_folders(temp, 'assets', lst_exlude)
 
+@lru_cache(maxsize=4)
 def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     lst_exlude = [
         'structures.snbt',
@@ -684,10 +689,12 @@ def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     ]
     return _get_sub_folders(temp, 'data', lst_exlude)
 
+@lru_cache(maxsize=4)
 def get_namespaces_data(temp) -> list[str]:
     rslt, _ = get_sub_folders_data(temp)
     return rslt
 
+@lru_cache(maxsize=4)
 def get_datapacks_entrys(temp) -> list[tuple[str, str, dict[str, bool | str]]]:
     rslt = []
     for k,tv in read_json(os.path.join(temp, 'reports/datapack.json')).items():
