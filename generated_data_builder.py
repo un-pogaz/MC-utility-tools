@@ -1514,15 +1514,15 @@ def listing_worldgens(temp):
                 if lines is None or no_features:
                     break
                 if isinstance(v, str):
-                    lines.append(v)
+                    lines.append(namespace(v))
                 elif isinstance(v, list):
                     if not v:
                         lines.append('[]')
                     for e in v:
-                        if isinstance(e, dict):
+                        if not isinstance(e, str):
                             lines = None
                             break
-                        lines.append(e)
+                        lines.append(namespace(e))
                 
                 if lines is None:
                     break
