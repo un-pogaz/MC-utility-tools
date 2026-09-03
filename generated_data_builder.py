@@ -1482,21 +1482,6 @@ def listing_loot_tables(temp):
             write_tbl_md(os.path.join(temp, 'lists/loot_tables', name_dp(name, dpn)+'.md'), head_tbl, lines_tbl)
 
 def listing_worldgens(temp):
-    dir = match_dir(temp, [
-        'data/minecraft/worldgen',
-        'reports/minecraft/worldgen', # old
-        'reports/worldgen/minecraft/worldgen', # legacy
-    ])
-    
-    lines = set()
-    for dpn, dp in get_datapack_paths(temp):
-        world_preset_dir = os.path.join(temp, dir, dp, 'world_preset')
-        for j in glob.iglob('**/*.json', root_dir=world_preset_dir, recursive=True):
-            lines.update([namespace(e) for e in read_json(os.path.join(world_preset_dir, j)).get('dimensions', {})])
-    
-    if lines:
-        write_lines(os.path.join(temp, 'lists', 'dimension.txt'), sorted(lines))
-    
     def biomes_list(dir):
         no_features = False
         for path in glob.iglob('**/*.json', root_dir=dir, recursive=True):
@@ -1544,6 +1529,8 @@ def listing_worldgens(temp):
                 lines.append('')
             
             if lines is None or no_features:
+                # special case when features was inline dict definition
+                # remove the features folder
                 no_features = True
                 path = os.path.join(temp, 'lists/worldgen/biome/features')
                 if os.path.exists(path):
@@ -1555,6 +1542,56 @@ def listing_worldgens(temp):
                     lines.append('[]')
                 
                 write_lines(os.path.join(temp, 'lists/worldgen/biome/features', path+'.txt'), lines)
+    
+    lst_dimension = set()
+    lst_dpe = get_datapacks_entrys(temp)
+    lst_dirs = []
+    for k,t,v in lst_dpe:
+        if ':worldgen/' in t and v.get('elements'):
+            lst_dirs.append(flatering(t))
+    
+    def listing_subdir(dir, subdir):
+        json_iterator = glob.iglob('**/*.json', root_dir=subdir, recursive=True)
+        match dir:
+            case 'worldgen/world_preset':
+                for j in json_iterator:
+                    lst_dimension.update([namespace(e) for e in read_json(os.path.join(subdir, j)).get('dimensions', {})])
+            case 'worldgen/biome':
+                biomes_list(subdir)
+    
+    lst_namespace = get_namespaces_data(temp)
+    for dir in lst_dirs:
+        entries = set()
+        tags = set()
+        for ns in lst_namespace:
+            for dpn, dp in get_datapack_paths(temp):
+                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         dir), ns=ns))
+                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', dir), ns=ns, is_tag=True))
+                listing_subdir(dir, os.path.join(temp, dp, 'data', ns, dir))
+        lines = sorted(entries) + sorted(tags)
+        if lines:
+            write_lines(os.path.join(temp, 'lists', dir+'.txt'), lines)
+    
+    if lst_dimension:
+        write_lines(os.path.join(temp, 'lists', 'dimension.txt'), sorted(lst_dimension))
+    
+    if lst_dpe:
+        return
+    
+    dir = match_dir(temp, [
+        'data/minecraft/worldgen',
+        'reports/minecraft/worldgen', # old
+        'reports/worldgen/minecraft/worldgen', # legacy
+    ])
+    
+    lines = set()
+    for dpn, dp in get_datapack_paths(temp):
+        world_preset_dir = os.path.join(temp, dir, dp, 'world_preset')
+        for j in glob.iglob('**/*.json', root_dir=world_preset_dir, recursive=True):
+            lines.update([namespace(e) for e in read_json(os.path.join(world_preset_dir, j)).get('dimensions', {})])
+    
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'dimension.txt'), sorted(lines))
     
     for subdir in glob.iglob('*/', root_dir=os.path.join(temp, dir), recursive=False):
         subdir = subdir.strip('/\\')
