@@ -286,14 +286,13 @@ def downloading_assets_files(temp):
     assets = get_assets_objects(temp)
     
     def write_asset(file):
-        if not (object := assets.get(file)):
+        if not (obj := assets.get(file)):
             return
-        object = assets[file]
         file = os.path.join(temp, 'assets', file)
-        if not hash_test(object['hash'], file):
+        if not hash_test(obj['hash'], file):
             safe_del(file)
             make_dirname(file)
-            urlretrieve(object['url'], file)
+            urlretrieve(obj['url'], file)
     
     assets_dl = [
         'minecraft/sounds.json',
@@ -324,14 +323,13 @@ def cache_assets_files(temp):
 
 def cache_asset(temp, file):
     assets = get_assets_objects(temp)
-    if not (object := assets.get(file)):
+    if not (obj := assets.get(file)):
         return None
-    
-    file = os.path.join(TEMP_DIR, 'cache/assets', object['hash'])
-    if not hash_test(object['hash'], file):
+    file = os.path.join(TEMP_DIR, 'cache/assets', obj['hash'])
+    if not hash_test(obj['hash'], file):
         safe_del(file)
         make_dirname(file)
-        urlretrieve(object['url'], file)
+        urlretrieve(obj['url'], file)
     return file
 
 def uniform_reports(temp):
