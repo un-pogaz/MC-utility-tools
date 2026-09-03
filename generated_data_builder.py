@@ -31,13 +31,13 @@ from common import (
 VERSION = (0, 49, 0)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-v', '--version', help='Target version ; the version must be installed.\nr or release for the last release\ns or snapshot for the last snapshot.')
+parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
 
 parser.add_argument('-q', '--quiet', help='Execute without any user interaction. Require --version or --manifest-json.', action='store_true')
 parser.add_argument('-f', '--overwrite', help='Overwrite on the existing output folder.', action='store_true')
 
-parser.add_argument('-z', '--zip', help='Empack the folder in a zip after it\'s creation', action='store_true', default=None)
-parser.add_argument('--no-zip', dest='zip', help='Don\'t ask for empack the folder in a zip', action='store_false')
+parser.add_argument('-z', '--zip', help="Empack the folder in a zip after it's creation", action='store_true', default=None)
+parser.add_argument('--no-zip', dest='zip', help="Don't ask for empack the folder in a zip", action='store_false')
 
 parser.add_argument('-o', '--output', help='Output folder', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='Local JSON manifest file of the target version.', type=pathlib.Path)
