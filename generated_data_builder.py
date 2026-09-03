@@ -688,6 +688,13 @@ def get_namespaces_data(temp) -> list[str]:
     rslt, _ = get_sub_folders_data(temp)
     return rslt
 
+def get_datapacks_entrys(temp) -> list[tuple[str, str, dict[str, bool | str]]]:
+    rslt = []
+    for k,tv in read_json(os.path.join(temp, 'reports/datapack.json')).items():
+        for t,v in tv.items():
+            rslt.append((k,t,v))
+    return rslt
+
 
 def no_end_0(num) -> str:
     return str(num).removesuffix('.0')
@@ -1239,6 +1246,13 @@ def listing_subdir_reports(temp):
 def listing_special_subdirs(temp):
     # special subdir (not in registries)
     lst_namespace, lst_subdir = get_sub_folders_data(temp)
+    
+    lst = get_datapacks_entrys(temp)
+    if lst:
+        lst_subdir = []
+    for k,t,v in lst:
+        if v.get('elements'):
+            lst_subdir.append(flatering(t))
     
     for subdir in lst_subdir:
         entries = set()
@@ -1873,20 +1887,19 @@ def listing_packets(temp):
 def listing_datapacks(temp):
     values = defaultdict(set)
     
-    for k,tv in read_json(os.path.join(temp, 'reports/datapack.json')).items():
-        for t,v in tv.items():
-            t = namespace(t)
-            values['all'].add(t)
-            values[k].add(t)
-            name = filename(t)
-            for kk,vv in v.items():
-                if isinstance(vv, bool):
-                    values['value/'+kk+'='+str(vv).lower()].add(t)
-                elif isinstance(vv, str):
-                    values['value/'+kk].add(f'{t}  = {vv}')
-                else:
-                    raise ValueError('listing_datapacks(): The value {kk!r} of {name!r} is a unknow type.')  # noqa: TRY004
-            write_json(os.path.join(temp, 'lists/datapacks', k, name)+'.json', v)
+    for k,t,v in get_datapacks_entrys(temp):
+        t = namespace(t)
+        values['all'].add(t)
+        values[k].add(t)
+        name = filename(t)
+        for kk,vv in v.items():
+            if isinstance(vv, bool):
+                values['value/'+kk+'='+str(vv).lower()].add(t)
+            elif isinstance(vv, str):
+                values['value/'+kk].add(f'{t}  = {vv}')
+            else:
+                raise ValueError('listing_datapacks(): The value {kk!r} of {name!r} is a unknow type.')  # noqa: TRY004
+        write_json(os.path.join(temp, 'lists/datapacks', k, name)+'.json', v)
     
     for k,v in values.items():
         write_lines(os.path.join(temp, 'lists/datapacks', k)+'.txt', sorted(v))
@@ -2510,10 +2523,10 @@ def listing_villager_trades(temp):
 
 listing_various_functions: list[Callable[[str], None]] = [
     listing_builtit_datapacks,
-    listing_structures,
-    listing_advancements,
     listing_subdir_reports,
     listing_special_subdirs,
+    listing_structures,
+    listing_advancements,
     listing_loot_tables,
     listing_worldgens,
     listing_blocks,
