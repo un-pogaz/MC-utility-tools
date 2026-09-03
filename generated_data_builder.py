@@ -303,6 +303,15 @@ def downloading_assets_files(temp):
             if a.startswith(p):
                 write_asset(a)
 
+def uniform_reports(temp):
+    items_json = os.path.join(temp, 'reports/items.json')
+    if os.path.exists(items_json) and '"components": [' in read_text(items_json):
+        j = read_json(items_json)
+        for k in j:
+            if 'components' in j[k] and isinstance(j[k]['components'], list):
+                j[k]['components'] = sorted(j[k]['components'], key=lambda x: x['type'])
+        write_json(items_json, j)
+
 
 class TBLpool:
     def __init__(self):
@@ -675,15 +684,6 @@ def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
     ]
     return _get_sub_folders(temp, 'data', lst_exlude)
 
-def uniform_reports(temp):
-    items_json = os.path.join(temp, 'reports/items.json')
-    if os.path.exists(items_json) and '"components": [' in read_text(items_json):
-        j = read_json(items_json)
-        for k in j:
-            if 'components' in j[k] and isinstance(j[k]['components'], list):
-                j[k]['components'] = sorted(j[k]['components'], key=lambda x: x['type'])
-        write_json(items_json, j)
-
 
 def no_end_0(num) -> str:
     return str(num).removesuffix('.0')
@@ -1038,20 +1038,6 @@ def lootcomment(name, entry):
     return ', '.join(comment)
 
 
-def listing_builtit_datapacks(temp):
-    lines = [namespace(dpn) for dpn, dp in get_datapack_paths(temp)[1:]]
-    if lines:
-        write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
-
-def listing_structures(temp):
-    lines = set()
-    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structure'], 'structure')
-    for dpn, ns, dp in all_dirs:
-        lines.update([namespace(filename(j), ns=ns) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp), recursive=True)])
-    if lines:
-        write_lines(os.path.join(temp, 'lists', dirname+'.nbt.txt'), sorted(lines))
-
-
 class Advancement:
     def __init__(self, file: str, json: dict):
         self.full_name = namespace(filename(file))
@@ -1209,6 +1195,18 @@ def listing_advancements(temp):
     if tree:
         write_json(os.path.join(temp, 'lists', os.path.basename(dir)+'.tree.json'), tree)
 
+def listing_builtit_datapacks(temp):
+    lines = [namespace(dpn) for dpn, dp in get_datapack_paths(temp)[1:]]
+    if lines:
+        write_lines(os.path.join(temp, 'lists', 'datapacks.txt'), sorted(lines))
+
+def listing_structures(temp):
+    lines = set()
+    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structure'], 'structure')
+    for dpn, ns, dp in all_dirs:
+        lines.update([namespace(filename(j), ns=ns) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp), recursive=True)])
+    if lines:
+        write_lines(os.path.join(temp, 'lists', dirname+'.nbt.txt'), sorted(lines))
 
 def listing_subdir_reports(temp):
     # subdir /reports/
