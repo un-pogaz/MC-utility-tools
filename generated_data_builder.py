@@ -202,6 +202,7 @@ def build_generated_data(args):
     
     async def assets_files_dl():
         downloading_assets_files(temp)
+        cache_assets_files(temp)
     run_animation(assets_files_dl, 'Downloading assets files')
     
     write_json(os.path.join(temp, version+'.json') , version_json)
@@ -276,17 +277,23 @@ def downloading_assets_json(temp):
     write_json(os.path.join(temp, 'assets.json'), assets_json)
     write_lines(os.path.join(temp, 'assets.txt'), sorted(assets_json['objects'].keys()))
 
+
+@lru_cache(maxsize=4)
+def get_assets_objects(temp) -> dict[str, str]:
+    return read_json(os.path.join(temp, 'assets.json'))['objects']
+
 def downloading_assets_files(temp):
-    assets = read_json(os.path.join(temp, 'assets.json'))['objects']
+    assets = get_assets_objects(temp)
     
     def write_asset(file):
-        if file in assets:
-            asset = assets[file]
-            file = os.path.join(temp, 'assets', file)
-            if not hash_test(asset['hash'], file):
-                safe_del(file)
-                make_dirname(file)
-                urlretrieve(asset['url'], file)
+        if not (object := assets.get(file)):
+            return
+        object = assets[file]
+        file = os.path.join(temp, 'assets', file)
+        if not hash_test(object['hash'], file):
+            safe_del(file)
+            make_dirname(file)
+            urlretrieve(object['url'], file)
     
     assets_dl = [
         'minecraft/sounds.json',
@@ -303,6 +310,29 @@ def downloading_assets_files(temp):
         for a in assets:
             if a.startswith(p):
                 write_asset(a)
+
+def cache_assets_files(temp):
+    assets = get_assets_objects(temp)
+    has_music = False
+    for k in get_languages_json(temp):
+        if k.startswith('music.'):
+            has_music = True
+    
+    for a in assets:
+        if has_music and a.startswith('minecraft/sounds/music/'):
+            cache_asset(temp, a)
+
+def cache_asset(temp, file):
+    assets = get_assets_objects(temp)
+    if not (object := assets.get(file)):
+        return None
+    
+    file = os.path.join(TEMP_DIR, 'cache/assets', object['hash'])
+    if not hash_test(object['hash'], file):
+        safe_del(file)
+        make_dirname(file)
+        urlretrieve(object['url'], file)
+    return file
 
 def uniform_reports(temp):
     items_json = os.path.join(temp, 'reports/items.json')
@@ -631,19 +661,7 @@ def seconds_to_human_duration(seconds):
 def human_duration_from_assets(temp, file):
     from mutagen.oggvorbis import OggVorbis
     
-    assets = read_json(os.path.join(temp, 'assets.json'))['objects']
-    def cache_asset(file):
-        if file in assets:
-            asset = assets[file]
-            file = os.path.join(TEMP_DIR, 'cache/assets', asset['hash'])
-            if not hash_test(asset['hash'], file):
-                safe_del(file)
-                make_dirname(file)
-                urlretrieve(asset['url'], file)
-            return file
-        return None
-    
-    with open(cache_asset(file), 'rb') as f:
+    with open(cache_asset(temp, file), 'rb') as f:
         ogg = OggVorbis(f)
         return seconds_to_human_duration(ogg.info.length)
 
@@ -2214,6 +2232,7 @@ def listing_sounds(temp):
         write_lines(os.path.join(temp, 'lists', 'sounds.ogg.txt'), sorted(full_lines))
 
 def listing_musics(temp):
+    cache_assets_files(temp)
     languages_json = get_languages_json(temp)
     musics = defaultdict(lambda:defaultdict(set))
     all_events = defaultdict(set)
