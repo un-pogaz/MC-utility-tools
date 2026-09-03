@@ -447,7 +447,7 @@ def get_legacy_paths(temp, dirs, default) -> tuple[str, list[tuple[str, str, str
     lst = set()
     for dir in dirs:
         lst.add(('', 'minecraft', f'assets/minecraft/{dir}'))
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace = get_namespaces_data(temp)
     for ns in lst_namespace:
         for dpn, dp in get_datapack_paths(temp):
             for dir in dirs:
@@ -683,6 +683,10 @@ def get_sub_folders_data(temp) -> tuple[list[str], list[str]]:
         'worldgen',
     ]
     return _get_sub_folders(temp, 'data', lst_exlude)
+
+def get_namespaces_data(temp) -> list[str]:
+    rslt, _ = get_sub_folders_data(temp)
+    return rslt
 
 
 def no_end_0(num) -> str:
@@ -1102,7 +1106,7 @@ def listing_advancements(temp):
         'assets/minecraft/advancements', # legacy
     ])
     
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace = get_namespaces_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
@@ -1995,7 +1999,7 @@ def listing_registries(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
     
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace = get_namespaces_data(temp)
     
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
@@ -2016,7 +2020,7 @@ def listing_registries(temp):
 
 def listing_paintings(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace = get_namespaces_data(temp)
     paintings = defaultdict(lambda:defaultdict(set))
     for ns in lst_namespace:
         for dpn, dp in get_datapack_paths(temp):
@@ -2046,7 +2050,7 @@ def listing_paintings(temp):
 
 def listing_jukebox_songs(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace = get_namespaces_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
     all_names = set()
     
@@ -2079,7 +2083,7 @@ def listing_jukebox_songs(temp):
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace, _ = get_sub_folders_data(temp)
+    lst_namespace = get_namespaces_data(temp)
     all_names = set()
     
     for ns in lst_namespace:
