@@ -422,15 +422,6 @@ def match_dir(temp, dirs) -> str:
             return rslt
     return None
 
-def dict_get(entry, keys, default=__DEFAULT) -> str:
-    for k in keys:
-        if k in entry:
-            return entry[k]
-    if default != __DEFAULT:
-        return default
-    raise KeyError(f'dict_get(): {list(keys)}')
-
-
 def get_datapack_paths(temp) -> list[tuple[str, str]]:
     sub_datapacks = 'data/minecraft/datapacks'
     rslt = [('', '')]
@@ -534,10 +525,22 @@ def unquoted_json(obj) -> str:
     # remove the quote around the name of the propety {name: "Value"}
     return re.sub(r'"([^":\\/]+)":', r'\1:', flat_json(obj))
 
-
-def str_to_json(text) -> dict|list:
+def str_to_json(text) -> dict | list:
     import json
     return json.loads(text)
+
+def dict_get(entry, keys, default=__DEFAULT) -> str:
+    for k in keys:
+        if k in entry:
+            return entry[k]
+    if default != __DEFAULT:
+        return default
+    raise KeyError(f'dict_get(): {list(keys)}')
+
+def strip_list(lst: list):
+    while lst and not lst[-1]:
+        lst.pop(-1)
+
 
 def enum_json(dir, is_tag=False, ns=None) -> list[str]:
     lst = glob.iglob('**/*.json', root_dir=dir, recursive=True)
@@ -590,8 +593,6 @@ def parse_json_text(json_text, languages_json, *, fallback=None) -> str | None:
     
     raise ValueError(f'parse_json_text(): Unknow json_text format: {json_text}')
 
-def no_end_0(num) -> str:
-    return str(num).removesuffix('.0')
 
 def seconds_to_human_duration(seconds):
     seconds = round(seconds)
@@ -634,9 +635,6 @@ def human_duration_from_assets(temp, file):
         ogg = OggVorbis(f)
         return seconds_to_human_duration(ogg.info.length)
 
-def strip_list(lst: list):
-    while lst and not lst[-1]:
-        lst.pop(-1)
 
 def _get_sub_folders(temp, subdir, exlude=None) -> tuple[list[str], list[str]]:
     exlude = exlude or []
@@ -686,6 +684,9 @@ def uniform_reports(temp):
                 j[k]['components'] = sorted(j[k]['components'], key=lambda x: x['type'])
         write_json(items_json, j)
 
+
+def no_end_0(num) -> str:
+    return str(num).removesuffix('.0')
 
 def mcrange(name, entry, limit=None) -> str:
     if isinstance(entry, (int, float)):
@@ -1207,6 +1208,7 @@ def listing_advancements(temp):
         write_lines(os.path.join(temp, 'lists', os.path.basename(dir)+'.tree.txt'), lines)
     if tree:
         write_json(os.path.join(temp, 'lists', os.path.basename(dir)+'.tree.json'), tree)
+
 
 def listing_subdir_reports(temp):
     # subdir /reports/
