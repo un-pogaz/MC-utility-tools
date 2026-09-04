@@ -29,7 +29,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 49, 0)
+VERSION = (0, 49, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
@@ -510,7 +510,7 @@ def write_serialize_nbt(temp):
         if writed:
             write_text(
                 os.path.join(temp, dir_snbt, '!!readme.txt'),
-                SERIALIZE_NBT_README.format(dirname)
+                SERIALIZE_NBT_README.format(dirname+'.snbt')
             )
 
 SERIALIZE_NBT_README = """\
