@@ -171,7 +171,7 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if args:
         for a in args:
-            print('>> '+os.path.basename(a))
+            print('>> '+os.path.basename(os.path.abspath(a)))
             package_datapack(a)
             print()
     
