@@ -37,7 +37,7 @@ parser.add_argument('-v', '--version', help='Target version ; the version must b
 parser.add_argument('-q', '--quiet', help='Execute without any user interaction. Require --version or --manifest-json.', action='store_true')
 parser.add_argument('-f', '--overwrite', help='Overwrite on the existing output folder.', action='store_true')
 
-parser.add_argument('-z', '--zip', help="Empack the folder in a zip after it's creation", action='store_true', default=None)
+parser.add_argument('--zip', help="Empack the folder in a zip after it's creation", action='store_true', default=None)
 parser.add_argument('--no-zip', dest='zip', help="Don't ask for empack the folder in a zip", action='store_false')
 
 parser.add_argument('-o', '--output', help='Output folder', type=pathlib.Path)
