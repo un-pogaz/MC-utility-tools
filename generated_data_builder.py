@@ -29,7 +29,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 49, 1)
+VERSION = (0, 49, 2)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
@@ -42,6 +42,7 @@ parser.add_argument('--no-zip', dest='zip', help="Don't ask for empack the folde
 
 parser.add_argument('-o', '--output', help='Output folder', type=pathlib.Path)
 parser.add_argument('--manifest-json', help='Local JSON manifest file of the target version.', type=pathlib.Path)
+parser.add_argument('--assets-folder', help='Folder to use as cache for the assets. If not specified, use a temporary folder.', type=pathlib.Path)
 
 # ruff: noqa: ASYNC221
 
@@ -85,6 +86,7 @@ def main(args):
     return error
 
 TEMP_DIR = os.path.abspath(os.path.join(gettempdir(), 'MC_Generated_data'))
+ASSETS_CACHE = os.path.join(TEMP_DIR, 'cache/assets')
 __DEFAULT = object
 
 def build_generated_data(args):
@@ -92,6 +94,10 @@ def build_generated_data(args):
     import subprocess
     import zipfile
     from datetime import datetime
+    
+    global ASSETS_CACHE
+    ASSETS_CACHE = os.path.abspath(args.assets_folder or os.path.join(TEMP_DIR, 'cache/assets'))
+    
     
     version = get_latest(args.version, args.manifest_json)
     
@@ -325,7 +331,7 @@ def cache_asset(temp, file):
     assets = get_assets_objects(temp)
     if not (obj := assets.get(file)):
         return None
-    file = os.path.join(TEMP_DIR, 'cache/assets', obj['hash'])
+    file = os.path.join(ASSETS_CACHE, 'objects', obj['hash'][:2], obj['hash'])
     if not hash_test(obj['hash'], file):
         safe_del(file)
         make_dirname(file)
