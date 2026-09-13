@@ -89,14 +89,18 @@ TEMP_DIR = os.path.abspath(os.path.join(gettempdir(), 'MC_Generated_data'))
 ASSETS_CACHE = os.path.join(TEMP_DIR, 'cache/assets')
 __DEFAULT = object
 
+def set_assets_cache(folder):
+    global ASSETS_CACHE
+    ASSETS_CACHE = os.path.abspath(folder or os.path.join(TEMP_DIR, 'cache/assets'))
+    return ASSETS_CACHE
+
 def build_generated_data(args):
     import shutil
     import subprocess
     import zipfile
     from datetime import datetime
     
-    global ASSETS_CACHE
-    ASSETS_CACHE = os.path.abspath(args.assets_folder or os.path.join(TEMP_DIR, 'cache/assets'))
+    set_assets_cache(args.assets_folder)
     
     
     version = get_latest(args.version, args.manifest_json)
