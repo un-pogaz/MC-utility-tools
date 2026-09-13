@@ -1641,6 +1641,36 @@ def listing_worldgens(temp):
         write_lines(os.path.join(temp, 'lists/worldgen', 'biome.txt'), sorted(enum_json(dir)))
         biomes_list(dir)
 
+def listing_biome_parameters(temp):
+    # it work, but it's not a satisfying data to append
+    
+    dir = match_dir(temp, [
+        'reports/biome_parameters',
+        'worldgen/minecraft/dimension',
+        'reports/worldgen/minecraft/dimension',
+    ])
+    
+    def parse(file):
+        import json
+        import re
+        name = filename(file)
+        data = read_json(os.path.join(temp, dir, file))
+        rslt = defaultdict(list)
+        if 'biomes' in data:
+            biomes = data["biomes"]
+        else:
+            biomes = data["generator"]["biome_source"].get("biomes")
+            if biomes is None:
+                return
+        for b in biomes:
+            rslt[b["biome"]].append(b["parameters"])
+        text = json.dumps(rslt, indent=2)
+        text = re.sub(r'\[\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\s*\]', r'[\1, \2]', text)
+        write_text(os.path.join(temp, 'lists/biome_parameters', f'{name}.biomes.json'), text)
+    
+    for file in glob.iglob('**/*.json', root_dir=os.path.join(temp, dir), recursive=True):
+        parse(file)
+
 def listing_blocks(temp):
     def mcrange(name, entry):
         type_name = flat_type(entry)
@@ -2600,6 +2630,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_advancements,
     listing_loot_tables,
     listing_worldgens,
+    listing_biome_parameters,
     listing_blocks,
     listing_items,
     listing_packets,
