@@ -29,7 +29,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 49, 2)
+VERSION = (0, 50, 0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
@@ -1837,6 +1837,8 @@ def write_components_data(temp, output_dir, src_data):
         'tooltip_display',
         'swing_animation',
         'use_effects',
+        'attack_animation',
+        'interact_animation',
     ]
     components_grouped_value = [
         'max_stack_size',
