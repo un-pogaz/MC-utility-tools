@@ -45,44 +45,6 @@ def iglob(pathname: str, recursive: bool, root_dir: str):
         yield path.replace('\\', '/').strip('/')
 
 
-def tag_list_generator_data(work_dir, output_dir, *, version_target=None):
-    '''
-    Module:Tag_list_generator
-    Module:Tag_list_generator/data.json
-    '''
-    
-    rslt = defaultdict(lambda: defaultdict(set[str]))
-    rslt.update(COMMENT_INFO)
-    rslt['__comment_module1'] = 'data for Module:Tag_list_generator'
-    rslt['__comment_module2'] = 'listing of tag used in others tags'
-    if version_target:
-        rslt['__comment_version'] = version_target
-    
-    os.makedirs(output_dir, exist_ok=True)
-    tags_dir = os.path.join(work_dir, 'data/minecraft/tags')
-    types = []
-    types.extend(iglob('*/', False, tags_dir))
-    types.remove('worldgen')
-    types.extend(iglob('worldgen/*/', False, tags_dir))
-    
-    for type in types:
-        for tag in iglob('**/*.json', True, os.path.join(tags_dir, type)):
-            name = os.path.splitext(tag)[0]
-            for e in read_json(os.path.join(tags_dir, type, tag)).get('values', []):
-                if e.startswith('#'):
-                    rslt[type][e[1:].replace('minecraft:', '')].add(name)
-    
-    for type,content in list(rslt.items()):
-        if not isinstance(content, dict):
-            continue
-        for tag,values in content.items():
-            content[tag] = sorted(values)
-        if '/' in type:
-            rslt[type.rsplit('/', maxsplit=1)[1]] = content
-    
-    write_json(os.path.join(output_dir, 'Tag_list_generator.json'), rslt, sort_keys=True)
-
-
 def write_tag_template(tag_output_dir, name, type, entrys, *, version_target=None):
     upcoming = ''
     if version_target and (match := re.search(r'(^\d+\.\d+)-', version_target)):
@@ -345,9 +307,6 @@ def main(
         args_error('The target path was not recognized.')
     
     os.makedirs(output, exist_ok=True)
-    
-    prints('Module:Tag_list_generator...')
-    tag_list_generator_data(work_dir, output)
     
     prints('Generation Tag_list template...')
     tag_list_generator_template(work_dir, output)
