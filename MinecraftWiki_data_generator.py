@@ -48,7 +48,7 @@ def iglob(pathname: str, recursive: bool, root_dir: str):
 def write_tag_template(tag_output_dir, name, type, entrys, *, version_target=None):
     upcoming = ''
     if version_target and (match := re.search(r'(^\d+\.\d+)-', version_target)):
-        upcoming = '{{upcoming|'+ match.group(1) +'}}'
+        upcoming = '{{upcoming|je '+ match.group(1) +'}}'
     
     def parse(entry):
         return '|' + entry.replace('minecraft:', '')
@@ -57,7 +57,7 @@ def write_tag_template(tag_output_dir, name, type, entrys, *, version_target=Non
     lines.append(f'=== {name} ===')
     lines.append('{{Info needed}}')
     lines.append('')
-    lines.append('{{'+f'tag_list|{name}{upcoming}|type={type_name}')
+    lines.append('{{'+f'tag_list|{name}{upcoming}|type={type_name}|sprite=|sprite_id=')
     lines.extend(map(parse, entrys))
     lines.append('}}')
     write_lines(os.path.join(tag_output_dir, type, f'{name}.wiki'), lines)
