@@ -9,6 +9,7 @@ __license__   = 'GPL v3'
 import argparse
 import glob
 import os
+import re
 import shutil
 import zipfile
 from collections import defaultdict
@@ -82,7 +83,11 @@ def tag_list_generator_data(work_dir, output_dir, *, version_target=None):
     write_json(os.path.join(output_dir, 'Tag_list_generator.json'), rslt, sort_keys=True)
 
 
-def write_tag_template(tag_output_dir, name, type, entrys):
+def write_tag_template(tag_output_dir, name, type, entrys, *, version_target=None):
+    upcoming = ''
+    if version_target and (match := re.search(r'(^\d+\.\d+)-', version_target)):
+        upcoming = '{{upcoming|'+ match.group(1) +'}}'
+    
     def parse(entry):
         return '|' + entry.replace('minecraft:', '')
     type_name = type.split('/')[-1]
@@ -90,12 +95,12 @@ def write_tag_template(tag_output_dir, name, type, entrys):
     lines.append(f'=== {name} ===')
     lines.append('{{Info needed}}')
     lines.append('')
-    lines.append('{{'+f'tag_list|{name}|type={type_name}')
+    lines.append('{{'+f'tag_list|{name}{upcoming}|type={type_name}')
     lines.extend(map(parse, entrys))
     lines.append('}}')
     write_lines(os.path.join(tag_output_dir, type, f'{name}.wiki'), lines)
 
-def _tag_list_generator_template(output_dir, iterator):
+def _tag_list_generator_template(output_dir, iterator, *, version_target=None):
     tag_output_dir = os.path.join(output_dir, 'tags')
     try:
         shutil.rmtree(tag_output_dir)
@@ -104,9 +109,9 @@ def _tag_list_generator_template(output_dir, iterator):
     os.makedirs(tag_output_dir, exist_ok=True)
     
     for type, name, entrys in iterator():
-        write_tag_template(tag_output_dir, name, type, entrys)
+        write_tag_template(tag_output_dir, name, type, entrys, version_target=version_target)
 
-def tag_list_generator_template(work_dir, output_dir):
+def tag_list_generator_template(work_dir, output_dir, *, version_target=None):
     
     def func():
         tags_dir = os.path.join(work_dir, 'data/minecraft/tags')
@@ -120,9 +125,9 @@ def tag_list_generator_template(work_dir, output_dir):
                 entrys = read_json(os.path.join(tags_dir, type, tag)).get('values', [])
                 yield type, name, entrys
     
-    _tag_list_generator_template(output_dir, func)
+    _tag_list_generator_template(output_dir, func, version_target=version_target)
 
-def tag_list_generator_template_data(work_dir, output_dir):
+def tag_list_generator_template_data(work_dir, output_dir, *, version_target=None):
     
     def func():
         tags_dir = os.path.join(work_dir, 'lists/tags')
@@ -136,7 +141,7 @@ def tag_list_generator_template_data(work_dir, output_dir):
                 entrys = read_lines(os.path.join(tags_dir, type, tag))
                 yield type, name, entrys
     
-    _tag_list_generator_template(output_dir, func)
+    _tag_list_generator_template(output_dir, func, version_target=version_target)
 
 
 def translation_test(work_dir, output_dir, languages=None, *, version_target=None):
