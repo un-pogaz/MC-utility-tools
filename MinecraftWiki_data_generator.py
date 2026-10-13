@@ -304,7 +304,6 @@ def main(
     output: str | None=None,
     *,
     silent=False,
-    version_target: str | None=None,
     languages: list[str] | None=None,
     ):
     if not output:
@@ -348,13 +347,13 @@ def main(
     os.makedirs(output, exist_ok=True)
     
     prints('Module:Tag_list_generator...')
-    tag_list_generator_data(work_dir, output, version_target=version_target)
+    tag_list_generator_data(work_dir, output)
     
     prints('Generation Tag_list template...')
     tag_list_generator_template(work_dir, output)
     
     # prints('Translation Test...')
-    # translation_test(work_dir, output, languages, version_target=version_target)
+    # translation_test(work_dir, output, languages)
     
     ## clean-up
     try:
