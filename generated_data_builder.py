@@ -29,7 +29,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 50, 0)
+VERSION = (0, 50, 1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
@@ -1989,25 +1989,56 @@ def listing_commands(temp):
                     # raise error if unknown specific case
                     raise ValueError(f'listing_commands(): Type {type_name!r} with invalide value in commands {name!r}.')
                 
-                type = entry.get('parser', '')
-                if type:
-                    type = namespace(type)
-                    argument_type.add(type)
-                    type = ' '+type
+                if 'argument' in entry:
+                    type, properties = parse_argument(entry['argument'])
+                else:
+                    type = entry.get('parser', '')
+                    if type:
+                        type = namespace(type)
+                        argument_type.add(type)
+                        type = ' '+type
+                    properties = []
+                    for k,v in entry.get('properties', {}).items():
+                        properties.append(f'{k}="{v}"')
                 
-                properties = []
-                for k,v in entry.get('properties', {}).items():
-                    properties.append(k+'="'+str(v)+'"')
-                
+                suggestion = parse_suggestion(entry)
                 if properties:
                     properties = '['+', '.join(properties)+']'
                 else:
                     properties = ''
                 
-                return '<'+value+type+properties+'>'
+                return f'<{value}{type}{properties}{suggestion}>'
             
             case _:
                 raise ValueError(f'listing_commands(): Unknow type {type_name!r} in commands {name!r}.')
+    
+    def parse_argument(entry):
+        type_full = entry.pop('type')
+        type_name = flatering(type_full)
+        rslt = []
+        for k,v in entry.items():
+            if isinstance(v, bool):
+                rslt.append(f'{k}={str(v).lower()}')
+            elif isinstance(v, (str, int, float)):
+                rslt.append(f'{k}="{v}"')
+            else:
+                t = type(v).__name__
+                raise TypeError(f'listing_commands(): Unknow type {t} for {type_name!r} argument in commands {name!r}.')
+        return ' '+type_full, rslt
+    
+    def parse_suggestion(entry):
+        entry = entry.get('custom_suggestion')
+        if not entry:
+            return ''
+        rslt = None
+        type_name = flat_type(entry)
+        if len(entry) == 1:
+            rslt = type_name
+        if type_name == 'literal':
+            rslt = '['+ '|'.join(entry['values'])+']'
+        if not rslt:
+            raise ValueError(f'listing_commands(): Unknow suggestion type {type_name!r} in commands {name!r}.')
+        return f'(suggestion={rslt})'
     
     def parse_permissions(entry, parent_level):
         rslt = parent_level
@@ -2015,7 +2046,11 @@ def listing_commands(temp):
             rslt = entry['required_level']
         if 'permissions' in entry:
             p = entry['permissions']
-            error = ValueError(f'Invalid permissions entry: {p}')
+            error = ValueError(f'Invalid permissions entry {p!r} in commands {name!r}.')
+            if flat_type(p) == 'always_pass':
+                if len(p) != 1:
+                    raise error
+                return parent_level
             if len(p) != 2 or 'permission' not in p or flat_type(p) != 'require':
                 raise error
             p = p['permission']
@@ -2045,8 +2080,20 @@ def listing_commands(temp):
                 build = base +' '+ get_argument(k, v)
                 rslt.extend(get_syntaxes(build, v, level))
         
+        allow_keys = {
+            'type',
+            'executable',
+            'children',
+            'parser',
+            'properties',
+            'redirect',
+            'required_level',
+            'permissions',
+            'argument',
+            'custom_suggestion',
+        }
         for k in entry:
-            if k not in ['type', 'executable', 'children', 'parser', 'properties', 'redirect', 'required_level', 'permissions']:
+            if k not in allow_keys:
                 raise ValueError(f'listing_commands(): Additional key {k!r} in commands {name!r}.')
         
         return rslt
