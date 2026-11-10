@@ -350,6 +350,20 @@ def uniform_reports(temp):
             if 'components' in j[k] and isinstance(j[k]['components'], list):
                 j[k]['components'] = sorted(j[k]['components'], key=lambda x: x['type'])
         write_json(items_json, j)
+    
+    path = os.path.join(temp, 'reports/loot_context_requirements.json')
+    lcr = read_json(path)
+    edited = False
+    for k,v in lcr.items():
+        for kk,vv in v.items():
+            if kk not in {'allowed', 'required'}:
+                raise KeyError(f"Unknow key in 'loot_context_requirements.json': {kk}")
+            new = sorted(vv)
+            if vv != new:
+                v[kk] = new
+                edited = True
+    if edited:
+        write_json(path, lcr)
 
 
 class TBLpool:
@@ -2640,6 +2654,29 @@ def listing_villager_trades(temp):
                 
                 write_lines(os.path.join(temp, 'lists/villager_trades', name_dp(name, dpn) + '.txt'), lines)
 
+def loot_context_requirements(temp):
+    rj = read_json(os.path.join(temp, 'reports/loot_context_requirements.json'))
+    if rj:
+        write_lines(os.path.join(temp, 'lists', 'loot_context_requirements.txt'), sorted(rj.keys()))
+    
+    for name, data in rj.items():
+        write_json(os.path.join(temp, 'lists/loot_context_requirements', flatering(name)+'.json'), data)
+        required = data.get('required', [])
+        lst1 = []
+        lst2 = []
+        for e in data['allowed']:
+            lst = lst1 if e in required else lst2
+            lst.append(e)
+        lines = []
+        for k,v in [('required', lst1), ('allowed', lst2)]:
+            if not v:
+                continue
+            if lines:
+                lines.append('')
+            lines.append(f'[{k}]')
+            lines.extend(sorted(v))
+        write_lines(os.path.join(temp, 'lists/loot_context_requirements', flatering(name)+'.txt'), lines)
+
 
 listing_various_functions: list[Callable[[str], None]] = [
     listing_builtit_datapacks,
@@ -2667,6 +2704,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_rpc_api_schema,
     listing_timelines,
     listing_villager_trades,
+    loot_context_requirements,
 ]
 def listing_various_data(temp):
     for func in listing_various_functions:
