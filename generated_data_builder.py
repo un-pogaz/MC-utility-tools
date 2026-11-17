@@ -9,6 +9,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from functools import lru_cache
 from tempfile import gettempdir
+from typing import NamedTuple
 
 from common import (
     find_output,
@@ -492,6 +493,41 @@ def get_datapack_paths(temp) -> list[tuple[str, str]]:
         rslt.append((dp.strip('\\/'), os.path.join(sub_datapacks, dp)))
     return rslt
 
+@lru_cache(maxsize=4)
+def get_namespace_datapacks(temp) -> list[tuple[str, str, str]]:
+    rslt = []
+    lst_namespace = get_namespaces_data(temp)
+    for ns in lst_namespace:
+        for dpn, dp in get_datapack_paths(temp):
+            rslt.append((ns, dpn, dp))
+    return rslt
+
+class NameJson(NamedTuple):
+    ns: str
+    dpn: str
+    dp: str
+    path: str
+    name: str
+    ns_name: str
+    name_dp: str
+
+def iter_namespace_json(temp, subdir) -> list[NameJson]:
+    rslt = []
+    for ns, dpn, dp in get_namespace_datapacks(temp):
+        dir = os.path.join(temp, dp, 'data', ns, subdir)
+        for js in glob.iglob('**/*.json', root_dir=dir, recursive=True):
+            name=filename(js)
+            rslt.append(NameJson(
+                ns=ns,
+                dpn=dpn,
+                dp=dp,
+                path=os.path.join(dir, js),
+                name=name,
+                ns_name=namespace(name, ns=ns),
+                name_dp=name_dp(name, dpn),
+            ))
+    return rslt
+
 def name_dp(name: str, dpn: str) -> str:
     if dpn:
         return name + '{'+ dpn +'}'
@@ -501,11 +537,9 @@ def get_legacy_paths(temp, dirs, default) -> tuple[str, list[tuple[str, str, str
     lst = set()
     for dir in dirs:
         lst.add(('', 'minecraft', f'assets/minecraft/{dir}'))
-    lst_namespace = get_namespaces_data(temp)
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            for dir in dirs:
-                lst.add((dpn, ns, os.path.join(dp, 'data', ns, dir)))
+    for ns, dpn, dp in get_namespace_datapacks(temp):
+        for dir in dirs:
+            lst.add((dpn, ns, os.path.join(dp, 'data', ns, dir)))
     
     dirname = default
     rslt = []
@@ -1160,17 +1194,15 @@ def listing_advancements(temp):
         'assets/minecraft/advancements', # legacy
     ])
     
-    lst_namespace = get_namespaces_data(temp)
     entries = set()
     tags = set()
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'),      ns=ns))
-            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
-            # legacy
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         'advancements'), ns=ns))
-            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', 'advancements'), ns=ns, is_tag=True))
+    for ns, dpn, dp in get_namespace_datapacks(temp):
+        entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'),      ns=ns))
+        tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
+        # legacy
+        entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         'advancements'), ns=ns))
+        tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', 'advancements'), ns=ns, is_tag=True))
     
     recipes = {e for e in entries if ':recipes/' in e}
     entries.difference_update(recipes)
@@ -1292,8 +1324,6 @@ def listing_subdir_reports(temp):
 
 def listing_special_subdirs(temp):
     # special subdir (not in registries)
-    lst_namespace, lst_subdir = get_sub_folders_data(temp)
-    
     lst = get_datapacks_entrys(temp)
     if lst:
         lst_subdir = []
@@ -1304,10 +1334,9 @@ def listing_special_subdirs(temp):
     for subdir in lst_subdir:
         entries = set()
         tags = set()
-        for ns in lst_namespace:
-            for dpn, dp in get_datapack_paths(temp):
-                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         subdir), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
+        for ns, dpn, dp in get_namespace_datapacks(temp):
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         subdir), ns=ns))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
@@ -1606,15 +1635,13 @@ def listing_worldgens(temp):
             case 'worldgen/biome':
                 biomes_list(subdir)
     
-    lst_namespace = get_namespaces_data(temp)
     for dir in lst_dirs:
         entries = set()
         tags = set()
-        for ns in lst_namespace:
-            for dpn, dp in get_datapack_paths(temp):
-                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         dir), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', dir), ns=ns, is_tag=True))
-                listing_subdir(dir, os.path.join(temp, dp, 'data', ns, dir))
+        for ns, dpn, dp in get_namespace_datapacks(temp):
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         dir), ns=ns))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', dir), ns=ns, is_tag=True))
+            listing_subdir(dir, os.path.join(temp, dp, 'data', ns, dir))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', dir+'.txt'), lines)
@@ -2148,8 +2175,6 @@ def listing_registries(temp):
     if lines:
         write_lines(os.path.join(temp, 'lists', 'registries.txt'), sorted(lines))
     
-    lst_namespace = get_namespaces_data(temp)
-    
     for k,v in read_json(os.path.join(temp, 'reports/registries.json')).items():
         name = flatering(k)
         
@@ -2157,41 +2182,34 @@ def listing_registries(temp):
         tags = set()
         entries.update([namespace(k) for k in v['entries']])
         
-        for ns in lst_namespace:
-            for dpn, dp in get_datapack_paths(temp):
-                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name), ns=ns, is_tag=True))
-                # legacy
-                entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name+'s'), ns=ns))
-                tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name+'s'), ns=ns, is_tag=True))
+        for ns, dpn, dp in get_namespace_datapacks(temp):
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name), ns=ns))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name), ns=ns, is_tag=True))
+            # legacy
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name+'s'), ns=ns))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name+'s'), ns=ns, is_tag=True))
         
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
 
 def listing_paintings(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace = get_namespaces_data(temp)
     paintings = defaultdict(lambda:defaultdict(set))
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            dir = os.path.join(temp, dp, 'data', ns, 'painting_variant')
-            for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-                name = filename(file)
-                ns_name = namespace(name, ns=ns)
-                j = read_json(os.path.join(dir, file))
-                title = parse_json_text(j.get('title'), languages_json, fallback=f'painting.{ns}.{name}.title')
-                author_id = f'painting.{ns}.{name}.author'
-                author = parse_json_text(j.get('author'), languages_json, fallback=author_id)
-                if author == author_id:
-                    author = 'unknow'
-                size = '{}x{}'.format(j['width'], j['height'])
-                paintings['authors'][author].add(ns_name)
-                paintings['sizes'][size].add(ns_name)
-                lines = []
-                lines.append('texture: '+ namespace(j['asset_id']))
-                lines.append('name: '+ title)
-                lines.append('author: '+ author)
-                lines.append('size: '+ size)
-                write_lines(os.path.join(temp, 'lists/paintings', name)+'.txt', lines)
+    for js in iter_namespace_json(temp, 'painting_variant'):
+        j = read_json(js.path)
+        title = parse_json_text(j.get('title'), languages_json, fallback=f'painting.{js.ns}.{js.name}.title')
+        author_id = f'painting.{js.ns}.{js.name}.author'
+        author = parse_json_text(j.get('author'), languages_json, fallback=author_id)
+        if author == author_id:
+            author = 'unknow'
+        size = '{}x{}'.format(j['width'], j['height'])
+        paintings['authors'][author].add(js.ns_name)
+        paintings['sizes'][size].add(js.ns_name)
+        lines = []
+        lines.append('texture: '+ namespace(j['asset_id']))
+        lines.append('name: '+ title)
+        lines.append('author: '+ author)
+        lines.append('size: '+ size)
+        write_lines(os.path.join(temp, 'lists/paintings', js.name)+'.txt', lines)
     
     for k,v in paintings.items():
         for kk,vv in v.items():
@@ -2199,30 +2217,24 @@ def listing_paintings(temp):
 
 def listing_jukebox_songs(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace = get_namespaces_data(temp)
     jukebox_songs = defaultdict(lambda:defaultdict(set))
     all_names = set()
     
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            dir = os.path.join(temp, dp, 'data', ns, 'jukebox_song')
-            for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-                name = filename(file)
-                ns_name = namespace(name, ns=ns)
-                j = read_json(os.path.join(dir, file))
-                desc = parse_json_text(j.get('description'), languages_json, fallback=f'jukebox_song.{ns}.{name}')
-                all_names.add(desc)
-                author, _, title = desc.partition(' - ')
-                if not title:
-                    raise ValueError(f"listing_jukebox_songs(): The jukebox_song {name!r} don't use 'author - title' pairs.")
-                jukebox_songs['authors'][author].add(ns_name)
-                jukebox_songs['comparator_output'][str(j['comparator_output'])].add(ns_name)
-                lines = []
-                lines.append('sound_event: '+ namespace(j['sound_event']))
-                lines.append('title: '+ title)
-                lines.append('author: '+ author)
-                lines.append('length: '+ seconds_to_human_duration(j['length_in_seconds']))
-                write_lines(os.path.join(temp, 'lists/jukebox_songs', name)+'.txt', lines)
+    for js in iter_namespace_json(temp, 'jukebox_song'):
+        j = read_json(js.path)
+        desc = parse_json_text(j.get('description'), languages_json, fallback=f'jukebox_song.{js.ns}.{js.name}')
+        all_names.add(desc)
+        author, _, title = desc.partition(' - ')
+        if not title:
+            raise ValueError(f"listing_jukebox_songs(): The jukebox_song {js.name!r} don't use 'author - title' pairs.")
+        jukebox_songs['authors'][author].add(js.ns_name)
+        jukebox_songs['comparator_output'][str(j['comparator_output'])].add(js.ns_name)
+        lines = []
+        lines.append('sound_event: '+ namespace(j['sound_event']))
+        lines.append('title: '+ title)
+        lines.append('author: '+ author)
+        lines.append('length: '+ seconds_to_human_duration(j['length_in_seconds']))
+        write_lines(os.path.join(temp, 'lists/jukebox_songs', js.name_dp)+'.txt', lines)
     
     for k,v in jukebox_songs.items():
         for kk,vv in v.items():
@@ -2232,23 +2244,18 @@ def listing_jukebox_songs(temp):
 
 def listing_instruments(temp):
     languages_json = get_languages_json(temp)
-    lst_namespace = get_namespaces_data(temp)
     all_names = set()
     
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            dir = os.path.join(temp, dp, 'data', ns, 'instrument')
-            for file in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-                name = filename(file)
-                j = read_json(os.path.join(dir, file))
-                desc = parse_json_text(j.get('description'), languages_json, fallback=f'instrument.{ns}.{name}')
-                all_names.add(desc)
-                lines = []
-                lines.append('sound_event: '+ namespace(j['sound_event']))
-                lines.append('description: '+ desc)
-                lines.append('range: '+ no_end_0(j['range'])+ ' block')
-                lines.append('length: '+ seconds_to_human_duration(j['use_duration']))
-                write_lines(os.path.join(temp, 'lists/instruments', name)+'.txt', lines)
+    for js in iter_namespace_json(temp, 'instrument'):
+        j = read_json(js.path)
+        desc = parse_json_text(j.get('description'), languages_json, fallback=f'instrument.{js.ns}.{js.name}')
+        all_names.add(desc)
+        lines = []
+        lines.append('sound_event: '+ namespace(j['sound_event']))
+        lines.append('description: '+ desc)
+        lines.append('range: '+ no_end_0(j['range'])+ ' block')
+        lines.append('length: '+ seconds_to_human_duration(j['use_duration']))
+        write_lines(os.path.join(temp, 'lists/instruments', js.name_dp)+'.txt', lines)
     
     if all_names:
         write_lines(os.path.join(temp, 'lists/instruments.names.txt'), sorted(all_names))
@@ -2580,24 +2587,17 @@ def listing_timelines(temp):
             lines.extend(sorted(v))
         return widths['r'], widths['l'], lines, lines_csv, lines_md
     
-    lst_namespace, _ = get_sub_folders_assets(temp)
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            dir = os.path.join(temp, dp, 'data', ns, 'timeline')
-            for f in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-                data = read_json(os.path.join(dir, f))
-                
-                width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
-                _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
-                
-                name = filename(f)
-                write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.txt'), lines)
-                write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.csv'), lines_csv)
-                write_lines(os.path.join(temp, 'lists/timelines/', name_dp(name, dpn) + '.md'), lines_md)
+    for js in iter_namespace_json(temp, 'timeline'):
+        data = read_json(js.path)
+        
+        width_right, width_left, _, _, _ = explore_data(data, 0, 0)  # iter once for get the collums width
+        _, _, lines, lines_csv, lines_md = explore_data(data, width_right, width_left)  # iter second for get the correct lines
+        
+        write_lines(os.path.join(temp, 'lists/timelines/', js.name_dp + '.txt'), lines)
+        write_lines(os.path.join(temp, 'lists/timelines/', js.name_dp + '.csv'), lines_csv)
+        write_lines(os.path.join(temp, 'lists/timelines/', js.name_dp + '.md'), lines_md)
 
 def listing_villager_trades(temp):
-    lst_namespace, _ = get_sub_folders_assets(temp)
-    
     def slot(tname, item, is_book=None):
         name = flatering(item['id'])
         count = item.get('count', 1.0)
@@ -2622,40 +2622,36 @@ def listing_villager_trades(temp):
             return f'{name}{components}'
         return f'{name}{components} x{count}'
     
-    for ns in lst_namespace:
-        for dpn, dp in get_datapack_paths(temp):
-            dir = os.path.join(temp, dp, 'data', ns, 'villager_trade')
-            for f in glob.iglob('**/*.json', root_dir=dir, recursive=True):
-                data = read_json(os.path.join(dir, f))
-                name = filename(f)
-                lines = []
-                wants = []
-                gives = slot(name, data['gives'])
-                is_book = gives.startswith('enchanted_book')
-                for item in (data['wants'], data.get('additional_wants', {})):
-                    if not item:
-                        continue
-                    wants.append(slot(name, item, is_book=is_book))
-                lines.append('wants: ' + ', '.join(wants))
-                
-                comment = lootcomment(name, data)
-                if comment:
-                    lines.append(f'gives: {gives} {{{comment}}}')
-                else:
-                    lines.append(f'gives: {gives}')
-                lines.append('xp: ' + str(int(data.get('xp', 1))))
-                lines.append('max use: ' + str(int(data.get('max_uses', 4))))
-                lines.append('reputation discount: ' + str(data.get('reputation_discount', 0.0)))
-                
-                double_enchantments = data.get('double_trade_price_enchantments')
-                if double_enchantments:
-                    lines.append('double price enchantments: ' + double_enchantments)
-                    
-                merchant_predicate = data.get('merchant_predicate')
-                if merchant_predicate:
-                    lines.append('condition: ' + lootcomment(name, {'conditions': [merchant_predicate]}))
-                
-                write_lines(os.path.join(temp, 'lists/villager_trades', name_dp(name, dpn) + '.txt'), lines)
+    for js in iter_namespace_json(temp, 'villager_trade'):
+        data = read_json(js.path)
+        lines = []
+        wants = []
+        gives = slot(js.name, data['gives'])
+        is_book = gives.startswith('enchanted_book')
+        for item in (data['wants'], data.get('additional_wants', {})):
+            if not item:
+                continue
+            wants.append(slot(js.name, item, is_book=is_book))
+        lines.append('wants: ' + ', '.join(wants))
+        
+        comment = lootcomment(js.name, data)
+        if comment:
+            lines.append(f'gives: {gives} {{{comment}}}')
+        else:
+            lines.append(f'gives: {gives}')
+        lines.append('xp: ' + str(int(data.get('xp', 1))))
+        lines.append('max use: ' + str(int(data.get('max_uses', 4))))
+        lines.append('reputation discount: ' + str(data.get('reputation_discount', 0.0)))
+        
+        double_enchantments = data.get('double_trade_price_enchantments')
+        if double_enchantments:
+            lines.append('double price enchantments: ' + double_enchantments)
+            
+        merchant_predicate = data.get('merchant_predicate')
+        if merchant_predicate:
+            lines.append('condition: ' + lootcomment(js.name, {'conditions': [merchant_predicate]}))
+        
+        write_lines(os.path.join(temp, 'lists/villager_trades', js.name_dp + '.txt'), lines)
 
 def listing_loot_context_requirements(temp):
     rj = read_json(os.path.join(temp, 'reports/loot_context_requirements.json'))
