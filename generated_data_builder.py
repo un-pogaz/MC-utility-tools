@@ -30,7 +30,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 50, 1)
+VERSION = (0, 50, 2)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
@@ -2676,6 +2676,17 @@ def listing_loot_context_requirements(temp):
             lines.extend(sorted(v))
         write_lines(os.path.join(temp, 'lists/loot_context_requirements', flatering(name)+'.txt'), lines)
 
+def listing_dispense_behaviors(temp):
+    for js in iter_namespace_json(temp, 'dispense_behavior'):
+        lines = []
+        for e in read_json(js.path):
+            name = e.pop('type')
+            if e:
+                name += '  {{data}}'
+            lines.append(name)
+        if not lines:
+            lines.append('[]')
+        write_lines(os.path.join(temp, 'lists/dispense_behaviors', js.name_dp + '.txt'), lines)
 
 listing_various_functions: list[Callable[[str], None]] = [
     listing_builtit_datapacks,
@@ -2704,6 +2715,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_timelines,
     listing_villager_trades,
     listing_loot_context_requirements,
+    listing_dispense_behaviors,
 ]
 def listing_various_data(temp):
     for func in listing_various_functions:
