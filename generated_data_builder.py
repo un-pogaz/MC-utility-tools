@@ -521,7 +521,7 @@ def write_serialize_nbt(temp):
     from common import serialize_nbt
     
     # structures.snbt
-    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structure'], 'structure')
+    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structures'], 'structure')
     for dpn, ns, dir in all_dirs:
         dir_snbt = dir+'.snbt'
         writed = False
@@ -1166,11 +1166,11 @@ def listing_advancements(temp):
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
     for ns in lst_namespace:
         for dpn, dp in get_datapack_paths(temp):
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'), ns=ns))
-            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'),      ns=ns))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
             # legacy
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancements'), ns=ns))
-            tags.update(enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancements'), ns=ns, is_tag=True))
+            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         'advancements'), ns=ns))
+            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', 'advancements'), ns=ns, is_tag=True))
     
     recipes = {e for e in entries if ':recipes/' in e}
     entries.difference_update(recipes)
@@ -1260,7 +1260,7 @@ def listing_builtit_datapacks(temp):
 
 def listing_structures(temp):
     lines = set()
-    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structure'], 'structure')
+    dirname, all_dirs = get_legacy_paths(temp, ['structure', 'structures'], 'structure')
     for dpn, ns, dp in all_dirs:
         lines.update([namespace(filename(j), ns=ns) for j in glob.iglob('**/*.nbt', root_dir=os.path.join(temp, dp), recursive=True)])
     if lines:
@@ -2013,7 +2013,10 @@ def listing_commands(temp):
                         type = ' '+type
                     properties = []
                     for k,v in entry.get('properties', {}).items():
-                        properties.append(f'{k}="{v}"')
+                        if isinstance(v, bool):
+                            properties.append(f'{k}={str(v).lower()}')
+                        else:
+                            properties.append(f'{k}="{v}"')
                 
                 suggestion = parse_suggestion(entry)
                 if properties:
@@ -2654,7 +2657,7 @@ def listing_villager_trades(temp):
                 
                 write_lines(os.path.join(temp, 'lists/villager_trades', name_dp(name, dpn) + '.txt'), lines)
 
-def loot_context_requirements(temp):
+def listing_loot_context_requirements(temp):
     rj = read_json(os.path.join(temp, 'reports/loot_context_requirements.json'))
     if rj:
         write_lines(os.path.join(temp, 'lists', 'loot_context_requirements.txt'), sorted(rj.keys()))
@@ -2704,7 +2707,7 @@ listing_various_functions: list[Callable[[str], None]] = [
     listing_rpc_api_schema,
     listing_timelines,
     listing_villager_trades,
-    loot_context_requirements,
+    listing_loot_context_requirements,
 ]
 def listing_various_data(temp):
     for func in listing_various_functions:
