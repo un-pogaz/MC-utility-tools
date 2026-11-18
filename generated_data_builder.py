@@ -30,7 +30,7 @@ from common import (
     write_text,
 )
 
-VERSION = (0, 50, 2)
+VERSION = (0, 50, 3)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--version', help='Target version ; the version must be installed. r or release for the last release s or snapshot for the last snapshot.')
@@ -1336,12 +1336,14 @@ def listing_subdir_reports(temp):
 
 def listing_special_subdirs(temp):
     # special subdir (not in registries)
+    lst_subdir = []
     lst = get_datapacks_entrys(temp)
-    if lst:
-        lst_subdir = []
     for k,t,v in lst:
         if v.get('elements'):
             lst_subdir.append(flatering(t))
+    
+    if not lst_subdir:
+        _, lst_subdir = get_sub_folders_data(temp)
     
     for subdir in lst_subdir:
         entries = set()
