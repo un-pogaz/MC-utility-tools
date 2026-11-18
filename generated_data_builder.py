@@ -643,6 +643,19 @@ def enum_json(dir, is_tag=False, ns=None) -> list[str]:
     lst = glob.iglob('**/*.json', root_dir=dir, recursive=True)
     return [('#' if is_tag else '')+namespace(filename(j), ns=ns) for j in lst]
 
+def enum_datapack_json(temp, subdir, is_tag=False) -> set[str]:
+    rslt = set()
+    for ns, dpn, dp in get_namespace_datapacks(temp):
+        rslt.update(enum_json(os.path.join(
+            temp,
+            dp,
+            'data',
+            ns,
+            ('tags' if is_tag else ''),
+            subdir,
+        ), ns=ns, is_tag=is_tag))
+    return rslt
+
 @lru_cache(maxsize=4)
 def get_languages_json(temp) -> dict[str, str]:
     path = os.path.join(temp, 'assets/minecraft/lang/en_us.json')
@@ -1196,13 +1209,12 @@ def listing_advancements(temp):
     
     entries = set()
     tags = set()
+    entries.update(enum_datapack_json(temp, 'advancement', is_tag=False))
+    tags.update(   enum_datapack_json(temp, 'advancement', is_tag=True))
+    # legacy
     entries.update(enum_json(os.path.join(temp, 'assets/minecraft/advancements')))
-    for ns, dpn, dp in get_namespace_datapacks(temp):
-        entries.update(enum_json(os.path.join(temp, dp, 'data', ns, 'advancement'),      ns=ns))
-        tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags/advancement'), ns=ns, is_tag=True))
-        # legacy
-        entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         'advancements'), ns=ns))
-        tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', 'advancements'), ns=ns, is_tag=True))
+    entries.update(enum_datapack_json(temp, 'advancements', is_tag=False))
+    tags.update(   enum_datapack_json(temp, 'advancements', is_tag=True))
     
     recipes = {e for e in entries if ':recipes/' in e}
     entries.difference_update(recipes)
@@ -1334,9 +1346,8 @@ def listing_special_subdirs(temp):
     for subdir in lst_subdir:
         entries = set()
         tags = set()
-        for ns, dpn, dp in get_namespace_datapacks(temp):
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         subdir), ns=ns))
-            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', subdir), ns=ns, is_tag=True))
+        entries.update(enum_datapack_json(temp, subdir, is_tag=False))
+        tags.update(   enum_datapack_json(temp, subdir, is_tag=True))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', subdir+'.txt'), lines)
@@ -1638,13 +1649,13 @@ def listing_worldgens(temp):
     for dir in lst_dirs:
         entries = set()
         tags = set()
-        for ns, dpn, dp in get_namespace_datapacks(temp):
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         dir), ns=ns))
-            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', dir), ns=ns, is_tag=True))
-            listing_subdir(dir, os.path.join(temp, dp, 'data', ns, dir))
+        entries.update(enum_datapack_json(temp, dir, is_tag=False))
+        tags.update(   enum_datapack_json(temp, dir, is_tag=True))
         lines = sorted(entries) + sorted(tags)
         if lines:
             write_lines(os.path.join(temp, 'lists', dir+'.txt'), lines)
+        for ns, dpn, dp in get_namespace_datapacks(temp):
+            listing_subdir(dir, os.path.join(temp, dp, 'data', ns, dir))
     
     if lst_dimension:
         write_lines(os.path.join(temp, 'lists', 'dimension.txt'), sorted(lst_dimension))
@@ -2181,13 +2192,11 @@ def listing_registries(temp):
         entries = set()
         tags = set()
         entries.update([namespace(k) for k in v['entries']])
-        
-        for ns, dpn, dp in get_namespace_datapacks(temp):
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name), ns=ns))
-            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name), ns=ns, is_tag=True))
-            # legacy
-            entries.update(enum_json(os.path.join(temp, dp, 'data', ns,         name+'s'), ns=ns))
-            tags.update(   enum_json(os.path.join(temp, dp, 'data', ns, 'tags', name+'s'), ns=ns, is_tag=True))
+        entries.update(enum_datapack_json(temp, name, is_tag=False))
+        tags.update(   enum_datapack_json(temp, name, is_tag=True))
+        # legacy
+        entries.update(enum_datapack_json(temp, name+'s', is_tag=False))
+        tags.update(   enum_datapack_json(temp, name+'s', is_tag=True))
         
         write_lines(os.path.join(temp, 'lists', name +'.txt'), sorted(entries) + sorted(tags))
 
